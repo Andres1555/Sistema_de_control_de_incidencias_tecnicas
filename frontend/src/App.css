@@ -1,3 +1,4 @@
+/* Limpiamos los estilos por defecto del Vite + React */
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -5,38 +6,98 @@
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* Contenedor principal que centra el formulario */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* La tarjeta que contiene el formulario */
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 2rem;
+  background-color: #242424; /* Un color de fondo oscuro */
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  color: rgba(255, 255, 255, 0.87); /* Texto claro */
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+h1 {
+  margin-bottom: 1.5rem;
+  font-size: 2em;
+  font-weight: bold;
 }
 
-.card {
-  padding: 2em;
+/* Estilos para el formulario y sus elementos */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
 }
 
-.read-the-docs {
-  color: #888;
+.form-group {
+  text-align: left;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background-color: #1a1a1a;
+  color: white;
+  font-size: 1rem;
+  box-sizing: border-box; /* Asegura que el padding no afecte el ancho total */
+}
+
+input:focus {
+  outline: none;
+  border-color: #646cff;
+}
+
+/* Botón de envío */
+.auth-button {
+  padding: 0.8rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+.auth-button:hover {
+  border-color: #646cff;
+}
+
+.auth-button:focus,
+.auth-button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+.toggle-text {
+  margin-top: 1.5rem;
+  font-size: 0.9em;
+}
+
+.toggle-link {
+  color: #646cff;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.toggle-link:hover {
+  text-decoration: underline;
 }
