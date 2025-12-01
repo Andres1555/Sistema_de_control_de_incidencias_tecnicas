@@ -4,6 +4,11 @@
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  /* Center contenido dentro del root tanto vertical como horizontalmente */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
 }
 
 /* Contenedor principal que centra el formulario */
