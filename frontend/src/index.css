@@ -26,10 +26,12 @@ a:hover {
 
 body {
   margin: 0;
+  width: 100vw;
+  height: 100vh;
   display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  flex-direction: column; /* layout vertical */
+  align-items: stretch;   /* que los hijos ocupen todo el ancho */
+  justify-content: flex-start; /* contenido desde arriba */
 }
 
 h1 {

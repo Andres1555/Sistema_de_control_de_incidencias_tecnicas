@@ -1,15 +1,15 @@
 /* Limpiamos los estilos por defecto del Vite + React */
+/* Root debe ocupar toda la pantalla */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-  /* Center contenido dentro del root tanto vertical como horizontalmente */
+  width: 100vw;       /* ancho completo */
+  height: 100vh;      /* alto completo */
+  margin: 0;          /* sin centrado automático */
+  padding: 0;         /* sin padding restrictivo */
+  text-align: left;   /* evita centrar todo el texto */
   display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
+  flex-direction: column; /* layout vertical */
 }
+
 
 /* Contenedor principal que centra el formulario */
 .auth-container {
