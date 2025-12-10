@@ -4,10 +4,7 @@ import { FaSpinner, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 import { motion } from "framer-motion";
 
 export default function LoadingModal({
-  isOpen,
-  status = "loading",
-  message = "Cargando, por favor espera...",
-  onClose,
+  isOpen,status = "loading",message = "Cargando, por favor espera...",onClose,
 }) {
   if (!isOpen) return null;
 
