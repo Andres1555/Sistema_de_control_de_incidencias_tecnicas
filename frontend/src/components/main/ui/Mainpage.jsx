@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import SidebarLayout from "../layouts/aside"; 
 import UserProfile from "../profile/profile"; 
-
 import { FaSearch, FaPlus, FaArrowLeft } from "react-icons/fa";
 import { FiSun, FiMoon, FiMenu } from "react-icons/fi";
 import { Dialog, DialogContent, DialogTitle, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import ReportForm from "../form/report"; 
+import ReportList from "../card/reportlist";
 
 const Mainpage = () => {
   // --- Estados ---
@@ -14,9 +14,11 @@ const Mainpage = () => {
   const [darkMode, setDarkMode] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false); 
   const [isFormOpen, setIsFormOpen] = useState(false);
-
-  // 2. NUEVO ESTADO: Controla la vista actual ("dashboard" o "profile")
   const [view, setView] = useState("dashboard");
+
+  // 2. ESTADO PARA RECARGAR LA LISTA
+  // Usaremos esto para forzar que ReportList vuelva a pedir los datos al crear un reporte
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const menuRef = useRef(null);
 
@@ -35,8 +37,12 @@ const Mainpage = () => {
   const handleOpenForm = () => setIsFormOpen(true);
   const handleCloseForm = () => setIsFormOpen(false);
 
+  // 3. MANEJO DE ÉXITO DEL FORMULARIO
   const handleFormSuccess = () => {
     console.log("Reporte creado con éxito, recargando lista...");
+    // Al cambiar este número, el componente ReportList se desmonta y monta de nuevo,
+    // disparando su useEffect y trayendo los datos nuevos de la API.
+    setRefreshKey(prev => prev + 1); 
     setIsFormOpen(false);
   };
 
@@ -56,7 +62,6 @@ const Mainpage = () => {
         <div className="w-full px-6 py-4 flex items-center justify-between">
           
           <div className="flex items-center gap-4">
-            {/* Botón Hamburguesa */}
             <button 
               onClick={() => setSidebarOpen(true)}
               className={`p-2 rounded hover:bg-opacity-20 transition-colors focus:outline-none ${
@@ -66,7 +71,6 @@ const Mainpage = () => {
               <FiMenu size={24} />
             </button>
 
-            {/* TÍTULO DINÁMICO CON BOTÓN DE REGRESO */}
             <div className="flex items-center gap-2">
               {view === "profile" && (
                 <button 
@@ -103,7 +107,6 @@ const Mainpage = () => {
               <FaSearch className="absolute left-3 top-2.5 text-gray-400" />
             </div>
 
-            {/* Menú Usuario */}
             <div className="relative" ref={menuRef}>
               <button onClick={() => setMenuOpen(!menuOpen)} className="focus:outline-none block">
                 <img
@@ -121,11 +124,10 @@ const Mainpage = () => {
                       : "bg-white border border-gray-300 text-gray-800"
                   }`}
                 >
-                  {/* 3. AQUÍ ESTÁ EL CAMBIO: Al dar click, cambia la vista y cierra el menú */}
                   <button 
                     onClick={() => {
-                      setView("profile"); // Cambia a perfil
-                      setMenuOpen(false); // Cierra dropdown
+                      setView("profile"); 
+                      setMenuOpen(false); 
                     }}
                     className="block w-full text-left px-4 py-2 text-sm hover:bg-opacity-20 hover:bg-gray-500"
                   >
@@ -145,23 +147,21 @@ const Mainpage = () => {
       {/* --- MAIN CONTENT --- */}
       <main className={`flex-grow w-full px-6 py-6 h-[calc(100vh-80px)] overflow-y-auto ${darkMode ? "text-gray-100" : "text-gray-800"}`}>
         
-        {/* 4. RENDERIZADO CONDICIONAL */}
         {view === "dashboard" ? (
-          /* CASO 1: MUESTRA LA TABLA DE REPORTES */
-          <div className={`w-full h-96 border-2 border-dashed rounded-lg flex items-center justify-center ${
-              darkMode ? "border-gray-700 bg-gray-800/50" : "border-gray-300 bg-gray-50"
-          }`}>
-              <p className="opacity-60">Contenido de gestión de reportes...</p>
+          
+          /* 4. AQUÍ LLAMAMOS A TU COMPONENTE REPORTLIST */
+          /* Usamos 'key' para forzar la recarga cuando cambia refreshKey */
+          <div className="pb-20">
+             <ReportList key={refreshKey} />
           </div>
+
         ) : (
-          /* CASO 2: MUESTRA EL COMPONENTE DE PERFIL */
           <UserProfile darkMode={darkMode} />
         )}
 
       </main>
 
       {/* --- BOTÓN FLOTANTE (+) --- */}
-      {/* Solo mostramos el botón de agregar si estamos en el dashboard */}
       {view === "dashboard" && (
         <button
           onClick={handleOpenForm}
@@ -199,6 +199,7 @@ const Mainpage = () => {
         </DialogTitle>
         
         <DialogContent dividers sx={{ borderColor: darkMode ? '#374151' : undefined }}>
+          {/* Al tener éxito, llamamos a handleFormSuccess que actualiza el refreshKey */}
           <ReportForm 
             onSuccess={handleFormSuccess}
             onClose={handleCloseForm}

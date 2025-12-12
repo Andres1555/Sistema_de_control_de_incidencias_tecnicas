@@ -15,30 +15,36 @@ export const GetallReportController = async (req, res) => {
 
 export const CreateReportController = async (req, res) => {
   try {
-	const { caso,id_maquina,area,estado,descripcion,nombre_natural,clave_natural,clave_win,fecha} = req.body;
+    const {
+      caso,id_maquina,area,estado,descripcion,nombre_natural,clave_natural,clave_win,fecha,} = req.body;
 
-	if (!caso || !area|| !estado|| !descripcion|| !nombre_natural|| !clave_natural|| !clave_win|| !fecha ) {
-	  return res.status(400).json({
-		message:
-		  "Todos los campos son obligatorios",
-	  });
-	}
+    // 1. Validar que todos los campos existan (Faltaba id_maquina)
+    if (
+      !caso ||!id_maquina ||!area ||!estado ||!descripcion ||!nombre_natural ||!clave_natural ||!clave_win ||!fecha
+    ) {
+      return res.status(400).json({
+        message: "Todos los campos son obligatorios",
+      });
+    }
 
-	if (
-	  typeof caso !== "string" ||typeof id_maquina !== "number"||typeof estado !== "string" ||typeof descripcion !== "string" ||typeof nombre_natural !== "string" ||typeof clave_natural !== "string"||typeof clave_win !== "string"||typeof fecha !== "date") {
-	  return res.status(400).json({
-		message:
-		  "los campos tienen que ser un tipo de dato valido",
-	  });
-	}
+    // 2. Validar tipos de datos
+    if (
+      typeof caso !== "string" ||typeof id_maquina !== "number" || typeof area !== "string" || typeof estado !== "string" ||typeof descripcion !== "string" ||typeof nombre_natural !== "string" ||typeof clave_natural !== "string" ||typeof clave_win !== "string" ||typeof fecha !== "string" || isNaN(Date.parse(fecha))) {
+      return res.status(400).json({
+        message: "Los campos tienen que ser un tipo de dato valido",
+      });
+    }
 
-	await ReportService.create({ caso,id_maquina,area,estado,descripcion,nombre_natural,clave_natural,clave_win,fecha });
-	res.status(201).json({ message: "reporte creado correctamente" });
+    await ReportService.create({
+      caso,id_maquina,area,estado,descripcion,nombre_natural,clave_natural,clave_win,fecha,});
+    
+    res.status(201).json({ message: "Reporte creado correctamente" });
   } catch (error) {
-	console.error("Error:", error.message);
-	res
-	  .status(500)
-	  .json({ message: "Error al crear el reporte", error: error.message });
+    console.error("Error:", error.message);
+    res.status(500).json({ 
+        message: "Error al crear el reporte", 
+        error: error.message 
+    });
   }
 };
 export const UpdateReportController= async (req, res) => {
