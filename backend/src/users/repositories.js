@@ -17,6 +17,7 @@ async function createUser(data) {
     nombre: data.nombre,
     apellido: data.apellido,
     correo: data.email,
+    password: data.password,
     ficha: data.ficha,
     telefono: data.telefono,
     C_I: data.ci,
@@ -25,7 +26,6 @@ async function createUser(data) {
   };
   return await User.create(payload);
 }
-
 async function updateByCI(ci, data) {
   const user = await User.findOne({ where: { C_I: ci } });
   if (!user) return null;

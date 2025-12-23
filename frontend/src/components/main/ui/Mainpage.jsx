@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import SidebarLayout from "../layouts/aside"; 
 import UserProfile from "../profile/profile"; 
 import { FaSearch, FaPlus, FaArrowLeft } from "react-icons/fa";
@@ -11,7 +12,12 @@ import ReportList from "../card/reportlist";
 const Mainpage = () => {
   // --- Estados ---
   const [menuOpen, setMenuOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => {
+    const t = localStorage.getItem('theme');
+    if (t === 'dark') return true;
+    if (t === 'light') return false;
+    return true;
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false); 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [view, setView] = useState("dashboard");
@@ -21,6 +27,7 @@ const Mainpage = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const menuRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -32,7 +39,11 @@ const Mainpage = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const toggleTheme = () => setDarkMode(!darkMode);
+  const toggleTheme = () => setDarkMode((s) => {
+    const next = !s;
+    try { localStorage.setItem('theme', next ? 'dark' : 'light'); } catch {}
+    return next;
+  });
 
   const handleOpenForm = () => setIsFormOpen(true);
   const handleCloseForm = () => setIsFormOpen(false);
@@ -51,6 +62,7 @@ const Mainpage = () => {
       isOpen={sidebarOpen} 
       setIsOpen={setSidebarOpen} 
       darkMode={darkMode}
+      onNavigate={setView}
     >
       
       {/* --- HEADER --- */}
@@ -134,7 +146,7 @@ const Mainpage = () => {
                     Perfil
                   </button>
 
-                  <button className="block w-full text-left px-4 py-2 text-sm hover:bg-opacity-20 hover:bg-gray-500">
+                  <button onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('role'); navigate('/login'); setMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm hover:bg-opacity-20 hover:bg-gray-500">
                     Cerrar sesión
                   </button>
                 </div>

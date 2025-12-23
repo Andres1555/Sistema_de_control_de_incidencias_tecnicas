@@ -8,11 +8,13 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData }, ref) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
 
-  // Define aquí los campos iniciales de tu formulario
+  // Campos esperados por el backend para ReportCase
   const initialFormData = {
-    campo1: "",
-    campo2: "",
-    // ... más campos
+    id_user: "",
+    id_report: "",
+    caso_tecnico: "",
+    resolucion: "",
+    tiempo: "",
   };
 
   const [formData, setFormData] = useState(initialData || initialFormData);
@@ -33,13 +35,19 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData }, ref) => {
 
   // --- ENVÍO DEL FORMULARIO ---
   const sendForm = async () => {
-    // 1. Validaciones básicas
-    if (!formData.campo1) {
-      setModalState({
-        isOpen: true,
-        status: "error",
-        message: "Por favor, complete los campos obligatorios.",
-      });
+    // Validaciones básicas
+    const required = ["id_user","id_report","caso_tecnico","resolucion","tiempo"];
+    for (const k of required) {
+      if (!formData[k] && formData[k] !== 0) {
+        setModalState({ isOpen: true, status: "error", message: "Complete todos los campos obligatorios." });
+        return;
+      }
+    }
+
+    const idUserNum = Number(formData.id_user);
+    const idReportNum = Number(formData.id_report);
+    if (isNaN(idUserNum) || isNaN(idReportNum)) {
+      setModalState({ isOpen: true, status: "error", message: "id_user e id_report deben ser números válidos." });
       return;
     }
 
@@ -51,13 +59,22 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData }, ref) => {
     });
 
     try {
-      // 2. Aquí iría tu llamada a la API
-      // const res = await axios.post('/api/endpoint', formData);
-      
-      console.log("Enviando datos:", formData);
-      
-      // Simulación de espera
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const payload = {
+        id_user: Number(formData.id_user),
+        id_report: Number(formData.id_report),
+        caso_tecnico: String(formData.caso_tecnico),
+        resolucion: String(formData.resolucion),
+        tiempo: String(formData.tiempo),
+      };
+
+      const res = await fetch('/api/report_cases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result?.message || 'Error al crear report case');
 
       // 3. Éxito
       setFormSubmitted(true);
@@ -102,62 +119,27 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData }, ref) => {
         ref={ref}
         onSubmit={(e) => e.preventDefault()}
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 3, // Espaciado vertical entre inputs
-          overflowY: "auto",
-          maxHeight: "65vh", // Altura máxima antes de hacer scroll
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 2,
           p: 1,
-          // Estilos del scrollbar
-          "&::-webkit-scrollbar": { width: "8px" },
-          "&::-webkit-scrollbar-track": { background: "#f1f1f1" },
-          "&::-webkit-scrollbar-thumb": {
-            backgroundColor: "#888",
-            borderRadius: "4px",
-          },
-          "&::-webkit-scrollbar-thumb:hover": { background: "#555" },
         }}
       >
-        {/* --- AQUÍ EMPIEZAN TUS INPUTS --- */}
+        {/* Row 1 */}
+        <TextField label="ID Usuario" name="id_user" type="number" variant="filled" value={formData.id_user} onChange={handleInputChange} required />
+        <TextField label="ID Reporte" name="id_report" type="number" variant="filled" value={formData.id_report} onChange={handleInputChange} required />
 
-        {/* Ejemplo Input Texto */}
-        <TextField
-          fullWidth
-          label="Nombre del Campo"
-          name="campo1"
-          variant="filled"
-          value={formData.campo1}
-          onChange={handleInputChange}
-          required
-        />
+        {/* Row 2 */}
+        <TextField label="Caso Técnico" name="caso_tecnico" variant="filled" multiline minRows={3} value={formData.caso_tecnico} onChange={handleInputChange} required />
+        <TextField label="Resolución" name="resolucion" variant="filled" multiline minRows={3} value={formData.resolucion} onChange={handleInputChange} required />
 
-        {/* Ejemplo Select */}
-        <FormControl variant="filled" fullWidth>
-          <InputLabel id="select-label">Selección</InputLabel>
-          <Select
-            labelId="select-label"
-            name="campo2"
-            value={formData.campo2}
-            onChange={handleInputChange}
-          >
-            <MenuItem value="opcionA">Opción A</MenuItem>
-            <MenuItem value="opcionB">Opción B</MenuItem>
-          </Select>
-        </FormControl>
-
-        {/* --- FIN DE TUS INPUTS --- */}
-
-        <Button
-          type="button"
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={sendForm}
-          disabled={isLoading}
-          sx={{ py: 2, mt: 1 }}
-        >
-          {isLoading ? "Cargando..." : "Guardar"}
-        </Button>
+        {/* Row 3 */}
+        <TextField label="Tiempo" name="tiempo" type="time" variant="filled" value={formData.tiempo} onChange={handleInputChange} InputLabelProps={{ shrink: true }} required />
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Button type="button" variant="contained" color="primary" fullWidth onClick={sendForm} disabled={isLoading} sx={{ py: 2 }}>
+            {isLoading ? "Cargando..." : "Guardar"}
+          </Button>
+        </Box>
       </Box>
 
       {/* Modal de Feedback (Carga/Éxito/Error) */}

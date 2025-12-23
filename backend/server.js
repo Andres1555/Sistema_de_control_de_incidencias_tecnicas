@@ -4,7 +4,7 @@ import cors from "cors";
 import routesusers from "./src/users/routes.js";
 import routesreport from "./src/report/routes.js";
 import routesreportcase from "./src/report_cases/routes.js";
-//import routesauth from "./src/auth/routes.js";
+import routesauth from "./src/auth/routes.js";
 import routesreport_users from "./src/report_users/routes.js";
 import routesmachines from "./src/machines/routes.js";
 import routesspec from "./src/specializations/routes.js";
@@ -21,7 +21,7 @@ app.use(express.json());
 app.use("/api/users", routesusers);
 app.use("/api/report", routesreport);
 app.use("/api/report_cases", routesreportcase);
-//app.use("/api/auth",routesauth)
+app.use("/api/auth",routesauth)
 app.use("/api/report_users", routesreport_users);
 app.use("/api/machines", routesmachines);
 app.use("/api/specializations", routesspec);

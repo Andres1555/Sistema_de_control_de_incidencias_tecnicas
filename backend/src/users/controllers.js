@@ -1,4 +1,5 @@
 import {UserService} from "./services.js";
+import bcrypt from 'bcryptjs';
 
 
 export const GetallUserController = async (req, res) => {
@@ -31,9 +32,9 @@ export const GetUserbyidController = async (req, res) => {
 
 export const CreateUserController = async (req, res) => {
   try {
-    const { ci, nombre, apellido, email, telefono, ficha, rol, extension} = req.body;
+    const { ci, nombre, apellido, email, telefono, ficha, rol, extension, password } = req.body;
 
-    if (!ci || !nombre || !apellido || !email || !telefono || !ficha || !rol || !extension) {
+    if (!ci || !nombre || !apellido || !email || !telefono || !ficha || !rol || !extension || !password) {
       return res.status(400).json({
         message:
           "Todos los campos son obligatorios",
@@ -41,14 +42,16 @@ export const CreateUserController = async (req, res) => {
     }
 
     if (
-      typeof ci !== "number" ||typeof telefono !== "number" ||typeof nombre !== "string" ||typeof apellido !== "string" ||typeof email !== "string"||typeof ficha !== "number"||typeof rol !== "string"||typeof extension !== "number") {
+      typeof ci !== "number" || typeof telefono !== "number" || typeof nombre !== "string" || typeof apellido !== "string" || typeof email !== "string" || typeof ficha !== "number" || typeof rol !== "string" || typeof extension !== "number" || typeof password !== "string") {
       return res.status(400).json({
         message:
           "los campos tienen que ser un tipo de dato valido",
       });
     }
+    // Hash password before storing
+    const hashed = await bcrypt.hash(password, 10);
 
-    await UserService.create({ ci, nombre, apellido, email, telefono, ficha, rol, extension });
+    await UserService.create({ ci, nombre, apellido, email, telefono, ficha, rol, extension, password: hashed });
     res.status(201).json({ message: "usuario creado correctamente" });
   } catch (error) {
     console.error("Error:", error.message);

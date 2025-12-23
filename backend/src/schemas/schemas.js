@@ -11,6 +11,7 @@ export const User = sequelize.define('Users', {
   nombre: { type: DataTypes.STRING(500) },
   apellido: { type: DataTypes.STRING(500) },
   correo: { type: DataTypes.STRING(500) },
+  password: { type: DataTypes.STRING(500) },
   ficha: { type: DataTypes.INTEGER },
   telefono: { type: DataTypes.INTEGER },
   C_I: { type: DataTypes.INTEGER, field: 'C.I' },
@@ -107,8 +108,30 @@ Specialization.belongsToMany(User, { through: SpecializationUsers, foreignKey: '
 
 
 export async function initDatabase() {
-  await sequelize.sync({ alter: true });
-  console.log('Base de datos sincronizada con Sequelize');
+  // Evitar conflicto con tablas de backup creadas por sincronizaciones previas
+  try {
+    await sequelize.query('DROP TABLE IF EXISTS "Users_backup";');
+  } catch (e) {
+    console.warn('No se pudo eliminar Users_backup (continuando):', e.message || e);
+  }
+
+  // Desactivar temporalmente las constraints de FK durante alteraciones complejas en SQLite
+  try {
+    await sequelize.query('PRAGMA foreign_keys = OFF;');
+  } catch (e) {
+    console.warn('No se pudo desactivar foreign_keys (continuando):', e.message || e);
+  }
+
+  try {
+    await sequelize.sync({ alter: true });
+    console.log('Base de datos sincronizada con Sequelize');
+  } finally {
+    try {
+      await sequelize.query('PRAGMA foreign_keys = ON;');
+    } catch (e) {
+      console.warn('No se pudo reactivar foreign_keys:', e.message || e);
+    }
+  }
 }
 
 export default sequelize;
