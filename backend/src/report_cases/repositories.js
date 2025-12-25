@@ -11,6 +11,11 @@ async function getById(id) {
   return null;
 }
 
+async function getByUserId(userId) {
+  if (userId === undefined || userId === null) return [];
+  return await ReportCase.findAll({ where: { id_user: userId } });
+}
+
 async function createReportCase(data) {
   const payload = {
     id_user: data.id_user,
@@ -38,6 +43,7 @@ async function deleteById(id) {
 export const ReportCaseRepository = {
   getAll,
   getById,
+  getByUserId,
   createReportCase,
   updateById,
   deleteById,

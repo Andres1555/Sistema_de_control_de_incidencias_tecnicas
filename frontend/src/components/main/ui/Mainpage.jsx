@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogTitle, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import ReportForm from "../form/report"; 
 import ReportList from "../card/reportlist";
+import ReportTechList from "../card/reportechlist";
 
 const Mainpage = () => {
   // --- Estados ---
@@ -160,13 +161,13 @@ const Mainpage = () => {
       <main className={`flex-grow w-full px-6 py-6 h-[calc(100vh-80px)] overflow-y-auto ${darkMode ? "text-gray-100" : "text-gray-800"}`}>
         
         {view === "dashboard" ? (
-          
-          /* 4. AQUÍ LLAMAMOS A TU COMPONENTE REPORTLIST */
-          /* Usamos 'key' para forzar la recarga cuando cambia refreshKey */
           <div className="pb-20">
              <ReportList key={refreshKey} />
           </div>
-
+        ) : view === "tech" ? (
+          <div className="pb-20">
+            <ReportTechList key={refreshKey} userId={Number(localStorage.getItem('userId')) || undefined} />
+          </div>
         ) : (
           <UserProfile darkMode={darkMode} />
         )}

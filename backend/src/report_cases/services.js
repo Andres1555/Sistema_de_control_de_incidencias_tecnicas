@@ -5,6 +5,10 @@ export const ReportcaseService = {
     return await ReportCaseRepository.getAll();
   },
 
+  getByUserId: async (userId) => {
+    return await ReportCaseRepository.getByUserId(userId);
+  },
+
   create: async (data) => {
     return await ReportCaseRepository.createReportCase(data);
   },

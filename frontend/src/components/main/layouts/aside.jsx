@@ -47,7 +47,7 @@ const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate }) =>
           </button>
 
           {/* Botón Reportes Técnicos */}
-          <button className={`w-full flex items-center px-4 py-3 rounded-md transition-colors ${
+          <button onClick={() => { onNavigate?.('tech'); setIsOpen(false); }} className={`w-full flex items-center px-4 py-3 rounded-md transition-colors ${
              darkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
           }`}>
             <FaFileAlt className="w-5 h-5 mr-3" />

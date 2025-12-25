@@ -98,3 +98,18 @@ export const DeleteReportcaseController= async (req, res) => {
 	  .json({ message: "Error no se pudo eliminar el reporte", error: error.message });
   }
 };
+
+export const GetallReportuserController = async (req, res) => {
+	try {
+		const { id } = req.params;
+		if (!id) return res.status(400).json({ message: "Se requiere id de usuario" });
+		const idnumber = Number(id);
+		if (isNaN(idnumber)) return res.status(400).json({ message: "id no valida" });
+
+		const reportcases = await ReportcaseService.getByUserId(idnumber);
+		res.status(200).json(reportcases);
+	} catch (error) {
+		console.error("Error en el controlador GetallReportuserController", error.message);
+		res.status(500).json({ message: "Error al obtener reportes por usuario", error: error.message });
+	}
+};
