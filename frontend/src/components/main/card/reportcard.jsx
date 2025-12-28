@@ -1,6 +1,6 @@
 import React from "react";
 
-const ReportCard = ({ report = {}, onView }) => {
+const ReportCard = ({ report = {}, onView, onDelete }) => {
 	const {
 		id,
 		caso,
@@ -30,27 +30,47 @@ const ReportCard = ({ report = {}, onView }) => {
 	};
 
 	return (
-		<article className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+		<article className="bg-white rounded-lg shadow-sm p-4 border border-gray-100 flex flex-col gap-4">
 			<div className="flex items-start justify-between gap-4">
-				<div>
+				<div className="flex-1">
 					<h3 className="text-lg font-semibold text-gray-800">{caso || `Reporte #${id ?? "-"}`}</h3>
-					<p className="mt-1 text-sm text-gray-600">{(descripcion || "Sin descripción").slice(0, 140)}</p>
+					<p className="mt-1 text-sm text-gray-600 line-clamp-2">
+						{descripcion || "Sin descripción"}
+					</p>
 					<div className="mt-2 text-xs text-gray-500">
 						<span className="mr-3">{area ? `Área: ${area}` : null}</span>
 						<span>{nombre_natural ? `Reportado por: ${nombre_natural}` : null}</span>
 					</div>
 				</div>
 
-				<div className="flex flex-col items-end gap-2">
-					<span className={`${statusColor()} px-3 py-1 rounded-full text-xs font-medium`}>{estado || "Sin estado"}</span>
-					<span className="text-xs text-gray-400">{fecha ? new Date(fecha).toLocaleString() : "-"}</span>
-					<button
-						onClick={() => onView && onView(report)}
-						className="mt-2 inline-block bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
-					>
-						Ver
-					</button>
+				<div className="flex flex-col items-end gap-1 min-w-fit">
+					<span className={`${statusColor()} px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap`}>
+						{estado || "Sin estado"}
+					</span>
+					<span className="text-[10px] text-gray-400 uppercase font-semibold">
+						{fecha ? new Date(fecha).toLocaleDateString() : "-"}
+					</span>
 				</div>
+			</div>
+
+			{/* Fila de acciones: Botones en extremos opuestos */}
+			<div className="flex justify-between items-center pt-2 border-t border-gray-50">
+				<button
+					onClick={() => onDelete && onDelete(id)}
+					className="text-gray-500 hover:text-white hover:bg-red-600 border border-transparent hover:border-red-600 px-3 py-1.5 rounded-md text-sm transition-all duration-200 flex items-center gap-1"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+					</svg>
+					Eliminar
+				</button>
+
+				<button
+					onClick={() => onView && onView(report)}
+					className="bg-blue-600 text-white px-5 py-1.5 rounded-md hover:bg-blue-700 text-sm font-medium transition-colors shadow-sm"
+				>
+					Ver detalles
+				</button>
 			</div>
 		</article>
 	);

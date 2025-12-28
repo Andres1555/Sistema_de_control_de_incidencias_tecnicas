@@ -95,7 +95,7 @@ const Mainpage = () => {
                 </button>
               )}
               <h1 className="text-xl font-bold">
-                {view === "dashboard" ? "Gestión de reportes" : "Mi Perfil"}
+                {view === "dashboard" ? "Gestión de reportes" : "Gestion de reportes Tecnicos"}
               </h1>
             </div>
           </div>
