@@ -1,25 +1,72 @@
-import React, { useState } from "react";
-import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaCamera, FaSave, FaPen } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import LoadingModal from "@/hooks/Modals/LoadingModal";
+import { FaUser, FaEnvelope, FaPhone, FaCamera, FaSave, FaPen } from "react-icons/fa";
 
 const UserProfile = ({ darkMode }) => {
   // Estado para alternar entre "Ver" y "Editar"
   const [isEditing, setIsEditing] = useState(false);
 
-  // Datos iniciales vacíos (Estructura sin datos)
+  // Datos del usuario (usamos nombres compatibles con el backend)
   const [user, setUser] = useState({
-    name: "",
-    role: "",
+    nombre: "",
+    apellido: "",
     email: "",
-    phone: "",
-    address: "",
-    about: "",
-    avatar: "https://via.placeholder.com/150" // Placeholder genérico para que no se rompa la imagen
+    telefono: "",
+    extension: "",
+    ficha: "",
+    ci: "",
+    role: "",
+    avatar: "https://via.placeholder.com/150"
   });
 
   // Función para manejar cambios en los inputs
   const handleChange = (e) => {
-    setUser({ ...user, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setUser((prev) => ({ ...prev, [name]: value }));
   };
+
+  // Decodificar token para obtener CI en caso de que se necesite
+  const decodeToken = (token) => {
+    if (!token) return null;
+    try {
+      const payload = token.split('.')[1];
+      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const json = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(json);
+    } catch (e) { return null; }
+  };
+
+  // Cargar usuario actual al montar
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const idFromToken = decodeToken(token)?.id;
+        const userId = localStorage.getItem('userId') || idFromToken;
+        if (!userId) return;
+        const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+        const res = await fetch(`${base}/api/users/${userId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setUser({
+          nombre: data.nombre || data.name || "",
+          apellido: data.apellido || "",
+          email: data.correo || data.email || "",
+          telefono: data.telefono ? String(data.telefono) : "",
+          extension: data.extension ? String(data.extension) : "",
+          ficha: data.ficha ? String(data.ficha) : "",
+          ci: data.C_I ? String(data.C_I) : "",
+          role: data.rol || "",
+          avatar: data.avatar || "https://via.placeholder.com/150"
+        });
+      } catch (err) {
+        console.error('Error fetching profile', err);
+      }
+    };
+    loadUser();
+  }, []);
 
   // --- Estilos Dinámicos (Modo Oscuro vs Claro) ---
   const theme = {
@@ -32,6 +79,76 @@ const UserProfile = ({ darkMode }) => {
     divider: darkMode ? "border-gray-700" : "border-gray-100"
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [modalState, setModalState] = useState({ isOpen: false, status: 'loading', message: '' });
+
+  const handleModalClose = () => {
+    setModalState((s) => ({ ...s, isOpen: false }));
+  };
+
+  const handleSave = async () => {
+    try {
+      // Validaciones mínimas
+      if (!user.nombre || !user.apellido || !user.email) {
+        setModalState({ isOpen: true, status: 'error', message: 'Nombre, Apellido y Email son obligatorios.' });
+        return;
+      }
+
+      const payload = {};
+      payload.nombre = user.nombre;
+      payload.apellido = user.apellido;
+      payload.email = user.email;
+      if (user.telefono !== "") payload.telefono = Number(user.telefono);
+      if (user.extension !== "") payload.extension = Number(user.extension);
+      // Incluir ficha oculto si existe
+      if (user.ficha !== undefined && user.ficha !== "") payload.ficha = Number(user.ficha);
+
+      const token = localStorage.getItem('token');
+      const decoded = decodeToken(token);
+      const ci = decoded?.ci;
+      if (!ci) {
+        setModalState({ isOpen: true, status: 'error', message: 'No se pudo obtener CI del token.' });
+        return;
+      }
+
+      const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`${base}/api/users/${ci}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = (body && body.message) ? body.message : res.statusText || 'Error al actualizar';
+        setModalState({ isOpen: true, status: 'error', message: msg });
+        return;
+      }
+
+      // éxito
+      setModalState({ isOpen: true, status: 'success', message: body?.message || 'Perfil actualizado correctamente' });
+      setIsEditing(false);
+
+      // actualizar estado local con lo que haya en body.user (si viene)
+      if (body?.user) {
+        setUser((prev) => ({ ...prev,
+          nombre: body.user.nombre || prev.nombre,
+          apellido: body.user.apellido || prev.apellido,
+          email: body.user.correo || body.user.email || prev.email,
+          telefono: body.user.telefono ? String(body.user.telefono) : prev.telefono,
+          extension: body.user.extension ? String(body.user.extension) : prev.extension
+        }));
+      }
+
+    } catch (err) {
+      console.error('Error saving profile', err);
+      setModalState({ isOpen: true, status: 'error', message: err?.message || 'Error al guardar' });
+    }
+  }
+
   return (
     <div className={`w-full max-w-5xl mx-auto rounded-2xl shadow-xl border overflow-hidden transition-all duration-300 ${theme.card}`}>
       
@@ -39,10 +156,19 @@ const UserProfile = ({ darkMode }) => {
       <div className="relative h-48 bg-gradient-to-r from-gray-400 to-gray-600">
         {/* Botón Editar/Guardar Flotante */}
         <button 
-          onClick={() => setIsEditing(!isEditing)}
+          onClick={async () => {
+            if (isEditing) {
+              // Guardar cambios
+              setIsSaving(true);
+              await handleSave();
+              setIsSaving(false);
+              return;
+            }
+            setIsEditing(true);
+          }}
           className="absolute top-6 right-6 bg-white/20 hover:bg-white/30 backdrop-blur text-white px-5 py-2 rounded-full flex items-center gap-2 transition-all font-medium shadow-lg"
         >
-          {isEditing ? <><FaSave /> Guardar</> : <><FaPen size={14} /> Editar</>}
+          {isEditing ? <><FaSave /> {isSaving ? 'Guardando...' : 'Guardar'}</> : <><FaPen size={14} /> Editar</>}
         </button>
       </div>
 
@@ -67,7 +193,7 @@ const UserProfile = ({ darkMode }) => {
           {/* Textos: Nombre y Rol */}
           <div className="mt-4 sm:mt-0 sm:ml-6 text-center sm:text-left flex-1 pb-2">
             <h2 className={`text-3xl font-bold min-h-[40px] ${theme.textPrimary}`}>
-              {user.name || "Nombre del Usuario"}
+              { (user.nombre || user.apellido) ? `${user.nombre || ''} ${user.apellido || ''}`.trim() : "Nombre del Usuario" }
             </h2>
             <p className={`text-lg font-medium min-h-[28px] ${darkMode ? "text-blue-400" : "text-blue-600"}`}>
               {user.role || "Rol / Cargo"}
@@ -87,16 +213,27 @@ const UserProfile = ({ darkMode }) => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <ProfileField 
-                  label="Nombre Completo" 
+                  label="Nombre" 
                   icon={FaUser} 
-                  name="name" 
-                  value={user.name} 
+                  name="nombre" 
+                  value={user.nombre} 
                   placeholder="Ingrese nombre..."
                   isEditing={isEditing} 
                   handleChange={handleChange} 
                   theme={theme}
                 />
-                
+
+                <ProfileField 
+                  label="Apellido" 
+                  icon={FaUser} 
+                  name="apellido" 
+                  value={user.apellido} 
+                  placeholder="Ingrese apellido..."
+                  isEditing={isEditing} 
+                  handleChange={handleChange} 
+                  theme={theme}
+                />
+
                 <ProfileField 
                   label="Correo Electrónico" 
                   icon={FaEnvelope} 
@@ -111,22 +248,45 @@ const UserProfile = ({ darkMode }) => {
                 <ProfileField 
                   label="Teléfono" 
                   icon={FaPhone} 
-                  name="phone" 
-                  value={user.phone} 
-                  placeholder="+00 000 000 0000"
+                  name="telefono" 
+                  value={user.telefono} 
+                  placeholder="000000000"
                   isEditing={isEditing} 
                   handleChange={handleChange} 
                   theme={theme}
                 />
 
                 <ProfileField 
-                  label="Ubicación" 
-                  icon={FaMapMarkerAlt} 
-                  name="address" 
-                  value={user.address} 
-                  placeholder="Ciudad, País"
+                  label="Extensión" 
+                  icon={FaPhone} 
+                  name="extension" 
+                  value={user.extension} 
+                  placeholder="123"
                   isEditing={isEditing} 
                   handleChange={handleChange} 
+                  theme={theme}
+                />
+
+                {/* Mostrar Cédula y Ficha (no editables) */}
+                <ProfileField 
+                  label="Cédula" 
+                  icon={FaUser} 
+                  name="ci" 
+                  value={user.ci} 
+                  placeholder="Cédula"
+                  isEditing={false} 
+                  handleChange={() => {}} 
+                  theme={theme}
+                />
+
+                <ProfileField 
+                  label="Ficha" 
+                  icon={FaUser} 
+                  name="ficha" 
+                  value={user.ficha} 
+                  placeholder="Ficha"
+                  isEditing={false} 
+                  handleChange={() => {}} 
                   theme={theme}
                 />
               </div>
@@ -134,30 +294,13 @@ const UserProfile = ({ darkMode }) => {
           </div>
 
           {/* COLUMNA DERECHA: BIO / SOBRE MÍ */}
-          <div className="lg:col-span-1">
-            <h3 className={`text-xl font-semibold border-b pb-3 mb-4 ${theme.textPrimary} ${theme.divider}`}>
-              Sobre Mí
-            </h3>
-            
-            <div className={`p-5 rounded-xl h-64 ${darkMode ? "bg-gray-700/30" : "bg-gray-50 border border-gray-100"}`}>
-              {isEditing ? (
-                <textarea
-                  name="about"
-                  value={user.about}
-                  onChange={handleChange}
-                  className={`w-full h-full bg-transparent resize-none outline-none text-sm leading-relaxed ${theme.textPrimary}`}
-                  placeholder="Escribe una breve descripción..."
-                />
-              ) : (
-                <p className={`text-sm leading-relaxed italic ${theme.textSecondary}`}>
-                  {user.about || "Sin descripción disponible."}
-                </p>
-              )}
-            </div>
-          </div>
+          {/* Eliminado: Sección 'Sobre Mí' ya no se muestra según requerimiento */}
 
         </div>
       </div>
+
+      {/* Modal feedback */}
+      <LoadingModal isOpen={modalState.isOpen} status={modalState.status} message={modalState.message} onClose={handleModalClose} />
     </div>
   );
 };

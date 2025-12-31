@@ -38,9 +38,10 @@ export const CreateReportController = async (req, res) => {
 			machineId = machine.id;
 		}
 
-		await ReportService.create({ caso, id_maquina: Number(machineId), area, estado, descripcion, nombre_natural, clave_natural, clave_win, fecha });
+		const created = await ReportService.create({ caso, id_maquina: Number(machineId), area, estado, descripcion, nombre_natural, clave_natural, clave_win, fecha });
 
-		res.status(201).json({ message: "Reporte creado correctamente" });
+		// Respondemos con el objeto creado para que el frontend pueda usar el id
+		res.status(201).json({ message: "Reporte creado correctamente", report: created });
   } catch (error) {
     console.error("Error:", error.message);
     res.status(500).json({ 
@@ -51,34 +52,32 @@ export const CreateReportController = async (req, res) => {
 };
 export const UpdateReportController= async (req, res) => {
   try {
-	
-	const { estado,fecha} = req.body;
+    const { id } = req.params;
+    const idnumber = Number(id);
+    if (isNaN(idnumber)) return res.status(400).json({ message: 'id no valida' });
 
-	if (!estado||!fecha ) {
-	  return res.status(400).json({
-		message:
-		  "Todos los campos son obligatorios",
-	  });
-	}
+    const allowed = ['caso','id_maquina','area','estado','descripcion','nombre_natural','clave_natural','clave_win','fecha'];
+    const payload = {};
+    for (const k of allowed) {
+      if (req.body[k] !== undefined) payload[k] = req.body[k];
+    }
 
-	if (
-	 typeof estado !== "string"||typeof fecha !== "date") {
-	  return res.status(400).json({
-		message:
-		  "los campos tienen que ser un tipo de dato valido",
-	  });
-	}
+    console.log('UpdateReportController - payload recibido:', payload);
 
-	await ReportService.update(ci, {estado,fecha});
-	res.status(200).json({ message: "reporte actualizado correctamente" });
+    // Validaciones simples
+    if (payload.fecha && isNaN(Date.parse(payload.fecha))) return res.status(400).json({ message: "Fecha inválida" });
+    if (payload.id_maquina && isNaN(Number(payload.id_maquina))) return res.status(400).json({ message: "id_maquina debe ser un número" });
+
+    const updated = await ReportService.update(idnumber, payload);
+    res.status(200).json({ message: "reporte actualizado correctamente", report: updated });
   } catch (error) {
-	console.error("Error en el controlador:", error.message);
-	res
-	  .status(500)
-	  .json({
-		message: "Error al actualizar el reporte",
-		error: error.message,
-	  });
+    console.error("Error en el controlador:", error.message);
+    res
+      .status(500)
+      .json({
+        message: "Error al actualizar el reporte",
+        error: error.message,
+      });
   }
 };
 export const DeleteReportController= async (req, res) => {
@@ -97,8 +96,13 @@ export const DeleteReportController= async (req, res) => {
 		.json({ message: "id no valida" });
 	}
 
-	await ReportService.delete(idnumber);
-	res.status(200).json({ message: "" });
+	const result = await ReportService.delete(idnumber);
+	// result may include counts
+	if (typeof result === 'object') {
+	  return res.status(200).json({ message: `Reporte eliminado. Casos técnicos eliminados: ${result.casesDeleted || 0}. Relaciones usuario-reporte eliminadas: ${result.reportUsersDeleted || 0}.` });
+	}
+
+	res.status(200).json({ message: "Reporte eliminado" });
   } catch (error) {
 	console.error("Error:", error.message);
 	res

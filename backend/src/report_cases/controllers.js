@@ -15,6 +15,10 @@ export const GetallReportcaseController = async (req, res) => {
 
 export const CreateReportcaseController = async (req, res) => {
   try {
+	// LOG: mostrar headers y body para depuración
+	console.log('CreateReportcaseController - headers:', req.headers);
+	console.log('CreateReportcaseController - body:', req.body);
+
 	const { id_user,id_report,caso_tecnico,resolucion,tiempo } = req.body;
 
 	if (!id_user || !id_report || !caso_tecnico || !resolucion || !tiempo  ) {
@@ -25,15 +29,22 @@ export const CreateReportcaseController = async (req, res) => {
 	}
 
 	if (
-	  typeof id_user !== "number"||typeof id_report !== "number"||typeof caso_tecnico !== "string"||typeof resolucion !== "string"||typeof tiempo !== "time") {
+	  typeof id_user !== "number" || typeof id_report !== "number" || typeof caso_tecnico !== "string" || typeof resolucion !== "string" || typeof tiempo !== "string") {
 
 	  return res.status(400).json({
 		message:
-		"los campos tienen que ser un tipo de dato valido",});
+		"Los campos tienen que ser de un tipo válido "});
 	}
 
-	await ReportcaseService.create({ id_user,id_report,caso_tecnico,resolucion,tiempo});
-	res.status(201).json({ message: "reporte de caso creado correctamente" });
+	// Validar formato de tiempo HH:MM
+	const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+	if (!timeRegex.test(String(tiempo))) {
+	  return res.status(400).json({ message: "El campo 'tiempo' debe tener formato HH:MM" });
+	}
+
+	const created = await ReportcaseService.create({ id_user,id_report,caso_tecnico,resolucion,tiempo});
+	// Responder con el objeto creado
+	res.status(201).json({ message: "reporte de caso creado correctamente", reportcase: created });
   } catch (error) {
 	console.error("Error:", error.message);
 	res
@@ -43,34 +54,36 @@ export const CreateReportcaseController = async (req, res) => {
 };
 export const UpdateReportcaseController= async (req, res) => {
   try {
-	
-	const { id_user,id_report,caso_tecnico,resolucion,tiempo} = req.body;
+    const { id } = req.params;
+    const idnumber = Number(id);
+    if (isNaN(idnumber)) return res.status(400).json({ message: 'id no valida' });
 
-	if (!id_user||!id_report||!caso_tecnico||!resolucion||!tiempo) {
-	  return res.status(400).json({
-		message:
-		  "Todos los campos son obligatorios",
-	  });
-	}
+    const { id_user,id_report,caso_tecnico,resolucion,tiempo} = req.body;
+    const payload = {};
+    if (id_user !== undefined) payload.id_user = id_user;
+    if (id_report !== undefined) payload.id_report = id_report;
+    if (caso_tecnico !== undefined) payload.caso_tecnico = caso_tecnico;
+    if (resolucion !== undefined) payload.resolucion = resolucion;
+    if (tiempo !== undefined) payload.tiempo = tiempo;
 
-	if (
-	 typeof id_user !== "number"||typeof id_report !== "number"||typeof caso_tecnico !== "string"||typeof resolucion !== "string"||typeof tiempo !== "time" ) {
-	  return res.status(400).json({
-		message:
-		  "los campos tienen que ser un tipo de dato valido",
-	  });
-	}
+    // Validaciones simples
+    if (payload.id_user !== undefined && isNaN(Number(payload.id_user))) return res.status(400).json({ message: 'id_user debe ser número' });
+    if (payload.id_report !== undefined && isNaN(Number(payload.id_report))) return res.status(400).json({ message: 'id_report debe ser número' });
+    if (payload.tiempo !== undefined) {
+      const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+      if (!timeRegex.test(String(payload.tiempo))) return res.status(400).json({ message: "El campo 'tiempo' debe tener formato HH:MM" });
+    }
 
-	await ReportcaseService.update({caso_tecnico,resolucion,tiempo});
-	res.status(200).json({ message: "reporte actualizado correctamente" });
+    const updated = await ReportcaseService.update(idnumber, payload);
+    res.status(200).json({ message: "reporte de caso actualizado correctamente", reportcase: updated });
   } catch (error) {
-	console.error("Error en el controlador:", error.message);
-	res
-	  .status(500)
-	  .json({
-		message: "Error al actualizar el reporte",
-		error: error.message,
-	  });
+    console.error("Error en el controlador:", error.message);
+    res
+      .status(500)
+      .json({
+        message: "Error al actualizar el reporte",
+        error: error.message,
+      });
   }
 };
 export const DeleteReportcaseController= async (req, res) => {

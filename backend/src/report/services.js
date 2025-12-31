@@ -16,9 +16,11 @@ export const ReportService = {
   },
 
   delete: async (id) => {
-    const destroyed = await ReportRepository.deleteById(id);
+    const result = await ReportRepository.deleteById(id);
+    // result can be an object { destroyed, casesDeleted, reportUsersDeleted }
+    const destroyed = (typeof result === 'object') ? result.destroyed : result;
     if (!destroyed) throw new Error("Reporte no encontrado para eliminar");
-    return destroyed;
+    return result;
   },
 };
 

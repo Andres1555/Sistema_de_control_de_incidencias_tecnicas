@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 
 const ConfirmationModal = ({ isOpen, message, onConfirm, onCancel }) => {
+  const darkMode = (() => { try { return localStorage.getItem('theme') === 'dark'; } catch (e) { return true; } })();
   return (
     <Modal open={isOpen} onClose={onCancel}>
       <Box
@@ -13,8 +14,10 @@ const ConfirmationModal = ({ isOpen, message, onConfirm, onCancel }) => {
           left: "50%",
           transform: "translate(-50%, -50%)",
           width: 400,
-          bgcolor: "background.paper",
-          border: "2px solid #000",
+          bgcolor: darkMode ? '#1f2937' : 'background.paper',
+          color: darkMode ? '#ffffff' : undefined,
+          border: "2px solid",
+          borderColor: darkMode ? '#374151' : '#000',
           boxShadow: 24,
           p: 4,
         }}

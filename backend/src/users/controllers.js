@@ -63,26 +63,41 @@ export const CreateUserController = async (req, res) => {
 export const UpdateUserController= async (req, res) => {
   try {
     const ci = Number(req.params.ci);
-    const { nombre, apellido, email, telefono, ficha, rol, extension } = req.body;
+    const { nombre, apellido, email, telefono, extension, ficha, password } = req.body;
 
-    if (!ci || !nombre || !apellido || !email || !telefono|| !ficha || !rol || !extension) {
-      return res.status(400).json({
-        message:
-          "Todos los campos son obligatorios",
-      });
+    if (!ci) {
+      return res.status(400).json({ message: "Se requiere el CI en la ruta" });
     }
 
-    if (
-      isNaN(ci) ||
-      typeof telefono !== "number" ||typeof nombre !== "string" ||typeof apellido !== "string" ||typeof email !== "string" ||typeof ficha !== "number" ||typeof rol !== "string" ||typeof extension !== "number") {
-      return res.status(400).json({
-        message:
-          "los campos tienen que ser un tipo de dato valido",
-      });
+    // Al menos uno de los campos debe estar presente
+    if (nombre === undefined && apellido === undefined && email === undefined && telefono === undefined && extension === undefined) {
+      return res.status(400).json({ message: "Al menos un campo a actualizar debe ser provisto" });
     }
 
-    await UserService.update(ci, {nombre,apellido,email,telefono,ficha,rol,extension});
-    res.status(200).json({ message: "usuario actualizado correctamente" });
+    // Validaciones por campo si fueron provistos
+    if (nombre !== undefined && typeof nombre !== 'string') return res.status(400).json({ message: "El campo 'nombre' debe ser string" });
+    if (apellido !== undefined && typeof apellido !== 'string') return res.status(400).json({ message: "El campo 'apellido' debe ser string" });
+    if (email !== undefined && typeof email !== 'string') return res.status(400).json({ message: "El campo 'email' debe ser string" });
+    if (telefono !== undefined && typeof telefono !== 'number') return res.status(400).json({ message: "El campo 'telefono' debe ser number" });
+    if (extension !== undefined && typeof extension !== 'number') return res.status(400).json({ message: "El campo 'extension' debe ser number" });
+
+    // Construir objeto con solo las propiedades provistas
+    const updateData = {};
+    if (nombre !== undefined) updateData.nombre = nombre;
+    if (apellido !== undefined) updateData.apellido = apellido;
+    if (email !== undefined) updateData.email = email; // repositorio lo mapeará a correo
+    if (telefono !== undefined) updateData.telefono = telefono;
+    if (extension !== undefined) updateData.extension = extension;
+    if (ficha !== undefined) updateData.ficha = ficha;
+
+    // Si se provee 'password' (clave en claro), la hasheamos antes de guardar
+    if (password !== undefined) {
+      const hashed = await bcrypt.hash(String(password), 10);
+      updateData.password = hashed;
+    }
+
+    const updated = await UserService.update(ci, updateData);
+    res.status(200).json({ message: "usuario actualizado correctamente", user: updated });
   } catch (error) {
     console.error("Error en el controlador:", error.message);
     res

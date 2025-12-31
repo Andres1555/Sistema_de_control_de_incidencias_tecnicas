@@ -34,9 +34,10 @@ const Login = () => {
 
       const res = await axios.post("http://localhost:8080/api/auth/login", formData);
 
-      // Guardar token y rol en localStorage
+      // Guardar token, rol e id de usuario en localStorage
       if (res.data?.token) localStorage.setItem('token', res.data.token);
       if (res.data?.user?.rol) localStorage.setItem('role', res.data.user.rol);
+      if (res.data?.user?.id) localStorage.setItem('userId', String(res.data.user.id));
 
       // Mostrar modal de éxito y navegar al cerrar
       setModalState({ isOpen: true, status: 'success', message: 'Login exitoso' });

@@ -25,9 +25,15 @@ async function deleteById(id) {
   return destroyed;
 }
 
+async function deleteByReportId(reportId, options = {}) {
+  if (reportId === undefined || reportId === null) return 0;
+  const destroyed = await ReportUser.destroy({ where: { id_report: reportId }, ...options });
+  return destroyed;
+}
 export const ReportUserRepository = {
   getAll,
   getById,
   create,
   deleteById,
+  deleteByReportId,
 };

@@ -31,16 +31,20 @@ export default function LoadingModal({
     }
   }, [status, onClose]);
 
+  const darkMode = (() => {
+    try { return localStorage.getItem('theme') === 'dark'; } catch (e) { return true; }
+  })();
+
   // 💡 2. Definir el contenido del Modal
   const modalContent = (
     <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-2xl p-6 shadow-xl flex flex-col items-center gap-4"
+        className={`${darkMode ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-800'} rounded-2xl p-6 shadow-xl flex flex-col items-center gap-4`}
       >
         <IconComponent className={`w-10 h-10 ${iconClass}`} />
-        <p className="text-center text-gray-700 text-lg font-medium">
+        <p className={`text-center ${darkMode ? 'text-gray-100' : 'text-gray-700'} text-lg font-medium`}>
           {message}
         </p>
       </motion.div>

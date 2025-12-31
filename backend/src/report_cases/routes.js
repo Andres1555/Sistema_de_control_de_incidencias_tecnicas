@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/',  GetallReportcaseController);
 router.get('/user/:id', GetallReportuserController);
 router.post('/', verifyToken, CreateReportcaseController);
-router.put('/',  UpdateReportcaseController);
-router.delete('/',DeleteReportcaseController);
+router.put('/:id',  UpdateReportcaseController);
+router.delete('/:id',DeleteReportcaseController);
 
 export default router;

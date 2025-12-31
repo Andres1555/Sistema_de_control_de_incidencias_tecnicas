@@ -162,11 +162,11 @@ const Mainpage = () => {
         
         {view === "dashboard" ? (
           <div className="pb-20">
-             <ReportList key={refreshKey} />
+             <ReportList key={refreshKey} darkMode={darkMode} />
           </div>
         ) : view === "tech" ? (
           <div className="pb-20">
-            <ReportTechList key={refreshKey} userId={Number(localStorage.getItem('userId')) || undefined} />
+            <ReportTechList key={refreshKey} userId={Number(localStorage.getItem('userId')) || undefined} darkMode={darkMode} />
           </div>
         ) : (
           <UserProfile darkMode={darkMode} />
@@ -216,6 +216,7 @@ const Mainpage = () => {
           <ReportForm 
             onSuccess={handleFormSuccess}
             onClose={handleCloseForm}
+            darkMode={darkMode}
           />
         </DialogContent>
       </Dialog>

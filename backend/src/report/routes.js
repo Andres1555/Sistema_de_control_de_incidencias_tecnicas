@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.get('/', GetallReportController);
 router.post('/', verifyToken, CreateReportController);
-router.put('/', UpdateReportController);
-router.delete('/', DeleteReportController);
+router.put('/:id', UpdateReportController);
+router.delete('/:id', DeleteReportController);
 
 export default router;

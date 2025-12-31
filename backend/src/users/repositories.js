@@ -29,15 +29,14 @@ async function createUser(data) {
 async function updateByCI(ci, data) {
   const user = await User.findOne({ where: { C_I: ci } });
   if (!user) return null;
-  const payload = {
-    nombre: data.nombre,
-    apellido: data.apellido,
-    correo: data.email,
-    ficha: data.ficha,
-    telefono: data.telefono,
-    rol: data.rol,
-    extension: data.extension,
-  };
+  const payload = {};
+  if (data.nombre !== undefined) payload.nombre = data.nombre;
+  if (data.apellido !== undefined) payload.apellido = data.apellido;
+  if (data.email !== undefined) payload.correo = data.email; // map email -> correo
+  if (data.ficha !== undefined) payload.ficha = data.ficha;
+  if (data.telefono !== undefined) payload.telefono = data.telefono;
+  if (data.rol !== undefined) payload.rol = data.rol;
+  if (data.extension !== undefined) payload.extension = data.extension;
   await user.update(payload);
   return user;
 }
