@@ -1,4 +1,4 @@
-import sequelize, { Report, ReportCase, ReportUser } from "../schemas/schemas.js";
+import sequelize, { Report, ReportCase } from "../schemas/schemas.js";
 
 async function getAll() {
   return await Report.findAll();
@@ -15,12 +15,12 @@ async function createReport(data) {
   const payload = {
     caso: data.caso,
     id_maquina: data.id_maquina,
+    id_user: data.id_user || null,
     area: data.area,
     estado: data.estado,
     descripcion: data.descripcion,
     nombre_natural: data.nombre_natural,
     clave_natural: data.clave_natural,
-    // mapeamos 'clave_win' del frontend a 'clave_acceso_windows' en el modelo
     clave_acceso_windows: data.clave_win,
     fecha: data.fecha,
   };
@@ -50,20 +50,18 @@ async function deleteById(id) {
   try {
     // Eliminar casos técnicos asociados
     const casesDeleted = await ReportCase.destroy({ where: { id_report: id }, transaction: t });
-    // Eliminar relaciones de usuario-report
-    const reportUsersDeleted = await ReportUser.destroy({ where: { id_report: id }, transaction: t });
     // Eliminar el reporte
     const destroyed = await Report.destroy({ where: { id }, transaction: t });
 
-    console.log(`ReportRepository.deleteById - eliminado reporte ${id}. casos eliminados: ${casesDeleted}, relaciones report-user eliminadas: ${reportUsersDeleted}, reporte eliminado: ${destroyed}`);
+    console.log(`ReportRepository.deleteById - eliminado reporte ${id}. casos eliminados: ${casesDeleted}, reporte eliminado: ${destroyed}`);
 
     await t.commit();
-    return { destroyed, casesDeleted, reportUsersDeleted };
+    return { destroyed, casesDeleted };
   } catch (err) {
     await t.rollback();
     throw err;
   }
-}
+} 
 
 export const ReportRepository = {
   getAll,

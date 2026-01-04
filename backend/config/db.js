@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS Users (
   extension integer
 );
 
--- NUEVA TABLA: Worker (Estructura para el CSV)
+-- NUEVA TABLA: Worker 
 CREATE TABLE IF NOT EXISTS Worker (
   id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   FICHA integer,
@@ -36,17 +36,11 @@ CREATE TABLE IF NOT EXISTS Machine (
   "nro de la maquina" integer
 );
 
-CREATE TABLE IF NOT EXISTS "ReportUser" (
-  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-  id_user bigint,
-  id_report bigint,
-  justificacion varchar(500)
-);
-
 CREATE TABLE IF NOT EXISTS Report (
   id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   id_maquina bigint,
-  id_workers bigint, -- CAMPO RELACIONADO CON WORKER
+  id_workers bigint, 
+  id_user bigint,
   caso varchar(500),
   area varchar(500),
   estado varchar(500),
@@ -55,7 +49,8 @@ CREATE TABLE IF NOT EXISTS Report (
   "clave natural" integer,
   "clave de acceso windows" integer,
   fecha date,
-  FOREIGN KEY (id_workers) REFERENCES Worker (id)
+  FOREIGN KEY (id_workers) REFERENCES Worker (id),
+  FOREIGN KEY (id_user) REFERENCES Users (id)
 );
 
 CREATE TABLE IF NOT EXISTS "SpecializationUsers" (

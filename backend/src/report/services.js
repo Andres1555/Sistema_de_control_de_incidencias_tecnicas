@@ -6,6 +6,7 @@ export const ReportService = {
   },
 
   create: async (data) => {
+    // data may include id_user coming from req.user set by verifyToken
     return await ReportRepository.createReport(data);
   },
 
@@ -17,7 +18,7 @@ export const ReportService = {
 
   delete: async (id) => {
     const result = await ReportRepository.deleteById(id);
-    // result can be an object { destroyed, casesDeleted, reportUsersDeleted }
+    // result can be an object { destroyed, casesDeleted }
     const destroyed = (typeof result === 'object') ? result.destroyed : result;
     if (!destroyed) throw new Error("Reporte no encontrado para eliminar");
     return result;

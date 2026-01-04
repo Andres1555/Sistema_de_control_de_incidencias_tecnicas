@@ -9,6 +9,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import ReportForm from "../form/report"; 
 import ReportList from "../card/reportlist";
 import ReportTechList from "../card/reportechlist";
+import Dashboard from "../stadistics/dashboard";
 
 const Mainpage = () => {
   // --- Estados ---
@@ -163,6 +164,10 @@ const Mainpage = () => {
         {view === "dashboard" ? (
           <div className="pb-20">
              <ReportList key={refreshKey} darkMode={darkMode} />
+          </div>
+        ) : view === "stadistics" ? (
+          <div className="pb-20">
+            <Dashboard darkMode={darkMode} />
           </div>
         ) : view === "tech" ? (
           <div className="pb-20">

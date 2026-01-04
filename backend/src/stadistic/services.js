@@ -1,18 +1,20 @@
 import { StadisticRepository } from './repositories.js';
 
 export const StadisticService = {
-  GetallstadisticService: async () => {
-    const statusCounts = await StadisticRepository.getCountByStatus();
-    const total = await StadisticRepository.getTotalReports();
+  // options may include { from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' }
+  GetallstadisticService: async (options = {}) => {
+    const { from, to } = options;
+    const statusCounts = await StadisticRepository.getCountByStatus(from, to);
+    const total = await StadisticRepository.getTotalReports(from, to);
 
     const statistics = statusCounts.map(item => {
       const cantidad = parseInt(item.total);
-      const porcentaje = total > 0 ? ((cantidad / total) * 100).toFixed(2) : 0;
+      const porcentaje = total > 0 ? parseFloat(((cantidad / total) * 100).toFixed(2)) : 0;
 
       return {
         estado: item.estado || "Desconocido",
         cantidad: cantidad,
-        porcentaje: `${porcentaje}%`
+        porcentaje: porcentaje
       };
     });
 

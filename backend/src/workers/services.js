@@ -19,6 +19,17 @@ export const WorkerService = {
     }
   },
 
+  // Alias con el nombre en español para compatibilidad con controladores existentes
+  GetworkerbyfichaService: async (ficha) => {
+    try {
+      const worker = await WorkerRepository.findByFicha(ficha);
+      if (!worker) throw new Error(`El trabajador con ficha ${ficha} no existe.`);
+      return worker;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   CreateworkerService: async (data) => {
     try {
       // VALIDACIÓN: Verificar si la ficha ya existe antes de crear
@@ -58,6 +69,17 @@ export const WorkerService = {
       
       await WorkerRepository.delete(id);
       return { message: 'Trabajador eliminado correctamente.' };
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Nuevo: validar ficha y devolver token
+  WorkerLoginService: async (ficha) => {
+    try {
+      const worker = await WorkerRepository.findByFicha(ficha);
+      if (!worker) throw new Error('Ficha no encontrada');
+      return worker;
     } catch (error) {
       throw error;
     }

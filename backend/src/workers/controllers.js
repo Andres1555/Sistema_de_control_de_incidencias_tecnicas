@@ -1,4 +1,7 @@
+import jwt from 'jsonwebtoken';
 import { WorkerService } from './services.js';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
 export const GetallworkersController = async (req, res) => {
   try {
@@ -45,5 +48,20 @@ export const DeleteworkerController = async (req, res) => {
     res.status(200).json({ status: 'success', data });
   } catch (error) {
     res.status(404).json({ status: 'error', message: error.message });
+  }
+};
+
+// Nuevo: login por ficha → firma un JWT y devuelve token si existe
+export const WorkerLoginController = async (req, res) => {
+  try {
+    const { ficha } = req.body;
+    if (!ficha) return res.status(400).json({ status: 'error', message: 'La ficha es requerida' });
+    const worker = await WorkerService.GetworkerbyfichaService(ficha);
+    // worker puede ser un objeto Sequelize
+    const payload = { id: worker.id, ficha: worker.ficha, rol: 'worker' };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
+    return res.status(200).json({ token, user: { id: worker.id, ficha: worker.ficha } });
+  } catch (error) {
+    return res.status(404).json({ status: 'error', message: error.message });
   }
 };

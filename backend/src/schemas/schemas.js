@@ -54,7 +54,8 @@ export const Machine = sequelize.define('Machine', {
 
 export const Report = sequelize.define('Report', {
   id_maquina: { type: DataTypes.INTEGER },
-  id_workers: { type: DataTypes.INTEGER }, 
+  id_workers: { type: DataTypes.INTEGER },
+  id_user: { type: DataTypes.INTEGER },
   caso: { type: DataTypes.STRING(500) },
   area: { type: DataTypes.STRING(500) },
   estado: { type: DataTypes.STRING(500) },
@@ -69,14 +70,6 @@ export const Report = sequelize.define('Report', {
 });
 
 // ... (El resto de tus modelos ReportUser, ReportCase, Specialization, SpecializationUsers se mantienen igual)
-
-export const ReportUser = sequelize.define('ReportUser', {
-  id_user: { type: DataTypes.INTEGER },
-  id_report: { type: DataTypes.INTEGER },
-}, {
-  tableName: 'ReportUser',
-  timestamps: false
-});
 
 export const ReportCase = sequelize.define('ReportCase', {
   id_user: { type: DataTypes.INTEGER },
@@ -116,8 +109,8 @@ Machine.belongsTo(User, { foreignKey: 'id_user' });
 Machine.hasMany(Report, { foreignKey: 'id_maquina' });
 Report.belongsTo(Machine, { foreignKey: 'id_maquina' });
 
-User.belongsToMany(Report, { through: ReportUser, foreignKey: 'id_user', otherKey: 'id_report' });
-Report.belongsToMany(User, { through: ReportUser, foreignKey: 'id_report', otherKey: 'id_user' });
+User.hasMany(Report, { foreignKey: 'id_user' });
+Report.belongsTo(User, { foreignKey: 'id_user' });
 
 Report.hasMany(ReportCase, { foreignKey: 'id_report' });
 ReportCase.belongsTo(Report, { foreignKey: 'id_report' });

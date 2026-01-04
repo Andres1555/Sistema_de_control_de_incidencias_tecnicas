@@ -61,12 +61,16 @@ const ReportList = ({ darkMode = true }) => {
 		const confirm = window.confirm("¿Eliminar este reporte?");
 		if (!confirm) return;
 		try {
-			await axios.delete(`http://localhost:8080/api/report/${id}`);
+			const token = localStorage.getItem('token');
+			const headers = {};
+			if (token) headers['Authorization'] = `Bearer ${token}`;
+			await axios.delete(`http://localhost:8080/api/report/${id}`, { headers });
 			// refresh
 			fetchReports();
 		} catch (err) {
 			console.error('Error deleting report', err);
-			alert('No se pudo eliminar el reporte');
+			const msg = err?.response?.data?.message || 'No se pudo eliminar el reporte';
+			alert(msg);
 		}
 	};
 

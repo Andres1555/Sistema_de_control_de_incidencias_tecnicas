@@ -38,7 +38,10 @@ export const CreateReportController = async (req, res) => {
 			machineId = machine.id;
 		}
 
-		const created = await ReportService.create({ caso, id_maquina: Number(machineId), area, estado, descripcion, nombre_natural, clave_natural, clave_win, fecha });
+		// Tomar el id del usuario autenticado desde el token
+		const userId = req.user && req.user.id ? req.user.id : null;
+
+		const created = await ReportService.create({ caso, id_maquina: Number(machineId), id_user: userId, area, estado, descripcion, nombre_natural, clave_natural, clave_win, fecha });
 
 		// Respondemos con el objeto creado para que el frontend pueda usar el id
 		res.status(201).json({ message: "Reporte creado correctamente", report: created });
@@ -56,6 +59,7 @@ export const UpdateReportController= async (req, res) => {
     const idnumber = Number(id);
     if (isNaN(idnumber)) return res.status(400).json({ message: 'id no valida' });
 
+    // Nota: 'id_user' no se permite modificar desde el cliente; se toma del token en la creación
     const allowed = ['caso','id_maquina','area','estado','descripcion','nombre_natural','clave_natural','clave_win','fecha'];
     const payload = {};
     for (const k of allowed) {
@@ -99,7 +103,7 @@ export const DeleteReportController= async (req, res) => {
 	const result = await ReportService.delete(idnumber);
 	// result may include counts
 	if (typeof result === 'object') {
-	  return res.status(200).json({ message: `Reporte eliminado. Casos técnicos eliminados: ${result.casesDeleted || 0}. Relaciones usuario-reporte eliminadas: ${result.reportUsersDeleted || 0}.` });
+	  return res.status(200).json({ message: `Reporte eliminado. Casos técnicos eliminados: ${result.casesDeleted || 0}.` });
 	}
 
 	res.status(200).json({ message: "Reporte eliminado" });

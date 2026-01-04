@@ -31,6 +31,17 @@ const ReportCard = ({ report = {}, onView, onDelete, darkMode = true }) => {
 
 	const cardBg = darkMode ? "bg-gray-800 border-gray-700 text-gray-100" : "bg-white border-gray-100 text-gray-800";
 	const actionBorder = darkMode ? "border-gray-700" : "border-gray-50";
+
+	function formatDateShort(dateStr) {
+		if (!dateStr) return "-";
+		try {
+			const d = new Date(dateStr);
+			const dd = String(d.getDate()).padStart(2, '0');
+			const mm = String(d.getMonth() + 1).padStart(2, '0');
+			const yyyy = String(d.getFullYear());
+			return `${dd}/${mm}/${yyyy}`;
+		} catch (e) { return dateStr; }
+	}
 	return (
 		<article className={`${cardBg} rounded-lg shadow-sm p-4 border flex flex-col gap-4`}>
 			<div className="flex items-start justify-between gap-4">
@@ -50,7 +61,7 @@ const ReportCard = ({ report = {}, onView, onDelete, darkMode = true }) => {
 						{estado || "Sin estado"}
 					</span>
 					<span className={`text-[10px] uppercase font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>
-						{fecha ? new Date(fecha).toLocaleDateString() : "-"}
+						{fecha ? formatDateShort(fecha) : "-"}
 					</span>
 				</div>
 			</div>
