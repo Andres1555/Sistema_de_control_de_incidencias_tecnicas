@@ -17,6 +17,19 @@ CREATE TABLE IF NOT EXISTS Users (
   extension integer
 );
 
+-- NUEVA TABLA: Worker (Estructura para el CSV)
+CREATE TABLE IF NOT EXISTS Worker (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  FICHA integer,
+  NOMBRES varchar(500),
+  APELLIDOS varchar(500),
+  AÑONAC integer,
+  MESNAC integer,
+  DIANAC integer,
+  "DPTO." varchar(500),
+  GCIA varchar(500)
+);
+
 CREATE TABLE IF NOT EXISTS Machine (
   id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   id_user bigint,
@@ -33,6 +46,7 @@ CREATE TABLE IF NOT EXISTS "ReportUser" (
 CREATE TABLE IF NOT EXISTS Report (
   id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   id_maquina bigint,
+  id_workers bigint, -- CAMPO RELACIONADO CON WORKER
   caso varchar(500),
   area varchar(500),
   estado varchar(500),
@@ -40,7 +54,8 @@ CREATE TABLE IF NOT EXISTS Report (
   "nombre natural" varchar(500),
   "clave natural" integer,
   "clave de acceso windows" integer,
-  fecha date
+  fecha date,
+  FOREIGN KEY (id_workers) REFERENCES Worker (id)
 );
 
 CREATE TABLE IF NOT EXISTS "SpecializationUsers" (
@@ -62,8 +77,6 @@ CREATE TABLE IF NOT EXISTS "ReportCase" (
   "resolucion " varchar(500),
   tiempo time
 );
-
--- duplicate-safe: subsequent CREATE IF NOT EXISTS statements omitted (already created above)
 `;
 
 export async function setupDatabase() {
@@ -82,6 +95,7 @@ export async function setupDatabase() {
           db.close(async (closeErr) => {
             if (closeErr) return reject(closeErr);
             try {
+              // Esto sincronizará los modelos de Sequelize con lo que acabamos de crear
               await initDatabase();
               resolve();
             } catch (e) {

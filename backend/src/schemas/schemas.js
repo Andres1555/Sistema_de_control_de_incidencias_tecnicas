@@ -1,11 +1,33 @@
 import { Sequelize, DataTypes } from 'sequelize';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// 1. Obtener la ruta de la raíz del proyecto (backend/)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// Subimos dos niveles: de 'src/schemas' a 'src' y de 'src' a 'backend'
+const dbPath = path.resolve(__dirname, '../../Pasantiatest.sqlite');
 
 const sequelize = new Sequelize({
   dialect: 'sqlite',
-  storage: './Pasantiatest.sqlite', 
+  storage: dbPath, 
   logging: false
 });
 
+
+export const Worker = sequelize.define('Worker', {
+  ficha: { type: DataTypes.INTEGER, field: 'FICHA' },
+  nombres: { type: DataTypes.STRING(500), field: 'NOMBRES' },
+  apellidos: { type: DataTypes.STRING(500), field: 'APELLIDOS' },
+  anio_nac: { type: DataTypes.INTEGER, field: 'AÑONAC' },
+  mes_nac: { type: DataTypes.INTEGER, field: 'MESNAC' },
+  dia_nac: { type: DataTypes.INTEGER, field: 'DIANAC' },
+  dpto: { type: DataTypes.STRING(500), field: 'DPTO.' },
+  gcia: { type: DataTypes.STRING(500), field: 'GCIA' }
+}, {
+  tableName: 'Worker',
+  timestamps: false
+});
 
 export const User = sequelize.define('Users', {
   nombre: { type: DataTypes.STRING(500) },
@@ -22,7 +44,6 @@ export const User = sequelize.define('Users', {
   timestamps: false
 });
 
-
 export const Machine = sequelize.define('Machine', {
   id_user: { type: DataTypes.INTEGER },
   nro_maquina: { type: DataTypes.INTEGER, field: 'nro de la maquina' }
@@ -31,9 +52,9 @@ export const Machine = sequelize.define('Machine', {
   timestamps: false
 });
 
-
 export const Report = sequelize.define('Report', {
   id_maquina: { type: DataTypes.INTEGER },
+  id_workers: { type: DataTypes.INTEGER }, 
   caso: { type: DataTypes.STRING(500) },
   area: { type: DataTypes.STRING(500) },
   estado: { type: DataTypes.STRING(500) },
@@ -47,6 +68,7 @@ export const Report = sequelize.define('Report', {
   timestamps: false
 });
 
+// ... (El resto de tus modelos ReportUser, ReportCase, Specialization, SpecializationUsers se mantienen igual)
 
 export const ReportUser = sequelize.define('ReportUser', {
   id_user: { type: DataTypes.INTEGER },
@@ -55,7 +77,6 @@ export const ReportUser = sequelize.define('ReportUser', {
   tableName: 'ReportUser',
   timestamps: false
 });
-
 
 export const ReportCase = sequelize.define('ReportCase', {
   id_user: { type: DataTypes.INTEGER },
@@ -68,14 +89,12 @@ export const ReportCase = sequelize.define('ReportCase', {
   timestamps: false
 });
 
-
 export const Specialization = sequelize.define('Specialization', {
   nombre: { type: DataTypes.STRING(500) }
 }, {
   tableName: 'Specialization',
   timestamps: false
 });
-
 
 export const SpecializationUsers = sequelize.define('SpecializationUsers', {
   id_user: { type: DataTypes.INTEGER },
@@ -85,8 +104,11 @@ export const SpecializationUsers = sequelize.define('SpecializationUsers', {
   timestamps: false
 });
 
+// --- ASOCIACIONES ---
 
-
+// Relación Worker -> Report (1 a N)
+Worker.hasMany(Report, { foreignKey: 'id_workers' });
+Report.belongsTo(Worker, { foreignKey: 'id_workers' });
 
 User.hasMany(Machine, { foreignKey: 'id_user' });
 Machine.belongsTo(User, { foreignKey: 'id_user' });
@@ -108,29 +130,14 @@ Specialization.belongsToMany(User, { through: SpecializationUsers, foreignKey: '
 
 
 export async function initDatabase() {
-  // Evitar conflicto con tablas de backup creadas por sincronizaciones previas
-  try {
-    await sequelize.query('DROP TABLE IF EXISTS "Users_backup";');
-  } catch (e) {
-    console.warn('No se pudo eliminar Users_backup (continuando):', e.message || e);
-  }
-
-  // Desactivar temporalmente las constraints de FK durante alteraciones complejas en SQLite
   try {
     await sequelize.query('PRAGMA foreign_keys = OFF;');
-  } catch (e) {
-    console.warn('No se pudo desactivar foreign_keys (continuando):', e.message || e);
-  }
-
-  try {
+    // alter: true intentará añadir la nueva tabla Worker y la columna id_workers en Report
     await sequelize.sync({ alter: true });
-    console.log('Base de datos sincronizada con Sequelize');
+  } catch (e) {
+    console.error('Error sincronizando:', e);
   } finally {
-    try {
-      await sequelize.query('PRAGMA foreign_keys = ON;');
-    } catch (e) {
-      console.warn('No se pudo reactivar foreign_keys:', e.message || e);
-    }
+    await sequelize.query('PRAGMA foreign_keys = ON;');
   }
 }
 
