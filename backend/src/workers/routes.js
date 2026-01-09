@@ -1,12 +1,10 @@
 import express from 'express';
-import { GetallworkersController, GetworkerbyfileController, CreateworkerController, UpdateworkerController, DeleteworkerController, WorkerLoginController } from './controllers.js';
+import {  GetallworkersController, GetworkerbyidController, CreateworkerController, UpdateworkerController, DeleteworkerController, WorkerLoginController } from './controllers.js';
 
 const router = express.Router();
 
-
 router.get('/', GetallworkersController);
-router.get('/:ficha', GetworkerbyfileController)
-// Login por ficha (worker)
+router.get('/:id', GetworkerbyidController); 
 router.post('/login', WorkerLoginController);
 router.post('/', CreateworkerController);
 router.put('/:id', UpdateworkerController);

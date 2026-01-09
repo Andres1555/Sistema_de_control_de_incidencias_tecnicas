@@ -1,24 +1,36 @@
-import jwt from 'jsonwebtoken';
 import { WorkerService } from './services.js';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
 export const GetallworkersController = async (req, res) => {
   try {
-    const data = await WorkerService.GetallworkersService();
+    const page = parseInt(req.query.page) || 1;
+    const data = await WorkerService.GetallworkersService(page);
     res.status(200).json(data);
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
   }
 };
 
-export const GetworkerbyfileController = async (req, res) => {
+export const GetworkerbyidController = async (req, res) => {
   try {
-    const { ficha } = req.params;
-    const data = await WorkerService.GetworkerbyfichaService(ficha);
+    const { id } = req.params;
+    
+    const data = await WorkerService.GetWorkerByIdService(id);
+    
     res.status(200).json(data);
   } catch (error) {
     res.status(404).json({ status: 'error', message: error.message });
+  }
+};
+
+
+export const WorkerLoginController = async (req, res) => {
+  try {
+    const { ficha } = req.body
+    const data = await WorkerService.LoginworkerService(ficha);
+    
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(401).json({ status: 'error', message: error.message });
   }
 };
 
@@ -33,9 +45,10 @@ export const CreateworkerController = async (req, res) => {
 
 export const UpdateworkerController = async (req, res) => {
   try {
-    const { id } = req.params; // Cambiado de CI a ID según tu solicitud
-    const data = await WorkerService.UpdateworkerService(id, req.body);
-    res.status(200).json({ status: 'success', data });
+    const { id } = req.params; 
+    // Llamamos al servicio pasando ID y los datos del body del Form
+    const result = await WorkerService.UpdateworkerService(id, req.body);
+    res.status(200).json({ status: 'success', data: result });
   } catch (error) {
     res.status(400).json({ status: 'error', message: error.message });
   }
@@ -44,24 +57,10 @@ export const UpdateworkerController = async (req, res) => {
 export const DeleteworkerController = async (req, res) => {
   try {
     const { id } = req.params;
-    const data = await WorkerService.DeleteworkerService(id);
-    res.status(200).json({ status: 'success', data });
+    // Llamamos al servicio para eliminar
+    const result = await WorkerService.DeleteworkerService(id);
+    res.status(200).json({ status: 'success', data: result });
   } catch (error) {
     res.status(404).json({ status: 'error', message: error.message });
-  }
-};
-
-// Nuevo: login por ficha → firma un JWT y devuelve token si existe
-export const WorkerLoginController = async (req, res) => {
-  try {
-    const { ficha } = req.body;
-    if (!ficha) return res.status(400).json({ status: 'error', message: 'La ficha es requerida' });
-    const worker = await WorkerService.GetworkerbyfichaService(ficha);
-    // worker puede ser un objeto Sequelize
-    const payload = { id: worker.id, ficha: worker.ficha, rol: 'worker' };
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
-    return res.status(200).json({ token, user: { id: worker.id, ficha: worker.ficha } });
-  } catch (error) {
-    return res.status(404).json({ status: 'error', message: error.message });
   }
 };

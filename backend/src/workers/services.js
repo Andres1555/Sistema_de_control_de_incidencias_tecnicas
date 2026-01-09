@@ -1,41 +1,48 @@
 import { WorkerRepository } from './repositories.js';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_secreta';
 
 export const WorkerService = {
-  GetallworkersService: async () => {
+
+  GetallworkersService: async (page = 1) => {
     try {
-      return await WorkerRepository.findAll();
+      const limit = 12; // <--- 12 por página
+      const offset = (page - 1) * limit;
+
+      const { count, rows } = await WorkerRepository.findAllPaged(limit, offset);
+
+      return {
+        workers: rows,
+        totalItems: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: parseInt(page),
+        itemsPerPage: limit
+      };
     } catch (error) {
-      throw new Error('Error al obtener los trabajadores: ' + error.message);
+      throw new Error('Error en el servicio: ' + error.message);
     }
   },
-
-  GetworkerbyfileService: async (file) => {
+  // 2. Obtener un trabajador por ID (Para el Perfil)
+  GetWorkerByIdService: async (id) => {
     try {
-      const worker = await WorkerRepository.findByFile(file);
-      if (!worker) throw new Error(`El trabajador con ficha ${file} no existe.`);
+      const worker = await WorkerRepository.findById(id);
+      if (!worker) {
+        throw new Error('Trabajador no encontrado');
+      }
       return worker;
     } catch (error) {
       throw error;
     }
   },
 
-  // Alias con el nombre en español para compatibilidad con controladores existentes
-  GetworkerbyfichaService: async (ficha) => {
-    try {
-      const worker = await WorkerRepository.findByFicha(ficha);
-      if (!worker) throw new Error(`El trabajador con ficha ${ficha} no existe.`);
-      return worker;
-    } catch (error) {
-      throw error;
-    }
-  },
-
+  // 3. Crear un nuevo trabajador (Admin)
   CreateworkerService: async (data) => {
     try {
-      // VALIDACIÓN: Verificar si la ficha ya existe antes de crear
-      const existingWorker = await WorkerRepository.findByFicha(data.ficha);
+      // Validar si la ficha ya existe (Usamos FICHA en mayúsculas por tu tabla)
+      const existingWorker = await WorkerRepository.findByFicha(data.FICHA || data.ficha);
       if (existingWorker) {
-        throw new Error(`La ficha ${data.ficha} ya está registrada por otro trabajador.`);
+        throw new Error(`La ficha ${data.FICHA || data.ficha} ya está registrada.`);
       }
       return await WorkerRepository.create(data);
     } catch (error) {
@@ -45,18 +52,20 @@ export const WorkerService = {
 
   UpdateworkerService: async (id, data) => {
     try {
+      // 1. Verificar si el trabajador existe
       const worker = await WorkerRepository.findById(id);
-      if (!worker) throw new Error('No se encontró el trabajador para actualizar.');
+      if (!worker) throw new Error('Trabajador no encontrado en el sistema');
 
-      // VALIDACIÓN OPCIONAL: Si se intenta cambiar la ficha en el update, 
-      // verificar que la nueva ficha no pertenezca a otro ID
-      if (data.ficha && data.ficha !== worker.ficha) {
-        const checkFicha = await WorkerRepository.findByFicha(data.ficha);
-        if (checkFicha) throw new Error('La nueva ficha ya está en uso por otro trabajador.');
+      // 2. Si el usuario intenta cambiar la ficha, validar que la nueva no esté ocupada
+      if (data.ficha && Number(data.ficha) !== worker.ficha) {
+        const existingFicha = await WorkerRepository.findByFicha(data.ficha);
+        if (existingFicha) throw new Error(`La ficha ${data.ficha} ya pertenece a otro trabajador`);
       }
 
+      // 3. Ejecutar actualización
       await WorkerRepository.update(id, data);
-      return { message: 'Trabajador actualizado con éxito.' };
+      
+      return { message: 'Datos del trabajador actualizados correctamente' };
     } catch (error) {
       throw error;
     }
@@ -64,22 +73,43 @@ export const WorkerService = {
 
   DeleteworkerService: async (id) => {
     try {
+      // 1. Verificar si existe antes de borrar
       const worker = await WorkerRepository.findById(id);
-      if (!worker) throw new Error('No se encontró el trabajador con el ID proporcionado.');
-      
+      if (!worker) throw new Error('El trabajador ya no existe o ya fue eliminado');
+
+      // 2. Ejecutar eliminación
       await WorkerRepository.delete(id);
-      return { message: 'Trabajador eliminado correctamente.' };
+      
+      return { message: 'Trabajador eliminado con éxito' };
     } catch (error) {
       throw error;
     }
   },
 
-  // Nuevo: validar ficha y devolver token
-  WorkerLoginService: async (ficha) => {
+  LoginworkerService: async (ficha) => {
     try {
       const worker = await WorkerRepository.findByFicha(ficha);
-      if (!worker) throw new Error('Ficha no encontrada');
-      return worker;
+
+      if (!worker) {
+        throw new Error('Ficha inválida o trabajador no registrado');
+      }
+
+      // Generar Token JWT incluyendo ID y FICHA
+      const token = jwt.sign(
+        { id: worker.id, ficha: worker.FICHA },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      // Devolvemos la estructura que el Frontend (WorkersLogin.jsx) espera recibir
+      return {
+        token,
+        user: {
+          id: worker.id,
+          nombre: worker.NOMBRES,
+          ficha: worker.FICHA
+        }
+      };
     } catch (error) {
       throw error;
     }

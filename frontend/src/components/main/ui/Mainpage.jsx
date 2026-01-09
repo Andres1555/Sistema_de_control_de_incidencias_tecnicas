@@ -10,6 +10,8 @@ import ReportForm from "../form/report";
 import ReportList from "../card/reportlist";
 import ReportTechList from "../card/reportechlist";
 import Dashboard from "../stadistics/dashboard";
+import WorkerList from "../card/workerlist"; 
+import UserList from "../card/userlist";
 
 const Mainpage = () => {
   // --- Estados ---
@@ -23,9 +25,6 @@ const Mainpage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false); 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [view, setView] = useState("dashboard");
-
-  // 2. ESTADO PARA RECARGAR LA LISTA
-  // Usaremos esto para forzar que ReportList vuelva a pedir los datos al crear un reporte
   const [refreshKey, setRefreshKey] = useState(0);
 
   const menuRef = useRef(null);
@@ -50,13 +49,22 @@ const Mainpage = () => {
   const handleOpenForm = () => setIsFormOpen(true);
   const handleCloseForm = () => setIsFormOpen(false);
 
-  // 3. MANEJO DE ÉXITO DEL FORMULARIO
   const handleFormSuccess = () => {
-    console.log("Reporte creado con éxito, recargando lista...");
-    // Al cambiar este número, el componente ReportList se desmonta y monta de nuevo,
-    // disparando su useEffect y trayendo los datos nuevos de la API.
     setRefreshKey(prev => prev + 1); 
     setIsFormOpen(false);
+  };
+
+  // Función para dinamizar el título del Header según la vista
+  const getHeaderTitle = () => {
+    switch(view) {
+      case 'dashboard': return "Gestión de Reportes";
+      case 'tech': return "Reportes Técnicos";
+      case 'stadistics': return "Estadísticas Generales";
+      case 'workers': return "Gestión de Trabajadores";
+      case 'users': return "Gestión de Usuarios"; // 2. Título para Usuarios
+      case 'profile': return "Mi Perfil";
+      default: return "Panel de Administración";
+    }
   };
 
   return (
@@ -64,7 +72,7 @@ const Mainpage = () => {
       isOpen={sidebarOpen} 
       setIsOpen={setSidebarOpen} 
       darkMode={darkMode}
-      onNavigate={setView}
+      onNavigate={setView} 
     >
       
       {/* --- HEADER --- */}
@@ -86,24 +94,23 @@ const Mainpage = () => {
             </button>
 
             <div className="flex items-center gap-2">
-              {view === "profile" && (
+              {view !== "dashboard" && (
                 <button 
                   onClick={() => setView("dashboard")} 
                   className="p-1 rounded-full hover:bg-gray-500/30 transition text-sm"
-                  title="Volver a reportes"
+                  title="Volver al inicio"
                 >
                   <FaArrowLeft />
                 </button>
               )}
               <h1 className="text-xl font-bold">
-                {view === "dashboard" ? "Gestión de reportes" : "Gestion de reportes Tecnicos"}
+                {getHeaderTitle()}
               </h1>
             </div>
           </div>
 
           {/* Controles Derecha */}
           <div className="flex items-center space-x-4">
-            
             <button onClick={toggleTheme} className="text-xl p-2 rounded-full hover:bg-opacity-20 hover:bg-gray-500">
               {darkMode ? <FiSun /> : <FiMoon />}
             </button>
@@ -139,15 +146,11 @@ const Mainpage = () => {
                   }`}
                 >
                   <button 
-                    onClick={() => {
-                      setView("profile"); 
-                      setMenuOpen(false); 
-                    }}
+                    onClick={() => { setView("profile"); setMenuOpen(false); }}
                     className="block w-full text-left px-4 py-2 text-sm hover:bg-opacity-20 hover:bg-gray-500"
                   >
                     Perfil
                   </button>
-
                   <button onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('role'); navigate('/login'); setMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm hover:bg-opacity-20 hover:bg-gray-500">
                     Cerrar sesión
                   </button>
@@ -173,13 +176,21 @@ const Mainpage = () => {
           <div className="pb-20">
             <ReportTechList key={refreshKey} userId={Number(localStorage.getItem('userId')) || undefined} darkMode={darkMode} />
           </div>
+        ) : view === "workers" ? (
+          <div className="pb-20">
+            <WorkerList darkMode={darkMode} />
+          </div>
+        ) : view === "users" ? ( // 3. Agregamos la condición para la vista de usuarios
+          <div className="pb-20">
+            <UserList darkMode={darkMode} />
+          </div>
         ) : (
           <UserProfile darkMode={darkMode} />
         )}
 
       </main>
 
-      {/* --- BOTÓN FLOTANTE (+) --- */}
+      {/* --- BOTÓN FLOTANTE (+) Solo en Dashboard --- */}
       {view === "dashboard" && (
         <button
           onClick={handleOpenForm}
@@ -208,16 +219,12 @@ const Mainpage = () => {
           <IconButton
             aria-label="close"
             onClick={handleCloseForm}
-            sx={{
-              color: (theme) => darkMode ? '#9ca3af' : theme.palette.grey[500],
-            }}
+            sx={{ color: (theme) => darkMode ? '#9ca3af' : theme.palette.grey[500] }}
           >
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        
         <DialogContent dividers sx={{ borderColor: darkMode ? '#374151' : undefined }}>
-          {/* Al tener éxito, llamamos a handleFormSuccess que actualiza el refreshKey */}
           <ReportForm 
             onSuccess={handleFormSuccess}
             onClose={handleCloseForm}

@@ -1,10 +1,24 @@
 import React, { useState } from 'react';
-// 1. Agregamos FaClipboardList a los imports para el nuevo botón
-import { FaChartBar, FaFilter, FaFileAlt, FaClipboardList } from "react-icons/fa";
+// 1. Agregamos los nuevos iconos para Trabajadores y Usuarios
+import { 
+  FaChartBar, 
+  FaFilter, 
+  FaFileAlt, 
+  FaClipboardList, 
+  FaIdBadge, 
+  FaUsers 
+} from "react-icons/fa";
 import { FiChevronDown, FiChevronRight, FiX } from "react-icons/fi";
 
 const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate }) => {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+
+  // Clase reutilizable para los botones del menú
+  const navItemClass = `w-full flex items-center px-4 py-3 rounded-md transition-colors ${
+    darkMode 
+      ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" 
+      : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+  }`;
 
   return (
     <div className={`relative min-h-screen w-screen overflow-hidden ${darkMode ? "bg-gray-900" : "bg-gray-100"}`}>
@@ -38,28 +52,34 @@ const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate }) =>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           
-          {/* --- NUEVO BOTÓN: Reportes (General) --- */}
-          <button onClick={() => { onNavigate?.('dashboard'); setIsOpen(false); }} className={`w-full flex items-center px-4 py-3 rounded-md transition-colors ${
-             darkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-          }`}>
+          {/* --- Reportes (General) --- */}
+          <button onClick={() => { onNavigate?.('dashboard'); setIsOpen(false); }} className={navItemClass}>
             <FaClipboardList className="w-5 h-5 mr-3" />
             Reportes
           </button>
 
           {/* Botón Reportes Técnicos */}
-          <button onClick={() => { onNavigate?.('tech'); setIsOpen(false); }} className={`w-full flex items-center px-4 py-3 rounded-md transition-colors ${
-             darkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-          }`}>
+          <button onClick={() => { onNavigate?.('tech'); setIsOpen(false); }} className={navItemClass}>
             <FaFileAlt className="w-5 h-5 mr-3" />
             Reportes técnicos
           </button>
 
           {/* Botón Estadísticas */}
-          <button onClick={() => { onNavigate?.('stadistics'); setIsOpen(false); }} className={`w-full flex items-center px-4 py-3 rounded-md transition-colors ${
-             darkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-          }`}>
+          <button onClick={() => { onNavigate?.('stadistics'); setIsOpen(false); }} className={navItemClass}>
             <FaChartBar className="w-5 h-5 mr-3" />
             Estadísticas
+          </button>
+
+          {/* --- NUEVO BOTÓN: Trabajadores --- */}
+          <button onClick={() => { onNavigate?.('workers'); setIsOpen(false); }} className={navItemClass}>
+            <FaIdBadge className="w-5 h-5 mr-3" />
+            Trabajadores
+          </button>
+
+          {/* --- NUEVO BOTÓN: Usuarios --- */}
+          <button onClick={() => { onNavigate?.('users'); setIsOpen(false); }} className={navItemClass}>
+            <FaUsers className="w-5 h-5 mr-3" />
+            Usuarios
           </button>
 
           {/* Botón Filtros */}

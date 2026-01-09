@@ -8,13 +8,15 @@ import WorkersPage from "@/components/main/ui/workerspage";
 const App = () => {
   return (
     <Routes>
-      {/* Ruta raíz → Dashboard */}
-      <Route path="/" element={<Mainpage />} />
+      {/* Ruta raíz → Ahora es Login */}
+      <Route path="/" element={<Login />} />
 
-      {/* Rutas públicas */}
-      <Route path="/login" element={<Login />} />
+      {/* Rutas de autenticación */}
       <Route path="/signup" element={<SignUp />} />
       <Route path="/workers-login" element={<WorkersLogin />} />
+
+      {/* Rutas de Paneles (Privadas) */}
+      <Route path="/dashboard" element={<Mainpage />} />
       <Route path="/workers" element={<WorkersPage />} />
 
       {/* Ruta por defecto */}
@@ -23,4 +25,4 @@ const App = () => {
   );
 };
 
-export default App
+export default App;
