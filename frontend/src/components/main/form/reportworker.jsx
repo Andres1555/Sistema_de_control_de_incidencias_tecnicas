@@ -7,16 +7,23 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
   const [isLoading, setIsLoading] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
 
+  // FECHA ACTUAL AUTOMÁTICA
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
   const initialFormData = {
     caso: "",
     id_maquina: "",
     area: "",
-    estado: "en espera", // Por defecto para trabajadores
+    estado: "en espera", // FIJO POR DEFECTO
     descripcion: "",
     nombre_natural: "",
+    nombre_windows: "", 
     clave_natural: "",
     clave_win: "",
-    fecha: new Date().toISOString().split('T')[0], // Fecha actual por defecto
+    fecha: getTodayDate(), 
   };
 
   const [formData, setFormData] = useState(initialData || initialFormData);
@@ -31,6 +38,9 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
     if (initialData) {
       setFormData({
         ...initialData,
+        // Al editar, si no tiene estado por alguna razón, forzamos "en espera"
+        estado: initialData.estado || "en espera",
+        nombre_windows: initialData.nombre_windows ?? "", 
         clave_win: initialData.clave_win ?? initialData.clave_acceso_windows ?? "",
         id_maquina: initialData.id_maquina ?? initialData.nro_maquina ?? "",
       });
@@ -42,9 +52,7 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // --- ENVÍO ---
   const sendForm = async () => {
-    // Validar campos obligatorios básicos
     const required = ["caso", "id_maquina", "area", "descripcion", "fecha"];
     for (const key of required) {
       if (!formData[key]) {
@@ -70,7 +78,8 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
       const payload = {
         ...formData,
         nro_maquina: Number(formData.id_maquina),
-        id_maquina: Number(formData.id_maquina)
+        id_maquina: Number(formData.id_maquina),
+        nombre_windows: String(formData.nombre_windows)
       };
 
       const res = await fetch(url, {
@@ -127,16 +136,18 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
             <input type="text" name="area" value={formData.area} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} placeholder="Ej: Reducción" />
           </div>
 
-          {/* Ocultamos el selector de estado para el trabajador, ya que suele ser "en espera" al crear */}
-          {!readOnlyDefault && (
-            <div>
-              <label className={labelClass}>Estado</label>
-              <select name="estado" value={formData.estado} onChange={handleInputChange} className={inputClass}>
-                <option value="en espera">En espera</option>
-                <option value="urgente">Urgente</option>
-              </select>
-            </div>
-          )}
+          {/* ESTADO BLOQUEADO PARA EL WORKER */}
+          <div>
+            <label className={labelClass}>Estado</label>
+            <select 
+              name="estado" 
+              value={formData.estado} 
+              disabled={true} // SIEMPRE DESHABILITADO PARA WORKERS
+              className={`${inputClass} opacity-60 cursor-not-allowed`}
+            >
+              <option value="en espera">En espera</option>
+            </select>
+          </div>
 
           <div>
             <label className={labelClass}>Fecha del reporte</label>
@@ -156,6 +167,11 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
           <div>
             <label className={labelClass}>Clave Natural</label>
             <input type="text" name="clave_natural" value={formData.clave_natural} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
+          </div>
+
+          <div>
+            <label className={labelClass}>Nombre Usuario Windows</label>
+            <input type="text" name="nombre_windows" value={formData.nombre_windows} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} placeholder="Ej: Admin / User1" />
           </div>
 
           <div>

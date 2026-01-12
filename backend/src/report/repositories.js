@@ -1,4 +1,4 @@
-import sequelize, { Report, ReportCase } from "../schemas/schemas.js";
+import sequelize, { Report, ReportCase,Machine } from "../schemas/schemas.js";
 import { Op } from "sequelize";
 
 
@@ -14,29 +14,34 @@ async function getById(id) {
 }
 
 async function createReport(data) {
-  const payload = {
+  return await Report.create({
     caso: data.caso,
-    id_maquina: data.id_maquina, // Asegúrate de que este ID exista en la tabla Machine
-    
-    // Validamos id_user: si no viene o es 0, enviamos null
-    id_user: (data.id_user && data.id_user !== 0) ? data.id_user : null,
-    
-    // AGREGAMOS id_workers: si no viene o es 0, enviamos null
-    id_workers: (data.id_workers && data.id_workers !== 0) ? data.id_workers : null,
-    
+    id_maquina: data.id_maquina,
+    id_user: data.id_user || null,
+    id_workers: data.id_workers || null,
     area: data.area,
     estado: data.estado,
     descripcion: data.descripcion,
     nombre_natural: data.nombre_natural,
+    nombre_windows: data.nombre_windows, // Nuevo atributo
     clave_natural: data.clave_natural,
     clave_acceso_windows: data.clave_win,
     fecha: data.fecha,
-  };
+  });
+}
 
-  // DEBUG: Imprime el payload en tu consola de Node para ver qué se está enviando exactamente
-  console.log("Payload enviado a la DB:", payload);
+// Función para buscar la máquina por el número (ej: "12")
+async function findMachineByNro(nro) {
+  return await Machine.findOne({ where: { nro_maquina: Number(nro) } });
+}
 
-  return await Report.create(payload);
+// Función para crear la máquina si no existe
+async function createMachine(data) {
+  return await Machine.create({
+    nro_maquina: data.nro_maquina,
+    id_user: data.id_user || null,
+    id_workers: data.id_workers || null
+  });
 }
 async function updateById(id, data) {
   const report = await Report.findByPk(id);
@@ -112,4 +117,6 @@ export const ReportRepository = {
   updateById,
   deleteById,
   getByWorkerId,
+  createMachine,
+  findMachineByNro,
 };

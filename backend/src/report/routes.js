@@ -4,7 +4,7 @@ import { verifyToken } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-router.get('/search', Getbyidworkereportcontroller);
+router.get('/by-worker', verifyToken, Getbyidworkereportcontroller);
 router.get('/', GetallReportController);
 router.post('/', verifyToken, CreateReportController);
 router.put('/:id', verifyToken, UpdateReportController);

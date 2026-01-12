@@ -1,7 +1,7 @@
 import { WorkerRepository } from './repositories.js';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_secreta';
+const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret'; 
 
 export const WorkerService = {
 
@@ -94,29 +94,23 @@ export const WorkerService = {
     }
   },
 
-  LoginworkerService: async (ficha) => {
+LoginworkerService: async (ficha) => {
     try {
       const worker = await WorkerRepository.findByFicha(ficha);
-
       if (!worker) {
         throw new Error('Ficha inválida o trabajador no registrado');
       }
 
-      // Generar Token JWT incluyendo ID y FICHA
+      // Ahora usará el JWT_SECRET definido arriba ("dev_secret")
       const token = jwt.sign(
-        { id: worker.id, ficha: worker.FICHA },
+        { id: worker.id, ficha: worker.FICHA, rol: 'worker' }, // Añadimos rol para mayor claridad
         JWT_SECRET,
         { expiresIn: '24h' }
       );
 
-      // Devolvemos la estructura que el Frontend (WorkersLogin.jsx) espera recibir
       return {
         token,
-        user: {
-          id: worker.id,
-          nombre: worker.NOMBRES,
-          ficha: worker.FICHA
-        }
+        user: { id: worker.id, nombre: worker.NOMBRES, ficha: worker.FICHA }
       };
     } catch (error) {
       throw error;

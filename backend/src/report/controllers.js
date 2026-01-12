@@ -16,42 +16,49 @@ export const GetallReportController = async (req, res) => {
 
 export const CreateReportController = async (req, res) => {
   try {
-    const { nro_maquina, caso, area, estado, descripcion, nombre_natural, clave_natural, clave_win, fecha } = req.body;
+    const { 
+      nro_maquina, caso, area, estado, descripcion, 
+      nombre_natural, nombre_windows, clave_natural, clave_win, fecha 
+    } = req.body;
 
-    // 1. BUSCAR LA MÁQUINA POR SU NÚMERO (el "12" que escribió el usuario)
-    const machine = await Machine.findOne({ 
-      where: { nro_maquina: Number(nro_maquina) } 
+    // Obtenemos el ID y Rol del token (inyectados por verifyToken)
+    const authId = req.user?.id;
+    const userRole = (req.user?.rol || req.user?.role || "").toLowerCase();
+
+    // Determinamos quién es el dueño según el rol del que está logueado
+    const isWorker = userRole === 'worker';
+    
+    const dataForService = {
+      nro_maquina: Number(nro_maquina),
+      caso,
+      area,
+      estado,
+      descripcion,
+      nombre_natural,
+      nombre_windows,
+      clave_natural,
+      clave_win,
+      fecha,
+      // Asignamos el ID a la columna correspondiente
+      id_user: !isWorker ? authId : null,
+      id_workers: isWorker ? authId : null
+    };
+
+    // Llamamos al servicio (Capa 2)
+    const createdReport = await ReportService.CreateReportWithMachineService(dataForService);
+
+    res.status(201).json({ 
+      status: "success", 
+      message: "Reporte y máquina procesados correctamente", 
+      report: createdReport 
     });
-
-    if (!machine) {
-      return res.status(404).json({ message: `La máquina número ${nro_maquina} no existe en el sistema.` });
-    }
-
-    // 2. EXTRAER LOS DUEÑOS DE ESA MÁQUINA
-    // La tabla Machine ya tiene id_user e id_workers (según tu schema)
-    const ownerUserId = machine.id_user;
-    const ownerWorkerId = machine.id_workers; // Si tu tabla Machine tiene id_workers
-
-    // 3. LLAMAR AL SERVICIO CON LOS IDS REALES DE LA BASE DE DATOS
-    const created = await ReportService.create({ 
-      caso, 
-      id_maquina: machine.id, // ID REAL (ej: 1) no el número "12"
-      id_user: ownerUserId,   // El dueño que encontramos en la tabla Machine
-      id_workers: ownerWorkerId, 
-      area, 
-      estado, 
-      descripcion, 
-      nombre_natural, 
-      clave_natural, 
-      clave_win, 
-      fecha 
-    });
-
-    res.status(201).json({ message: "Reporte creado", report: created });
 
   } catch (error) {
-    console.error("Error:", error.message);
-    res.status(500).json({ message: "Error al procesar el reporte", error: error.message });
+    console.error("Error en CreateReportController:", error.message);
+    res.status(500).json({ 
+      status: "error", 
+      message: error.message 
+    });
   }
 };
 export const UpdateReportController= async (req, res) => {

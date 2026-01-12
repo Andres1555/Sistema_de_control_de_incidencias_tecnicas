@@ -2,10 +2,8 @@ import { Sequelize, DataTypes } from 'sequelize';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// 1. Obtener la ruta de la raíz del proyecto (backend/)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Subimos dos niveles: de 'src/schemas' a 'src' y de 'src' a 'backend'
 const dbPath = path.resolve(__dirname, '../../Pasantiatest.sqlite');
 
 const sequelize = new Sequelize({
@@ -13,7 +11,6 @@ const sequelize = new Sequelize({
   storage: dbPath, 
   logging: false
 });
-
 
 export const Worker = sequelize.define('Worker', {
   ficha: { type: DataTypes.INTEGER, field: 'FICHA' },
@@ -46,6 +43,7 @@ export const User = sequelize.define('Users', {
 
 export const Machine = sequelize.define('Machine', {
   id_user: { type: DataTypes.INTEGER },
+  id_workers: { type: DataTypes.INTEGER }, // Foreign Key agregada anteriormente
   nro_maquina: { type: DataTypes.INTEGER, field: 'nro de la maquina' }
 }, {
   tableName: 'Machine',
@@ -61,6 +59,7 @@ export const Report = sequelize.define('Report', {
   estado: { type: DataTypes.STRING(500) },
   descripcion: { type: DataTypes.STRING(500) },
   nombre_natural: { type: DataTypes.STRING(500), field: 'nombre natural' },
+  nombre_windows: { type: DataTypes.STRING(500), field: 'nombre windows' }, 
   clave_natural: { type: DataTypes.INTEGER, field: 'clave natural' },
   clave_acceso_windows: { type: DataTypes.INTEGER, field: 'clave de acceso windows' },
   fecha: { type: DataTypes.DATEONLY }
@@ -68,8 +67,6 @@ export const Report = sequelize.define('Report', {
   tableName: 'Report',
   timestamps: false
 });
-
-// ... (El resto de tus modelos ReportUser, ReportCase, Specialization, SpecializationUsers se mantienen igual)
 
 export const ReportCase = sequelize.define('ReportCase', {
   id_user: { type: DataTypes.INTEGER },
@@ -99,7 +96,9 @@ export const SpecializationUsers = sequelize.define('SpecializationUsers', {
 
 // --- ASOCIACIONES ---
 
-// Relación Worker -> Report (1 a N)
+Worker.hasMany(Machine, { foreignKey: 'id_workers' });
+Machine.belongsTo(Worker, { foreignKey: 'id_workers' });
+
 Worker.hasMany(Report, { foreignKey: 'id_workers' });
 Report.belongsTo(Worker, { foreignKey: 'id_workers' });
 
@@ -121,11 +120,10 @@ ReportCase.belongsTo(User, { foreignKey: 'id_user' });
 User.belongsToMany(Specialization, { through: SpecializationUsers, foreignKey: 'id_user', otherKey: 'id_specia' });
 Specialization.belongsToMany(User, { through: SpecializationUsers, foreignKey: 'id_specia', otherKey: 'id_user' });
 
-
 export async function initDatabase() {
   try {
     await sequelize.query('PRAGMA foreign_keys = OFF;');
-    // alter: true intentará añadir la nueva tabla Worker y la columna id_workers en Report
+    // alter: true creará automáticamente el campo 'nombre windows' en la tabla Report
     await sequelize.sync({ alter: true });
   } catch (e) {
     console.error('Error sincronizando:', e);

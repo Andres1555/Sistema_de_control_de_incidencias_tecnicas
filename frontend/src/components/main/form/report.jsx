@@ -8,6 +8,15 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
   const [isLoading, setIsLoading] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
 
+  // Obtener fecha de hoy en formato YYYY-MM-DD para el input date
+  const getTodayDate = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   const initialFormData = {
     caso: "",
     id_maquina: "",
@@ -15,9 +24,10 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     estado: "",
     descripcion: "",
     nombre_natural: "",
+    nombre_windows: "", 
     clave_natural: "",
     clave_win: "",
-    fecha: "",
+    fecha: getTodayDate(), // FECHA AUTOMÁTICA DE HOY
   };
 
   const [formData, setFormData] = useState(initialData || initialFormData);
@@ -36,15 +46,22 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     if (initialData) {
       setFormData({
         ...initialData,
+        nombre_windows: initialData.nombre_windows ?? "", 
         clave_win: initialData.clave_win ?? initialData.clave_acceso_windows ?? "",
         id_maquina: initialData.id_maquina ?? initialData.nro_maquina ?? "",
+        // Si ya hay una fecha en initialData la usa, si no, usa la de hoy
+        fecha: initialData.fecha || getTodayDate(), 
       });
     } else {
       setFormData(initialFormData);
     }
   }, [initialData]);
 
-  // --- HELPERS ---
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
   const decodeToken = (token) => {
     if (!token) return null;
     try {
@@ -53,11 +70,6 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
       const json = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
       return JSON.parse(json);
     } catch (e) { return null; }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleContinueToTech = () => {
@@ -75,7 +87,6 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     setModalState({ isOpen: true, status: "success", message: "Reporte técnico creado correctamente." });
   };
 
-  // --- ENVÍO ---
   const sendForm = async () => {
     const required = ["caso", "id_maquina", "area", "estado", "descripcion", "fecha"];
     for (const key of required) {
@@ -100,7 +111,8 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
       const payload = {
         ...formData,
         nro_maquina: Number(formData.id_maquina),
-        id_maquina: Number(formData.id_maquina)
+        id_maquina: Number(formData.id_maquina),
+        nombre_windows: String(formData.nombre_windows)
       };
 
       const res = await fetch(url, {
@@ -110,16 +122,23 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
       });
 
       const result = await res.json();
-
       if (!res.ok) throw new Error(result.message || "Error en el servidor");
 
       if (formData.estado === 'resuelto') {
         setCreatedReport(result?.report || result?.data || null);
-        setModalState({ isOpen: true, status: "success", message: "Reporte guardado. Debe crear el reporte técnico." });
+        setModalState({ 
+            isOpen: true, 
+            status: "success", 
+            message: isUpdating ? "Reporte actualizado. Debe crear el reporte técnico." : "Reporte creado. Debe crear el reporte técnico." 
+        });
         setShowTechPrompt(true);
       } else {
         setFormSubmitted(true);
-        setModalState({ isOpen: true, status: "success", message: "Operación realizada con éxito." });
+        setModalState({ 
+            isOpen: true, 
+            status: "success", 
+            message: isUpdating ? "Reporte actualizado exitosamente" : "Reporte creado exitosamente" 
+        });
       }
     } catch (err) {
       setModalState({ isOpen: true, status: "error", message: err.message });
@@ -128,7 +147,15 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     }
   };
 
-  // --- ESTILOS (IGUALES A WORKER/USER FORM) ---
+  const handleModalClose = () => {
+    if (modalState.status === "success" && formSubmitted) {
+      onSuccess?.();
+      onClose?.();
+    }
+    setModalState(s => ({ ...s, isOpen: false }));
+    setFormSubmitted(false);
+  };
+
   const inputClass = `w-full p-2.5 rounded-lg border outline-none transition-all ${
     darkMode 
       ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" 
@@ -141,26 +168,21 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     <>
       <div className="space-y-6 animate-fade-in p-2">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          {/* Caso */}
           <div className="md:col-span-2">
             <label className={labelClass}>Título del Caso / Incidencia</label>
             <input type="text" name="caso" value={formData.caso} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} placeholder="Ej: Falla de red..." />
           </div>
 
-          {/* ID Maquina */}
           <div>
             <label className={labelClass}>Número de la Máquina</label>
             <input type="number" name="id_maquina" value={formData.id_maquina} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
           </div>
 
-          {/* Área */}
           <div>
             <label className={labelClass}>Área / Departamento</label>
             <input type="text" name="area" value={formData.area} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
           </div>
 
-          {/* Estado */}
           <div>
             <label className={labelClass}>Estado del Reporte</label>
             <select name="estado" value={formData.estado} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass}>
@@ -171,38 +193,37 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
             </select>
           </div>
 
-          {/* Fecha */}
           <div>
             <label className={labelClass}>Fecha</label>
             <input type="date" name="fecha" value={formData.fecha} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
           </div>
 
-          {/* Descripción */}
           <div className="md:col-span-2">
             <label className={labelClass}>Descripción Detallada</label>
             <textarea name="descripcion" value={formData.descripcion} onChange={handleInputChange} disabled={readOnlyDefault} rows="3" className={inputClass} placeholder="Explique el problema..." />
           </div>
 
-          {/* Nombre Natural */}
           <div>
             <label className={labelClass}>Nombre Natural</label>
             <input type="text" name="nombre_natural" value={formData.nombre_natural} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
           </div>
 
-          {/* Clave Natural */}
+          <div>
+            <label className={labelClass}>Nombre Windows</label>
+            <input type="text" name="nombre_windows" value={formData.nombre_windows} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
+          </div>
+
           <div>
             <label className={labelClass}>Clave Natural</label>
             <input type="text" name="clave_natural" value={formData.clave_natural} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
           </div>
 
-          {/* Clave Win */}
           <div>
             <label className={labelClass}>Clave Windows</label>
             <input type="text" name="clave_win" value={formData.clave_win} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
           </div>
         </div>
 
-        {/* Botones de acción */}
         {!readOnlyDefault && (
           <div className="flex justify-end gap-3 pt-6 border-t border-gray-700/30">
             <button type="button" onClick={onClose} className={`px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-500/10 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -220,11 +241,10 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
         )}
       </div>
 
-      {/* Dialogs de Flujo Técnico */}
       <Dialog open={showTechPrompt} onClose={() => setShowTechPrompt(false)}>
         <DialogTitle>Crear reporte técnico</DialogTitle>
         <DialogContent>
-          <Typography>El reporte fue guardado como "resuelto". ¿Desea crear el reporte técnico ahora?</Typography>
+          <Typography>El reporte fue guardado con éxito. ¿Desea crear el reporte de caso técnico ahora?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => { setShowTechPrompt(false); onSuccess?.(); onClose?.(); }}>Más tarde</Button>
@@ -243,13 +263,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
         isOpen={modalState.isOpen}
         status={modalState.status}
         message={modalState.message}
-        onClose={() => {
-          if (modalState.status === "success" && formSubmitted) {
-            onSuccess?.();
-            onClose?.();
-          }
-          setModalState(s => ({ ...s, isOpen: false }));
-        }}
+        onClose={handleModalClose}
       />
     </>
   );

@@ -1,8 +1,12 @@
 import React from "react";
-import { FaClipboardList, FaMapMarkerAlt, FaUser, FaTrash, FaEye, FaCalendarAlt } from "react-icons/fa";
+import { FaClipboardList, FaMapMarkerAlt, FaUser, FaTrash, FaEye } from "react-icons/fa";
 
 const ReportCard = ({ report = {}, onView, onDelete, darkMode = true }) => {
 	const { id, caso, descripcion, estado, fecha, area, nombre_natural } = report;
+
+	// OBTENER ROL PARA VALIDACIÓN
+	const userRole = localStorage.getItem('role')?.toLowerCase();
+	const isWorker = userRole === 'worker';
 
 	const statusColor = () => {
 		switch ((estado || "").toLowerCase()) {
@@ -59,13 +63,19 @@ const ReportCard = ({ report = {}, onView, onDelete, darkMode = true }) => {
 				</div>
 			</div>
 
-			<div className="mt-5 pt-4 border-t border-gray-700/50 flex justify-between items-center">
-				<button
-					onClick={() => onDelete && onDelete(id)}
-					className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-[#242d3c] hover:bg-red-600 text-gray-300 hover:text-white rounded-lg transition-all"
-				>
-					<FaTrash size={12} /> Eliminar
-				</button>
+			{/* Fila de acciones */}
+			<div className={`mt-5 pt-4 border-t border-gray-700/50 flex ${isWorker ? 'justify-end' : 'justify-between'} items-center`}>
+				
+				{/* MOSTRAR ELIMINAR SOLO SI NO ES WORKER */}
+				{!isWorker && (
+					<button
+						onClick={() => onDelete && onDelete(id)}
+						className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-[#242d3c] hover:bg-red-600 text-gray-300 hover:text-white rounded-lg transition-all"
+					>
+						<FaTrash size={12} /> Eliminar
+					</button>
+				)}
+
 				<button
 					onClick={() => onView && onView(report)}
 					className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-[#242d3c] hover:bg-blue-600 text-gray-300 hover:text-white rounded-lg transition-all"

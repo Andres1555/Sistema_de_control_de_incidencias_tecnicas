@@ -8,7 +8,8 @@ import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
-import Reportform from "../form/report";
+// --- CAMBIO: Importamos el formulario específico para trabajadores ---
+import ReportWorker from "../form/reportworker"; 
 
 const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 	const [reports, setReports] = useState([]);
@@ -26,15 +27,14 @@ const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) =>
 			const token = localStorage.getItem('token');
 			const userId = localStorage.getItem('userId');
 
-			// --- ENDPOINT ESPECÍFICO PARA EL TRABAJADOR LOGUEADO ---
-			// Filtramos por id_worker y opcionalmente por searchTerm (caso)
-			let url = `http://localhost:8080/api/report/search?id_worker=${userId}`;
+			// --- CAMBIO: Endpoint actualizado a 'by-worker' ---
+			let url = `http://localhost:8080/api/report/by-worker?id_worker=${userId}`;
 			
 			if (searchTerm) {
 				url += `&caso=${encodeURIComponent(searchTerm)}`;
 			}
 
-			console.log("Cargando reportes del trabajador a:", url);
+			console.log("Pidiendo mis reportes a:", url);
 
 			const res = await axios.get(url, {
 				headers: { 'Authorization': `Bearer ${token}` }
@@ -90,7 +90,7 @@ const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) =>
 	};
 
 	if (loading && reports.length === 0) {
-		return <div className="p-10 text-center animate-pulse text-blue-500 font-bold">Cargando mis reportes...</div>;
+		return <div className="p-10 text-center animate-pulse text-blue-500 font-bold tracking-widest">CARGANDO TUS REPORTES...</div>;
 	}
 
 	return (
@@ -99,7 +99,7 @@ const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) =>
 
 			{reports.length === 0 && !loading ? (
 				<div className="p-20 text-center text-gray-500 italic border-2 border-dashed border-gray-700 rounded-xl m-4">
-					<p className="text-xl font-semibold">No tienes reportes registrados</p>
+					<p className="text-xl font-semibold">No tienes reportes registrados aún</p>
 					{searchTerm && <p className="text-sm">No hay coincidencias para "{searchTerm}"</p>}
 				</div>
 			) : (
@@ -136,7 +136,7 @@ const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) =>
 					</span>
 					<div>
 						{dialogReadOnly && (
-							<Tooltip title="Editar Reporte">
+							<Tooltip title="Editar mi reporte">
 								<IconButton onClick={handleToggleEdit} size="small" sx={{ color: darkMode ? '#60a5fa' : '#2563eb', mr: 1 }}>
 									<EditIcon />
 								</IconButton>
@@ -149,7 +149,8 @@ const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) =>
 				</DialogTitle>
 				<DialogContent dividers sx={{ mt: 2, borderColor: darkMode ? '#374151' : '#e5e7eb' }}>
 					{selectedReport && (
-						<Reportform 
+						/* --- CAMBIO: Usamos ReportWorker en lugar de Reportform --- */
+						<ReportWorker 
 							initialData={selectedReport} 
 							isEdit={dialogIsEdit} 
 							readOnlyDefault={dialogReadOnly} 

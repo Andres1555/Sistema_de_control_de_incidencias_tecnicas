@@ -14,14 +14,29 @@ export const ReportService = {
     }
   },
 
-  create: async (data) => {
+  CreateReportWithMachineService: async (data) => {
     try {
-      // Aseguramos que data contenga id_user o id_workers
-      // El Repository se encargará de convertirlos a null si vienen vacíos
-      return await ReportRepository.createReport(data);
+      // 1. Buscamos si la máquina existe usando el número que vino del front
+      let machine = await ReportRepository.findMachineByNro(data.nro_maquina);
+
+      // 2. Si no existe, la creamos y la vinculamos al dueño actual
+      if (!machine) {
+        machine = await ReportRepository.createMachine({
+          nro_maquina: data.nro_maquina,
+          id_user: data.id_user,
+          id_workers: data.id_workers
+        });
+      }
+
+      // 3. Creamos el reporte usando el ID real de la máquina encontrada/creada
+      const reportPayload = {
+        ...data,
+        id_maquina: machine.id // El ID primario de la tabla Machine
+      };
+
+      return await ReportRepository.createReport(reportPayload);
     } catch (error) {
-      // Re-lanzamos el error para que el Controller lo capture
-      throw error;
+      throw new Error("Error en el servicio de reportes: " + error.message);
     }
   },
 

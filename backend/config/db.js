@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS Worker (
 CREATE TABLE IF NOT EXISTS Machine (
   id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   id_user bigint,
+  id_workers bigint, 
   "nro de la maquina" integer
 );
 
@@ -47,6 +48,7 @@ CREATE TABLE IF NOT EXISTS Report (
   descripcion varchar(500),
   "nombre natural" varchar(500),
   "clave natural" integer,
+  "nombre windows" varchar(500),
   "clave de acceso windows" integer,
   fecha date,
   FOREIGN KEY (id_workers) REFERENCES Worker (id),
