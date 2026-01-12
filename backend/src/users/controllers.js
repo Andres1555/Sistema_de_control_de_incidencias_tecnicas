@@ -108,28 +108,38 @@ export const UpdateUserController= async (req, res) => {
       });
   }
 };
-export const DeletUserController= async (req, res) => {
+export const DeletUserController = async (req, res) => {
   try {
     const { id } = req.params;
-
-    if (!id) {
-      return res.status(400).json({ message: "El campo es obligatorio" });
-    }
-
     const idnumber = Number(id);
 
     if (isNaN(idnumber)) {
-      return res
-        .status(400)
-        .json({ message: "id no valida" });
+      return res.status(400).json({ message: "ID no válida" });
     }
 
-    await UserService.delete(idnumber);
-    res.status(200).json({ message: "" });
+    // Llamamos al servicio (que a su vez llama al repository con transacción)
+    const result = await UserService.delete(idnumber);
+
+    if (result === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    res.status(200).json({ message: "Usuario y todos sus datos relacionados eliminados con éxito" });
   } catch (error) {
-    console.error("Error:", error.message);
-    res
-      .status(500)
-      .json({ message: "Error no se pudo eliminar al usuario", error: error.message });
+    console.error("Error en DeletUserController:", error.message);
+    res.status(500).json({ 
+      message: "Error al eliminar al usuario y su cascada", 
+      error: error.message 
+    });
+  }
+};
+
+export const  GetUserbyciController = async (req, res) => {
+  try {
+    const { search } = req.query; // Captura ?search=VALOR
+    const data = await UserService.SearchUsersService(search);
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
   }
 };

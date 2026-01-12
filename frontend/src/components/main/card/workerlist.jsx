@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import WorkerCard from "./workercard";
-import WorkerForm from "../form/workersreport"; // Asegúrate de que la ruta sea correcta
+import WorkerForm from "../form/workersreport"; 
 import { FiChevronLeft, FiChevronRight, FiX, FiEdit3 } from "react-icons/fi";
 import { Dialog, DialogTitle, DialogContent, IconButton, Tooltip } from '@mui/material';
 
-const WorkerList = ({ darkMode = true }) => {
+const WorkerList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 	const [workers, setWorkers] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -24,38 +24,67 @@ const WorkerList = ({ darkMode = true }) => {
 
 	const fetchWorkers = async (page = 1) => {
 		setLoading(true);
+		setError(null); // Limpiamos errores anteriores al iniciar una nueva carga
 		try {
-			const res = await axios.get(`http://localhost:8080/api/workers?page=${page}`);
+			// --- LÓGICA DE RUTAS DINÁMICAS ---
+			let url = `http://localhost:8080/api/workers?page=${page}`;
 			
-			// Según el backend pautado, recibimos { workers, totalPages, totalItems, currentPage }
-			setWorkers(res.data.workers || []);
-			setPagination({
-				currentPage: res.data.currentPage || 1,
-				totalPages: res.data.totalPages || 1,
-				totalItems: res.data.totalItems || 0
-			});
+			// Si el usuario escribió en la searchbar, cambiamos al endpoint específico de búsqueda
+			if (searchTerm) {
+				// Usamos el parámetro ?search= porque es el que definimos en el controlador
+				url = `http://localhost:8080/api/workers/search?search=${encodeURIComponent(searchTerm)}`;
+			}
+
+			console.log("Petición enviada a:", url);
+			const res = await axios.get(url);
+			
+			if (searchTerm) {
+				// Respuesta de Búsqueda: Suele ser un array directo [{}, {}]
+				const searchData = Array.isArray(res.data) ? res.data : (res.data.workers || []);
+				setWorkers(searchData);
+				// Al buscar, forzamos que la paginación se resetee a 1 página
+				setPagination({ currentPage: 1, totalPages: 1, totalItems: searchData.length });
+			} else {
+				// Respuesta Paginada: Estructura { workers: [], totalPages: ... }
+				setWorkers(res.data.workers || []);
+				setPagination({
+					currentPage: res.data.currentPage || 1,
+					totalPages: res.data.totalPages || 1,
+					totalItems: res.data.totalItems || 0
+				});
+			}
 		} catch (err) {
 			console.error("Error al cargar trabajadores:", err);
-			setError("No se pudieron cargar los trabajadores");
+			// Si el error es 404 en una búsqueda, significa que no hubo coincidencias
+			if (err.response?.status === 404 && searchTerm) {
+				setWorkers([]);
+			} else {
+				setError("No se pudo establecer conexión con el servidor");
+			}
 		} finally {
 			setLoading(false);
 		}
 	};
 
+	// Efecto para búsqueda con Debounce (300ms) para no saturar el servidor
 	useEffect(() => {
-		fetchWorkers(pagination.currentPage);
-	}, []);
+		const timer = setTimeout(() => {
+			fetchWorkers(1); // Siempre volvemos a la página 1 al buscar o refrescar
+		}, 300);
+
+		return () => clearTimeout(timer);
+	}, [searchTerm, refreshKey]);
 
 	// --- Lógica de Ver Detalles ---
 	const handleView = (worker) => {
 		setSelectedWorker(worker);
-		setDialogReadOnly(true); // Abrir en modo lectura
+		setDialogReadOnly(true); 
 		setDialogOpen(true);
 	};
 
 	// --- Lógica de Eliminación ---
 	const handleDelete = async (id) => {
-		const confirm = window.confirm("¿Estás seguro de eliminar a este trabajador? Esta acción es irreversible.");
+		const confirm = window.confirm("¿Estás seguro de eliminar a este trabajador?");
 		if (!confirm) return;
 
 		try {
@@ -63,16 +92,11 @@ const WorkerList = ({ darkMode = true }) => {
 			await axios.delete(`http://localhost:8080/api/workers/${id}`, {
 				headers: { 'Authorization': `Bearer ${token}` }
 			});
-			
-			// Si eliminamos el último de la página, retroceder una página si es posible
-			const nextPage = workers.length === 1 && pagination.currentPage > 1 
-				? pagination.currentPage - 1 
-				: pagination.currentPage;
-			
-			fetchWorkers(nextPage);
+			// Refrescar la página actual después de borrar
+			fetchWorkers(pagination.currentPage);
 		} catch (err) {
 			console.error("Error al eliminar:", err);
-			alert(err.response?.data?.message || "Error al eliminar el trabajador");
+			alert(err.response?.data?.message || "Error al eliminar");
 		}
 	};
 
@@ -83,27 +107,41 @@ const WorkerList = ({ darkMode = true }) => {
 		}
 	};
 
-	if (loading && workers.length === 0) return <div className="p-20 text-center text-blue-500 animate-pulse font-bold">CARGANDO TRABAJADORES...</div>;
+	// Estado de carga inicial
+	if (loading && workers.length === 0) {
+		return <div className="p-20 text-center text-blue-500 animate-pulse font-bold tracking-widest uppercase">Buscando trabajadores...</div>;
+	}
 
 	return (
 		<div className="space-y-10 p-4">
-			{error && <div className="text-center text-red-500 mb-4">{error}</div>}
+			{/* Mensaje de Error (Texto rojo que viste en la imagen) */}
+			{error && (
+				<div className="bg-red-500/10 border border-red-500 text-red-500 p-4 rounded-lg text-center font-bold animate-bounce">
+					{error}
+				</div>
+			)}
 
-			{/* Grid de 12 elementos */}
-			<section className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-				{workers.map((w) => (
-					<WorkerCard 
-						key={w.id} 
-						worker={w} 
-						onView={handleView} 
-						onDelete={handleDelete} 
-						darkMode={darkMode} 
-					/>
-				))}
-			</section>
+			{/* Mensaje si no hay resultados */}
+			{!loading && workers.length === 0 ? (
+				<div className="p-20 text-center text-gray-500 italic border-2 border-dashed border-gray-700 rounded-xl">
+					No se encontraron trabajadores que coincidan con "{searchTerm}"
+				</div>
+			) : (
+				<section className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+					{workers.map((w) => (
+						<WorkerCard 
+							key={w.id} 
+							worker={w} 
+							onView={handleView} 
+							onDelete={handleDelete} 
+							darkMode={darkMode} 
+						/>
+					))}
+				</section>
+			)}
 
-			{/* CONTROLES DE PAGINACIÓN */}
-			{pagination.totalPages > 1 && (
+			{/* CONTROLES DE PAGINACIÓN: Solo se muestran si NO estamos buscando */}
+			{!searchTerm && pagination.totalPages > 1 && (
 				<div className="flex flex-col items-center justify-center gap-4 py-8 border-t border-gray-700/20">
 					<div className="flex items-center gap-4">
 						<button
@@ -119,6 +157,7 @@ const WorkerList = ({ darkMode = true }) => {
 						<div className="flex items-center gap-2">
 							{[...Array(pagination.totalPages)].map((_, index) => {
 								const pageNumber = index + 1;
+								// Lógica de visualización limitada de páginas
 								if (pageNumber === 1 || pageNumber === pagination.totalPages || (pageNumber >= pagination.currentPage - 1 && pageNumber <= pagination.currentPage + 1)) {
 									return (
 										<button
@@ -147,7 +186,7 @@ const WorkerList = ({ darkMode = true }) => {
 						</button>
 					</div>
 					<p className={`text-sm font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-						Total: {pagination.totalItems} trabajadores
+						Total: {pagination.totalItems} trabajadores registrados
 					</p>
 				</div>
 			)}
@@ -167,7 +206,7 @@ const WorkerList = ({ darkMode = true }) => {
 				}}
 			>
 				<DialogTitle className="flex items-center justify-between border-b border-gray-700/30">
-					<span className="font-bold">Perfil del Trabajador</span>
+					<span className="font-bold text-lg uppercase tracking-tight">Perfil del Trabajador</span>
 					<div className="flex items-center gap-2">
 						{dialogReadOnly && (
 							<Tooltip title="Editar Datos">
@@ -182,7 +221,7 @@ const WorkerList = ({ darkMode = true }) => {
 					</div>
 				</DialogTitle>
 
-				<DialogContent className="mt-4">
+				<DialogContent className="mt-4 pb-6">
 					{selectedWorker && (
 						<WorkerForm 
 							initialData={selectedWorker} 

@@ -1,15 +1,13 @@
 import React, { useState, forwardRef, useEffect } from "react";
-import {Box,Button,TextField,FormControl,InputLabel,Select,MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Typography,} from "@mui/material";
-import LoadingModal from "@/hooks/Modals/LoadingModal"; 
-import Techreport from "./techreport"; 
-// import axios from "axios"; // Descomentar si vas a usar axios directamente
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from "@mui/material";
+import LoadingModal from "@/hooks/Modals/LoadingModal";
+import Techreport from "./techreport";
 
 const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false, readOnlyDefault = false, darkMode = false }, ref) => {
   // --- ESTADOS ---
   const [isLoading, setIsLoading] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
 
-  // Campos esperados por el backend
   const initialFormData = {
     caso: "",
     id_maquina: "",
@@ -23,354 +21,238 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
   };
 
   const [formData, setFormData] = useState(initialData || initialFormData);
-  const [machines, setMachines] = useState([]);
-
-  const [isReadOnly, setIsReadOnly] = useState(Boolean(readOnlyDefault));
-
-  useEffect(() => {
-    // Cuando cambian las props iniciales, sincronizamos y mapeamos nombres de campo entre backend y frontend
-    if (initialData) {
-      setFormData({
-        ...initialData,
-        // El backend guarda la clave como 'clave_acceso_windows' en el modelo
-        clave_win: initialData.clave_win ?? initialData.clave_acceso_windows ?? "",
-        // Asegurar id_maquina esté en el campo que usa el formulario
-        id_maquina: initialData.id_maquina ?? initialData.nro_maquina ?? "",
-      });
-    } else {
-      setFormData(initialFormData);
-    }
-    setIsReadOnly(Boolean(readOnlyDefault));
-  }, [initialData, readOnlyDefault]);
-
-  // Estados para flow de reporte técnico
   const [showTechPrompt, setShowTechPrompt] = useState(false);
   const [showTechDialog, setShowTechDialog] = useState(false);
   const [createdReport, setCreatedReport] = useState(null);
   const [techInitialData, setTechInitialData] = useState(null);
 
-  // Estado del Modal de Feedback
   const [modalState, setModalState] = useState({
     isOpen: false,
-    status: "loading", // 'loading' | 'success' | 'error'
+    status: "loading",
     message: "",
   });
 
-  // Decodificar token JWT sin verificar para obtener id de usuario
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        ...initialData,
+        clave_win: initialData.clave_win ?? initialData.clave_acceso_windows ?? "",
+        id_maquina: initialData.id_maquina ?? initialData.nro_maquina ?? "",
+      });
+    } else {
+      setFormData(initialFormData);
+    }
+  }, [initialData]);
+
+  // --- HELPERS ---
   const decodeToken = (token) => {
     if (!token) return null;
     try {
       const payload = token.split('.')[1];
       const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-      // atob + decodeURIComponent to correctly handle UTF-8
-      const json = decodeURIComponent(atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
+      const json = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
       return JSON.parse(json);
-    } catch (e) {
-      return null;
-    }
+    } catch (e) { return null; }
   };
-
-  const handleContinueToTech = () => {
-    const token = localStorage.getItem('token');
-    const decoded = decodeToken(token);
-    const id_user = decoded?.id;
-    const id_report = createdReport?.id;
-    setTechInitialData({ id_user: id_user ?? "", id_report: id_report ?? "" });
-    setShowTechPrompt(false);
-    setShowTechDialog(true);
-  };
-
-  const handleTechSuccess = () => {
-    setShowTechDialog(false);
-    setShowTechPrompt(false);
-    clearForm();
-    setFormSubmitted(true);
-    onSuccess?.();
-    onClose?.();
-    setModalState({ isOpen: true, status: "success", message: "Reporte técnico creado correctamente." });
-  };
-
-  const handleTechClose = () => setShowTechDialog(false);
-
-  // --- MANEJADORES ---
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // --- ENVÍO DEL FORMULARIO ---
-  const sendForm = async () => {
-    // 1. Validaciones básicas: todos los campos obligatorios
-    const required = [
-      "caso",
-      "id_maquina",
-      "area",
-      "estado",
-      "descripcion",
-      "nombre_natural",
-      "clave_natural",
-      "clave_win",
-      "fecha",
-    ];
+  const handleContinueToTech = () => {
+    const token = localStorage.getItem('token');
+    const decoded = decodeToken(token);
+    setTechInitialData({ id_user: decoded?.id ?? "", id_report: createdReport?.id ?? "" });
+    setShowTechPrompt(false);
+    setShowTechDialog(true);
+  };
 
+  const handleTechSuccess = () => {
+    setShowTechDialog(false);
+    onSuccess?.();
+    onClose?.();
+    setModalState({ isOpen: true, status: "success", message: "Reporte técnico creado correctamente." });
+  };
+
+  // --- ENVÍO ---
+  const sendForm = async () => {
+    const required = ["caso", "id_maquina", "area", "estado", "descripcion", "fecha"];
     for (const key of required) {
       if (!formData[key] && formData[key] !== 0) {
-        setModalState({ isOpen: true, status: "error", message: "Complete todos los campos obligatorios." });
+        setModalState({ isOpen: true, status: "error", message: "Complete los campos obligatorios." });
         return;
       }
-    }
-
-    // Tipos básicos
-    const idMaquinaNum = Number(formData.id_maquina);
-    if (isNaN(idMaquinaNum)) {
-      setModalState({ isOpen: true, status: "error", message: "El campo 'id_maquina' debe ser un número." });
-      return;
-    }
-
-    if (isNaN(Date.parse(formData.fecha))) {
-      setModalState({ isOpen: true, status: "error", message: "Fecha inválida." });
-      return;
     }
 
     setIsLoading(true);
-    setModalState({
-      isOpen: true,
-      status: "loading",
-      message: "Procesando solicitud...",
-    });
+    setModalState({ isOpen: true, status: "loading", message: "Procesando..." });
 
     try {
-      // 2. Llamada al endpoint del backend
-      // Enviamos `nro_maquina` directamente con el valor que el usuario escribe
-      const nroMaquinaVal = Number(formData.id_maquina);
-
-      const payload = {
-        caso: String(formData.caso),
-        nro_maquina: Number(nroMaquinaVal),
-        area: String(formData.area),
-        estado: String(formData.estado),
-        descripcion: String(formData.descripcion),
-        nombre_natural: String(formData.nombre_natural),
-        clave_natural: String(formData.clave_natural),
-        clave_win: String(formData.clave_win),
-        fecha: String(formData.fecha),
-      };
-
-      // Preparar headers, incluir token si existe
       const token = localStorage.getItem("token");
       const headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
-
       const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
-      // Si estamos en modo edición (isEdit) y tenemos id en initialData, llamamos PUT
-      if (isEdit && initialData?.id) {
-        const id = initialData.id;
+      const isUpdating = isEdit && initialData?.id;
+      const url = isUpdating ? `${base}/api/report/${initialData.id}` : `${base}/api/report`;
+      
+      const payload = {
+        ...formData,
+        nro_maquina: Number(formData.id_maquina),
+        id_maquina: Number(formData.id_maquina)
+      };
 
-        // Para update enviamos id_maquina en lugar de nro_maquina (el controlador espera id_maquina)
-        const updatePayload = {
-          caso: String(formData.caso),
-          id_maquina: Number(nroMaquinaVal),
-          area: String(formData.area),
-          estado: String(formData.estado),
-          descripcion: String(formData.descripcion),
-          nombre_natural: String(formData.nombre_natural),
-          clave_natural: String(formData.clave_natural),
-          clave_win: String(formData.clave_win),
-          fecha: String(formData.fecha),
-        };
-
-        console.log('Reportform - PUT', `${base}/api/report/${id}`, { headers, updatePayload });
-
-        const res = await fetch(`${base}/api/report/${id}`, {
-          method: "PUT",
-          headers,
-          body: JSON.stringify(updatePayload),
-        });
-
-        let result = null;
-        try { result = await res.json(); } catch (e) { result = null; }
-
-        if (!res.ok) {
-          console.error("API error (update):", res.status, result);
-          setFormSubmitted(false);
-          setModalState({ isOpen: true, status: "error", message: result?.message || `Error del servidor: ${res.status}` });
-          setIsLoading(false);
-          return;
-        }
-
-        // Después de actualizar, si estado cambió a resuelto y necesita crear reporte técnico
-        if (formData.estado === 'resuelto') {
-          setCreatedReport(result?.report || null);
-          setModalState({ isOpen: true, status: "success", message: (result?.message || "Reporte actualizado correctamente") + ". Ahora debes crear un reporte de caso." });
-          setShowTechPrompt(true);
-        } else {
-          setFormSubmitted(true);
-          setModalState({ isOpen: true, status: "success", message: result?.message || "Reporte actualizado correctamente" });
-          // Notificar al padre y cerrar si corresponde
-          onSuccess?.();
-        }
-
-        setIsLoading(false);
-        return;
-      }
-
-      // Si no es edición, creamos nuevo
-      const res = await fetch(`${base}/api/report`, {
-        method: "POST",
+      const res = await fetch(url, {
+        method: isUpdating ? "PUT" : "POST",
         headers,
         body: JSON.stringify(payload),
       });
 
       const result = await res.json();
 
-      if (!res.ok) {
-        console.error("API error:", res.status, result);
-        setFormSubmitted(false);
-        setModalState({ isOpen: true, status: "error", message: result?.message || `Error del servidor: ${res.status}` });
-        return;
-      }
+      if (!res.ok) throw new Error(result.message || "Error en el servidor");
 
-      // 3. Éxito
       if (formData.estado === 'resuelto') {
-        // Mantener el formulario abierto y pedir crear reporte técnico
-        setFormSubmitted(false);
-        setCreatedReport(result?.report || null);
-        setModalState({ isOpen: true, status: "success", message: (result?.message || "Operación realizada correctamente") + ". Ahora debes crear un reporte de caso." });
+        setCreatedReport(result?.report || result?.data || null);
+        setModalState({ isOpen: true, status: "success", message: "Reporte guardado. Debe crear el reporte técnico." });
         setShowTechPrompt(true);
       } else {
         setFormSubmitted(true);
-        setModalState({ isOpen: true, status: "success", message: result?.message || "Operación realizada correctamente" });
+        setModalState({ isOpen: true, status: "success", message: "Operación realizada con éxito." });
       }
-
     } catch (err) {
-      console.error(err);
-      setFormSubmitted(false);
-      setModalState({
-        isOpen: true,
-        status: "error",
-        message: "Hubo un error al procesar la solicitud.",
-      });
+      setModalState({ isOpen: true, status: "error", message: err.message });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Obtener lista de máquinas para que el usuario seleccione una existente
-  useEffect(() => {
-    const fetchMachines = async () => {
-      try {
-        const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-        const token = localStorage.getItem('token');
-        const headers = { 'Content-Type': 'application/json' };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-        const res = await fetch(`${base}/api/machines`, { headers });
-        if (!res.ok) return;
-        const data = await res.json();
-        setMachines(data || []);
-      } catch (e) {
-        console.error('Error fetching machines', e);
-      }
-    };
-    fetchMachines();
-  }, []);
+  // --- ESTILOS (IGUALES A WORKER/USER FORM) ---
+  const inputClass = `w-full p-2.5 rounded-lg border outline-none transition-all ${
+    darkMode 
+      ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" 
+      : "bg-gray-50 border-gray-300 text-gray-900 focus:border-blue-600"
+  } ${readOnlyDefault ? "bg-transparent border-transparent cursor-default font-semibold text-lg" : "border-solid shadow-sm"}`;
 
-  // --- LIMPIEZA Y CIERRE ---
-  const clearForm = () => {
-    setFormData(initialFormData);
-  };
-
-  const handleModalClose = () => {
-    if (modalState.status === "success" && formSubmitted) {
-      clearForm();
-      onSuccess?.(); // Notificar al padre que terminó
-      onClose?.();   // Cerrar el formulario si está en un modal/drawer
-    }
-    setModalState((s) => ({ ...s, isOpen: false }));
-    setFormSubmitted(false);
-  };
+  const labelClass = `block text-[10px] font-bold uppercase tracking-widest mb-1 ${darkMode ? "text-blue-400" : "text-blue-600"}`;
 
   return (
     <>
-      <Box
-        component="form"
-        ref={ref}
-        onSubmit={(e) => e.preventDefault()}
-        className={darkMode ? 'bg-transparent text-gray-100' : ''}
-        sx={{
-          display: "flex",
-          gap: 2,
-          p: 1,
-          alignItems: "flex-start",
-          flexWrap: "wrap",
-        }}
-      >
-        <Box sx={{ flex: 1, minWidth: 300, display: "flex", flexDirection: "column", gap: 2 }}>
-          <TextField disabled={isReadOnly} fullWidth label="Caso" name="caso" variant="filled" value={formData.caso} onChange={handleInputChange} required />
+      <div className="space-y-6 animate-fade-in p-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* Caso */}
+          <div className="md:col-span-2">
+            <label className={labelClass}>Título del Caso / Incidencia</label>
+            <input type="text" name="caso" value={formData.caso} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} placeholder="Ej: Falla de red..." />
+          </div>
 
-          <TextField disabled={isReadOnly} fullWidth label="Numero de la Máquina" name="id_maquina" type="number" variant="filled" value={formData.id_maquina} onChange={handleInputChange} required />
+          {/* ID Maquina */}
+          <div>
+            <label className={labelClass}>Número de la Máquina</label>
+            <input type="number" name="id_maquina" value={formData.id_maquina} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
+          </div>
 
-          <TextField disabled={isReadOnly} fullWidth label="Área" name="area" variant="filled" value={formData.area} onChange={handleInputChange} required />
+          {/* Área */}
+          <div>
+            <label className={labelClass}>Área / Departamento</label>
+            <input type="text" name="area" value={formData.area} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
+          </div>
 
-          <FormControl variant="filled" fullWidth>
-            <InputLabel id="estado-label">Estado</InputLabel>
-            <Select disabled={isReadOnly} labelId="estado-label" name="estado" value={formData.estado} onChange={handleInputChange}>
-              <MenuItem value="resuelto">Resuelto</MenuItem>
-              <MenuItem value="en revision">En revisión</MenuItem>
-              <MenuItem value="en espera">En espera</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
+          {/* Estado */}
+          <div>
+            <label className={labelClass}>Estado del Reporte</label>
+            <select name="estado" value={formData.estado} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass}>
+              <option value="">Seleccione...</option>
+              <option value="resuelto">Resuelto</option>
+              <option value="en revision">En revisión</option>
+              <option value="en espera">En espera</option>
+            </select>
+          </div>
 
-        <Box sx={{ flex: 1, minWidth: 300, display: "flex", flexDirection: "column", gap: 2 }}>
-          <TextField disabled={isReadOnly} fullWidth label="Descripción" name="descripcion" variant="filled" multiline minRows={3} value={formData.descripcion} onChange={handleInputChange} required />
+          {/* Fecha */}
+          <div>
+            <label className={labelClass}>Fecha</label>
+            <input type="date" name="fecha" value={formData.fecha} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
+          </div>
 
-          <TextField disabled={isReadOnly} fullWidth label="Nombre natural" name="nombre_natural" variant="filled" value={formData.nombre_natural} onChange={handleInputChange} required />
+          {/* Descripción */}
+          <div className="md:col-span-2">
+            <label className={labelClass}>Descripción Detallada</label>
+            <textarea name="descripcion" value={formData.descripcion} onChange={handleInputChange} disabled={readOnlyDefault} rows="3" className={inputClass} placeholder="Explique el problema..." />
+          </div>
 
-          <TextField disabled={isReadOnly} fullWidth label="Clave natural" name="clave_natural" variant="filled" value={formData.clave_natural} onChange={handleInputChange} required />
+          {/* Nombre Natural */}
+          <div>
+            <label className={labelClass}>Nombre Natural</label>
+            <input type="text" name="nombre_natural" value={formData.nombre_natural} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
+          </div>
 
-          <TextField disabled={isReadOnly} fullWidth label="Clave Windows" name="clave_win" variant="filled" value={formData.clave_win} onChange={handleInputChange} required />
+          {/* Clave Natural */}
+          <div>
+            <label className={labelClass}>Clave Natural</label>
+            <input type="text" name="clave_natural" value={formData.clave_natural} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
+          </div>
 
-          <TextField disabled={isReadOnly} fullWidth label="Fecha" name="fecha" type="date" variant="filled" value={formData.fecha} onChange={handleInputChange} InputLabelProps={{ shrink: true }} required />
+          {/* Clave Win */}
+          <div>
+            <label className={labelClass}>Clave Windows</label>
+            <input type="text" name="clave_win" value={formData.clave_win} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
+          </div>
+        </div>
 
-          <Button type="button" variant="contained" color="primary" fullWidth onClick={sendForm} disabled={isLoading || isReadOnly} sx={{ py: 2, mt: 1 }}>
-            {isLoading ? "Cargando..." : (isEdit ? "Guardar cambios" : "Guardar")}
-          </Button>
-        </Box>
-      </Box>
+        {/* Botones de acción */}
+        {!readOnlyDefault && (
+          <div className="flex justify-end gap-3 pt-6 border-t border-gray-700/30">
+            <button type="button" onClick={onClose} className={`px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-500/10 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Cancelar
+            </button>
+            <button 
+              type="button" 
+              onClick={sendForm} 
+              disabled={isLoading} 
+              className="bg-blue-600 text-white px-8 py-2 rounded-md font-bold shadow-lg hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"
+            >
+              {isLoading ? "Enviando..." : (isEdit ? "Guardar Cambios" : "Crear Reporte")}
+            </button>
+          </div>
+        )}
+      </div>
 
-      {/* Dialog para indicar que hay que crear reporte técnico ahora */}
+      {/* Dialogs de Flujo Técnico */}
       <Dialog open={showTechPrompt} onClose={() => setShowTechPrompt(false)}>
         <DialogTitle>Crear reporte técnico</DialogTitle>
         <DialogContent>
-          <Typography>El reporte fue guardado con estado "resuelto". Debes crear ahora un reporte de caso técnico para este reporte.</Typography>
+          <Typography>El reporte fue guardado como "resuelto". ¿Desea crear el reporte técnico ahora?</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowTechPrompt(false)}>Cancelar</Button>
+          <Button onClick={() => { setShowTechPrompt(false); onSuccess?.(); onClose?.(); }}>Más tarde</Button>
           <Button onClick={handleContinueToTech} variant="contained">Continuar</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Dialog con el formulario de Reporte Técnico */}
-      <Dialog open={showTechDialog} onClose={handleTechClose} maxWidth="md" fullWidth>
+      <Dialog open={showTechDialog} onClose={() => setShowTechDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>Registrar reporte técnico</DialogTitle>
         <DialogContent>
-          <Techreport initialData={techInitialData} onSuccess={handleTechSuccess} onClose={handleTechClose} />
+          <Techreport initialData={techInitialData} onSuccess={handleTechSuccess} onClose={() => setShowTechDialog(false)} darkMode={darkMode} />
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Feedback (Carga/Éxito/Error) */}
       <LoadingModal
         isOpen={modalState.isOpen}
         status={modalState.status}
         message={modalState.message}
-        onClose={handleModalClose}
+        onClose={() => {
+          if (modalState.status === "success" && formSubmitted) {
+            onSuccess?.();
+            onClose?.();
+          }
+          setModalState(s => ({ ...s, isOpen: false }));
+        }}
       />
     </>
   );
 });
 
-export default Reportform ;
+export default Reportform;

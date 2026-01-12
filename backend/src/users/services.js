@@ -26,4 +26,14 @@ export const UserService = {
     if (!destroyed) throw new Error("Usuario no encontrado para eliminar");
     return destroyed;
   },
+  SearchUsersService: async (term) => {
+    try {
+      return await UserRepository.findBySearch(term);
+    } catch (error) {
+      throw new Error('Error al buscar usuarios: ' + error.message);
+    }
+  }
 };
+
+
+

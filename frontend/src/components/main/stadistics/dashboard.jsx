@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+// Importamos algunos iconos para mejorar la interfaz
+import { FiChevronLeft, FiChevronRight, FiCalendar, FiRefreshCw } from "react-icons/fi";
 
 const colors = ["#4CAF50", "#F44336", "#FFC107", "#2196F3", "#9C27B0", "#FF5722", "#607D8B"];
 
-const PieChart = ({ data = [] , size = 220 }) => {
+// Componente PieChart (se mantiene igual, solo pequeños ajustes de estilo)
+const PieChart = ({ data = [], size = 220, darkMode }) => {
   if (!Array.isArray(data) || data.length === 0) {
-    return <div>No hay datos para mostrar</div>;
+    return <div className="py-10 text-gray-500 italic">No hay datos para mostrar</div>;
   }
 
-  // Convertir porcentaje (puede venir como '12.34%') a número
   const slices = data.map(d => {
     const porcentaje = typeof d.porcentaje === 'string' ? parseFloat(d.porcentaje.replace('%', '')) : Number(d.porcentaje || 0);
     return { ...d, porcentaje: isNaN(porcentaje) ? 0 : porcentaje };
@@ -23,22 +25,22 @@ const PieChart = ({ data = [] , size = 220 }) => {
     return `${color} ${start}% ${end}%`;
   }).join(', ');
 
-  const style = {
-    width: size,
-    height: size,
-    borderRadius: '50%',
-    background: `conic-gradient(${stops})`,
-    display: 'inline-block'
-  };
-
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-      <div style={style} aria-hidden="true" />
-      <div>
+    <div className="flex flex-col lg:flex-row items-center gap-8 justify-center">
+      <div 
+        style={{ 
+          width: size, height: size, borderRadius: '50%', 
+          background: `conic-gradient(${stops})`,
+          boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+        }} 
+      />
+      <div className="flex flex-col gap-2">
         {slices.map((s, i) => (
-          <div key={s.estado} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <div style={{ width: 12, height: 12, borderRadius: 3, background: colors[i % colors.length] }} />
-            <div style={{ fontSize: 14 }}>{s.estado}: <strong>{s.cantidad}</strong> ({s.porcentaje}%)</div>
+          <div key={s.estado} className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-sm" style={{ background: colors[i % colors.length] }} />
+            <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                <span className="font-bold uppercase text-[11px]">{s.estado}:</span> {s.cantidad} ({s.porcentaje.toFixed(1)}%)
+            </span>
           </div>
         ))}
       </div>
@@ -52,44 +54,18 @@ const Dashboard = ({ darkMode = false }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Filtering state
-  const [period, setPeriod] = useState('month'); // day|week|month|year
-  const [dateDisplay, setDateDisplay] = useState(() => {
-    const d = new Date();
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    return `${dd}/${mm}/${yyyy}`; // dd/mm/YYYY for the UI
-  });
-  const [dateError, setDateError] = useState(null);
-
-  function parseDisplayToISO(disp) {
-    if (!disp) return null;
-    const m = /^\s*(\d{2})\/(\d{2})\/(\d{4})\s*$/.exec(disp);
-    if (!m) return null;
-    const dd = Number(m[1]), mm = Number(m[2]), yyyy = Number(m[3]);
-    if (mm < 1 || mm > 12) return null;
-    if (dd < 1 || dd > 31) return null;
-    const dateObj = new Date(yyyy, mm - 1, dd);
-    if (dateObj.getFullYear() !== yyyy || dateObj.getMonth() !== mm - 1 || dateObj.getDate() !== dd) return null;
-    return `${String(yyyy).padStart(4,'0')}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
-  }
+  const [period, setPeriod] = useState('month'); 
+  // Usamos formato ISO (YYYY-MM-DD) para el input date nativo
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     let mounted = true;
     const fetchStats = async () => {
       setLoading(true);
       setError(null);
-      setDateError(null);
       try {
         const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-        const iso = parseDisplayToISO(dateDisplay);
-        if (!iso) {
-          setDateError('Formato de fecha inválido (dd/mm/YYYY)');
-          setLoading(false);
-          return;
-        }
-        const res = await axios.get(`${base}/api/stadistic`, { params: { period, date: iso } });
+        const res = await axios.get(`${base}/api/stadistic`, { params: { period, date: selectedDate } });
         if (!mounted) return;
         setTotal(res.data?.total_reportes ?? 0);
         setData(Array.isArray(res.data?.data) ? res.data.data.map(d => ({
@@ -98,144 +74,150 @@ const Dashboard = ({ darkMode = false }) => {
           porcentaje: Number(d.porcentaje || 0)
         })) : []);
       } catch (err) {
-        console.error('Error fetching stats', err);
-        setError(err?.response?.data?.message || err.message || 'Error al obtener estadísticas');
+        setError('Error al obtener estadísticas');
       } finally {
         setLoading(false);
       }
     };
-
     fetchStats();
     return () => { mounted = false; };
-  }, [period, dateDisplay]);
+  }, [period, selectedDate]);
 
-  function formatShort(dStr) {
-    if (!dStr) return '';
-    try {
-      const d = new Date(dStr);
-      const dd = String(d.getDate()).padStart(2, '0');
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const yyyy = String(d.getFullYear());
-      return `${dd}/${mm}/${yyyy}`;
-    } catch (e) { return dStr; }
-  }
-
-  function computeRange(period, dateStr) {
-    const inputDate = dateStr ? new Date(dateStr + 'T00:00:00') : new Date();
-    let from = new Date(inputDate);
-    let to = new Date(inputDate);
-
-    switch ((period || 'month').toLowerCase()) {
-      case 'day':
-        break;
-      case 'week':
-        const diff = (inputDate.getDay() + 6) % 7;
-        from = new Date(inputDate);
-        from.setDate(inputDate.getDate() - diff);
-        to = new Date(from);
-        to.setDate(from.getDate() + 6);
-        break;
-      case 'month':
-        from = new Date(inputDate.getFullYear(), inputDate.getMonth(), 1);
-        to = new Date(inputDate.getFullYear(), inputDate.getMonth() + 1, 0);
-        break;
-      case 'year':
-        from = new Date(inputDate.getFullYear(), 0, 1);
-        to = new Date(inputDate.getFullYear(), 11, 31);
-        break;
-      default:
-        from = new Date(inputDate.getFullYear(), inputDate.getMonth(), 1);
-        to = new Date(inputDate.getFullYear(), inputDate.getMonth() + 1, 0);
+  // Función para navegar en el tiempo (Botones Anterior/Siguiente)
+  const navigateDate = (direction) => {
+    const date = new Date(selectedDate + 'T00:00:00');
+    switch (period) {
+      case 'day': date.setDate(date.getDate() + direction); break;
+      case 'week': date.setDate(date.getDate() + (direction * 7)); break;
+      case 'month': date.setMonth(date.getMonth() + direction); break;
+      case 'year': date.setFullYear(date.getFullYear() + direction); break;
+      default: break;
     }
+    setSelectedDate(date.toISOString().split('T')[0]);
+  };
 
-    return { fromDisplay: formatShort(from.toISOString().slice(0,10)), toDisplay: formatShort(to.toISOString().slice(0,10)) };
-  }
+  const resetToday = () => setSelectedDate(new Date().toISOString().split('T')[0]);
 
-  let fromDisplay = '';
-  let toDisplay = '';
-  try {
-    const range = computeRange(period, dateDisplay);
-    fromDisplay = range.fromDisplay;
-    toDisplay = range.toDisplay;
-  } catch (e) {
-    console.error('Error computing range:', e);
-  }
-
-
-  class ErrorBoundary extends React.Component {
-    constructor(props) {
-      super(props);
-      this.state = { hasError: false, error: null };
-    }
-    static getDerivedStateFromError(error) {
-      return { hasError: true, error };
-    }
-    componentDidCatch(error, info) {
-      console.error('ErrorBoundary caught:', error, info);
-    }
-    render() {
-      if (this.state.hasError) {
-        return <div className="p-6 text-red-600">Ocurrió un error al renderizar las estadísticas. Revisa la consola.</div>;
-      }
-      return this.props.children;
-    }
-  }
+  const controlStyles = darkMode 
+    ? "bg-gray-800 border-gray-700 text-gray-200" 
+    : "bg-white border-gray-200 text-gray-700";
 
   return (
-    <ErrorBoundary>
-      <div>
-        <h2 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>Estadísticas</h2>
-
-      {/* Controls */}
-      <div className="flex items-center gap-4 mb-2">
-        <div>
-          <label className="block text-sm">Periodo</label>
-          <select value={period} onChange={(e) => setPeriod(e.target.value)} className="px-3 py-1 rounded border">
-            <option value="day">Día</option>
-            <option value="week">Semana</option>
-            <option value="month">Mes</option>
-            <option value="year">Año</option>
-          </select>
+    <div className="p-2">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Estadísticas de Reportes</h2>
+        
+        {/* Selector de Periodo */}
+        <div className="flex bg-blue-600/10 p-1 rounded-lg">
+          {['day', 'week', 'month', 'year'].map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-4 py-1.5 rounded-md text-xs font-bold uppercase transition-all ${
+                period === p 
+                  ? "bg-blue-600 text-white shadow-md" 
+                  : "text-blue-600 hover:bg-blue-600/10"
+              }`}
+            >
+              {p === 'day' ? 'Día' : p === 'week' ? 'Semana' : p === 'month' ? 'Mes' : 'Año'}
+            </button>
+          ))}
         </div>
-
-        <div>
-          <label className="block text-sm">Fecha </label>
-          <input type="text" placeholder="dd/mm/YYYY" value={dateDisplay} onChange={(e) => setDateDisplay(e.target.value)} className="px-3 py-1 rounded border" />
-          {dateError && <div className="text-red-600 text-sm mt-1">{dateError}</div>}
-        </div>
-
       </div>
 
-      {loading && <div>Cargando estadísticas...</div>}
-      {error && <div className="text-red-600">{error}</div>}
+      {/* CONTROLES DE FECHA INTUITIVOS */}
+      <div className={`flex flex-wrap items-center gap-3 p-4 rounded-xl border mb-8 ${controlStyles}`}>
+        <div className="flex items-center gap-2 mr-4">
+          <FiCalendar className="text-blue-500" />
+          <span className="text-sm font-bold uppercase tracking-wider">Fecha de consulta:</span>
+        </div>
 
-      {!loading && !error && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow`}> 
-            <h3 className="text-lg font-semibold mb-2">Distribución por estado</h3>
-            <PieChart data={data.map(d => ({ ...d, porcentaje: d.porcentaje }))} />
-            <div className="mt-4 text-sm text-gray-400">Total reportes: <strong className={`text-${darkMode ? 'white' : 'gray-800'}`}>{total}</strong></div>
+        <div className="flex items-center gap-1 bg-gray-500/10 rounded-lg p-1">
+          <button 
+            onClick={() => navigateDate(-1)}
+            className="p-2 hover:bg-blue-600 hover:text-white rounded-md transition-colors"
+            title="Anterior"
+          >
+            <FiChevronLeft size={20} />
+          </button>
+
+          <input 
+            type="date" 
+            value={selectedDate} 
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className={`px-3 py-1.5 rounded-md border-none bg-transparent font-semibold focus:ring-0 cursor-pointer`}
+          />
+
+          <button 
+            onClick={() => navigateDate(1)}
+            className="p-2 hover:bg-blue-600 hover:text-white rounded-md transition-colors"
+            title="Siguiente"
+          >
+            <FiChevronRight size={20} />
+          </button>
+        </div>
+
+        <button 
+          onClick={resetToday}
+          className="ml-auto flex items-center gap-2 px-4 py-2 text-xs font-bold border border-blue-500/50 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-all"
+        >
+          <FiRefreshCw /> HOY
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-20 animate-pulse text-blue-500 font-bold uppercase tracking-widest">
+            Actualizando datos...
+        </div>
+      ) : error ? (
+        <div className="bg-red-500/10 border border-red-500 text-red-500 p-4 rounded-lg text-center">
+            {error}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Gráfico */}
+          <div className={`lg:col-span-2 p-6 rounded-2xl border ${darkMode ? 'bg-[#1a222f] border-gray-700' : 'bg-white border-gray-200'} shadow-sm`}> 
+            <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-6 flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full" />
+              Distribución por estado
+            </h3>
+            <PieChart data={data} darkMode={darkMode} />
           </div>
 
-          <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow`}> 
-            <h3 className="text-lg font-semibold mb-2">Detalles</h3>
-            <div className="space-y-2">
-              {data.length === 0 && <div>No hay datos</div>}
-              {data.map((d, i) => (
-                <div key={d.estado} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span style={{ width: 12, height: 12, background: colors[i % colors.length], display: 'inline-block' }}></span>
-                    <span>{d.estado}</span>
-                  </div>
-                  <div>{d.cantidad} ({d.porcentaje.toFixed(2)}%)</div>
+          {/* Tarjeta de Resumen */}
+          <div className="flex flex-col gap-6">
+            <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-[#1a222f] border-gray-700' : 'bg-white border-gray-200'} shadow-sm`}>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Total de Reportes</p>
+                <h4 className="text-4xl font-black text-blue-500">{total}</h4>
+            </div>
+
+            <div className={`p-6 rounded-2xl border flex-1 ${darkMode ? 'bg-[#1a222f] border-gray-700' : 'bg-white border-gray-200'} shadow-sm`}> 
+                <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-4">Métricas Detalladas</h3>
+                <div className="space-y-4">
+                {data.length === 0 && <div className="text-gray-500 text-sm italic">Sin registros en este periodo</div>}
+                {data.map((d, i) => (
+                    <div key={d.estado} className="group">
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-bold uppercase text-gray-400">{d.estado}</span>
+                            <span className="text-xs font-black">{d.cantidad}</span>
+                        </div>
+                        <div className="w-full bg-gray-500/10 h-1.5 rounded-full overflow-hidden">
+                            <div 
+                                className="h-full transition-all duration-1000" 
+                                style={{ 
+                                    width: `${d.porcentaje}%`, 
+                                    background: colors[i % colors.length] 
+                                }} 
+                            />
+                        </div>
+                    </div>
+                ))}
                 </div>
-              ))}
             </div>
           </div>
         </div>
       )}
     </div>
-    </ErrorBoundary>
   );
 };
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import UserCard from "./userscard"// Importamos la nueva card de usuario
+import UserCard from "./userscard"; 
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -10,7 +10,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import UserForm from "../form/usersform";
 
-const UserList = ({ darkMode = true }) => {
+// Agregamos searchTerm y refreshKey a las props
+const UserList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 	const [users, setUsers] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -21,13 +22,25 @@ const UserList = ({ darkMode = true }) => {
 	const [dialogReadOnly, setDialogReadOnly] = useState(true);
 	const [dialogIsEdit, setDialogIsEdit] = useState(false);
 
-	// 1. Cargar usuarios desde el backend
+	// 1. Cargar usuarios (soporta búsqueda y carga normal)
 	const fetchUsers = async () => {
 		setLoading(true);
+		setError(null);
 		try {
-			const res = await axios.get("http://localhost:8080/api/users");
-			// Manejamos si la respuesta es el array directo o viene envuelto
-			setUsers(Array.isArray(res.data) ? res.data : (res.data.users || []));
+			// Construcción de URL dinámica
+			let url = "http://localhost:8080/api/users";
+			
+			if (searchTerm) {
+				// Cambiamos al endpoint de búsqueda configurado en el backend
+				url = `http://localhost:8080/api/users/search?search=${encodeURIComponent(searchTerm)}`;
+			}
+
+			console.log("Pidiendo usuarios a:", url);
+			const res = await axios.get(url);
+			
+			// Manejamos la respuesta: si es búsqueda suele ser array, si es lista puede venir envuelto
+			const data = Array.isArray(res.data) ? res.data : (res.data.users || []);
+			setUsers(data);
 		} catch (err) {
 			console.error("Error fetching users:", err);
 			setError("No se pudieron cargar los usuarios del sistema");
@@ -36,11 +49,16 @@ const UserList = ({ darkMode = true }) => {
 		}
 	};
 
+	// 2. useEffect con Debounce para reaccionar al buscador y al refreshKey
 	useEffect(() => {
-		fetchUsers();
-	}, []);
+		const timer = setTimeout(() => {
+			fetchUsers();
+		}, 300);
 
-	// 2. Manejo de Visualización
+		return () => clearTimeout(timer);
+	}, [searchTerm, refreshKey]);
+
+	// Manejo de Visualización
 	const handleView = (user) => {
 		setSelectedUser(user);
 		setDialogReadOnly(true);
@@ -58,48 +76,49 @@ const UserList = ({ darkMode = true }) => {
 		setDialogIsEdit(true);
 	};
 
-	// 3. Manejo de Eliminación
+	// Manejo de Eliminación
 	const handleDelete = async (id) => {
-		const confirm = window.confirm("¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.");
+		const confirm = window.confirm("¿Estás seguro de eliminar este usuario?");
 		if (!confirm) return;
 		try {
 			const token = localStorage.getItem('token');
 			const headers = {};
 			if (token) headers['Authorization'] = `Bearer ${token}`;
 			
-			// Endpoint corregido para usuarios
 			await axios.delete(`http://localhost:8080/api/users/${id}`, { headers });
-			
-			// Refrescar lista tras eliminar
 			fetchUsers();
 		} catch (err) {
 			console.error('Error deleting user', err);
-			const msg = err?.response?.data?.message || 'No se pudo eliminar el usuario';
-			alert(msg);
+			alert(err?.response?.data?.message || 'No se pudo eliminar el usuario');
 		}
 	};
 
-	if (loading) return <div className="p-10 text-center animate-pulse">Cargando usuarios...</div>;
-	if (error) return <div className="p-10 text-center text-red-600">{error}</div>;
-
-	if (!users.length) return <div className="p-10 text-center text-gray-600">No hay usuarios registrados</div>;
+	if (loading && users.length === 0) return <div className="p-10 text-center animate-pulse text-blue-500 font-bold">BUSCANDO USUARIOS...</div>;
 
 	return (
 		<>
-			{/* Grilla de Usuarios */}
-			<section className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 p-4">
-				{users.map((u) => (
-					<UserCard 
-						key={u.id} 
-						user={u} 
-						onView={handleView} 
-						onDelete={handleDelete} 
-						darkMode={darkMode} 
-					/>
-				))}
-			</section>
+			{error && <div className="p-4 text-center text-red-600 font-bold">{error}</div>}
 
-			{/* Modal de Detalle / Edición de Usuario */}
+			{/* Mensaje cuando no hay resultados */}
+			{!loading && users.length === 0 ? (
+				<div className="p-20 text-center text-gray-500 italic border-2 border-dashed border-gray-700 rounded-xl m-4">
+					No se encontraron usuarios que coincidan con "{searchTerm}"
+				</div>
+			) : (
+				<section className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 p-4">
+					{users.map((u) => (
+						<UserCard 
+							key={u.id} 
+							user={u} 
+							onView={handleView} 
+							onDelete={handleDelete} 
+							darkMode={darkMode} 
+						/>
+					))}
+				</section>
+			)}
+
+			{/* Modal de Detalle / Edición */}
 			<Dialog
 				open={dialogOpen}
 				onClose={handleCloseDialog}
@@ -131,7 +150,7 @@ const UserList = ({ darkMode = true }) => {
 					</div>
 				</DialogTitle>
 
-				<DialogContent sx={{ mt: 2, borderColor: darkMode ? '#374151' : undefined }}>
+				<DialogContent sx={{ mt: 2 }}>
 					{selectedUser && (
 						<UserForm 
 							initialData={selectedUser} 

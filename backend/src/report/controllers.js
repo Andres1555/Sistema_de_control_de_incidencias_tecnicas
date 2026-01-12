@@ -16,41 +16,42 @@ export const GetallReportController = async (req, res) => {
 
 export const CreateReportController = async (req, res) => {
   try {
-		const { caso, id_maquina, nro_maquina, area, estado, descripcion, nombre_natural, clave_natural, clave_win, fecha } = req.body;
+    const { nro_maquina, caso, area, estado, descripcion, nombre_natural, clave_natural, clave_win, fecha } = req.body;
 
-		// 1. Validar campos obligatorios (aceptamos id_maquina o nro_maquina)
-		if (!caso || (!nro_maquina) || !area || !estado || !descripcion || !nombre_natural || !clave_natural || !clave_win || !fecha) {
-			return res.status(400).json({ message: "Todos los campos son obligatorios (incluya id_maquina o nro_maquina)" });
-		}
+    // 1. BUSCAR LA MÁQUINA POR SU NÚMERO (el "12" que escribió el usuario)
+    const machine = await Machine.findOne({ 
+      where: { nro_maquina: Number(nro_maquina) } 
+    });
 
-		// 2. Validar tipos básicos
-		if (typeof caso !== "string" || typeof area !== "string" || typeof estado !== "string" || typeof descripcion !== "string" || typeof nombre_natural !== "string" || typeof clave_natural !== "string" || typeof clave_win !== "string" || isNaN(Date.parse(fecha))) {
-			return res.status(400).json({ message: "Los campos tienen que ser un tipo de dato valido" });
-		}
+    if (!machine) {
+      return res.status(404).json({ message: `La máquina número ${nro_maquina} no existe en el sistema.` });
+    }
 
-		let machineId = id_maquina;
-		if (!machineId) {
-			// Buscar la máquina por su número
-			const nro = Number(nro_maquina);
-			if (isNaN(nro)) return res.status(400).json({ message: "nro_maquina debe ser un número válido" });
-			const machine = await Machine.findOne({ where: { nro_maquina: nro } });
-			if (!machine) return res.status(400).json({ message: `Máquina con número ${nro} no encontrada` });
-			machineId = machine.id;
-		}
+    // 2. EXTRAER LOS DUEÑOS DE ESA MÁQUINA
+    // La tabla Machine ya tiene id_user e id_workers (según tu schema)
+    const ownerUserId = machine.id_user;
+    const ownerWorkerId = machine.id_workers; // Si tu tabla Machine tiene id_workers
 
-		// Tomar el id del usuario autenticado desde el token
-		const userId = req.user && req.user.id ? req.user.id : null;
+    // 3. LLAMAR AL SERVICIO CON LOS IDS REALES DE LA BASE DE DATOS
+    const created = await ReportService.create({ 
+      caso, 
+      id_maquina: machine.id, // ID REAL (ej: 1) no el número "12"
+      id_user: ownerUserId,   // El dueño que encontramos en la tabla Machine
+      id_workers: ownerWorkerId, 
+      area, 
+      estado, 
+      descripcion, 
+      nombre_natural, 
+      clave_natural, 
+      clave_win, 
+      fecha 
+    });
 
-		const created = await ReportService.create({ caso, id_maquina: Number(machineId), id_user: userId, area, estado, descripcion, nombre_natural, clave_natural, clave_win, fecha });
+    res.status(201).json({ message: "Reporte creado", report: created });
 
-		// Respondemos con el objeto creado para que el frontend pueda usar el id
-		res.status(201).json({ message: "Reporte creado correctamente", report: created });
   } catch (error) {
     console.error("Error:", error.message);
-    res.status(500).json({ 
-        message: "Error al crear el reporte", 
-        error: error.message 
-    });
+    res.status(500).json({ message: "Error al procesar el reporte", error: error.message });
   }
 };
 export const UpdateReportController= async (req, res) => {
@@ -112,5 +113,33 @@ export const DeleteReportController= async (req, res) => {
 	res
 	  .status(500)
 	  .json({ message: "Error no se pudo eliminar el reporte", error: error.message });
+  }
+};
+
+export const Getbycasecontroller = async (req, res) => {
+  try {
+    const { caso } = req.query; // Captura ?caso=...
+    const data = await ReportService.GetReportsService(caso);
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+export const Getbyidworkereportcontroller = async (req, res) => {
+  try {
+    // Intentamos obtener el ID del query param ?id_worker=... 
+    // o del token decodificado (req.user.id)
+    const workerId = req.query.id_worker || (req.user && req.user.id);
+
+    if (!workerId) {
+      return res.status(400).json({ message: "No se proporcionó un ID de trabajador válido" });
+    }
+
+    const data = await ReportService.GetReportsByWorkerIdService(workerId);
+    
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
   }
 };

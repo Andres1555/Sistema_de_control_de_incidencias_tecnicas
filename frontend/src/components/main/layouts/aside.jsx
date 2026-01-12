@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-// 1. Agregamos los nuevos iconos para Trabajadores y Usuarios
 import { 
   FaChartBar, 
   FaFilter, 
@@ -10,10 +9,12 @@ import {
 } from "react-icons/fa";
 import { FiChevronDown, FiChevronRight, FiX } from "react-icons/fi";
 
-const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate }) => {
+const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate, userRole }) => {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
-  // Clase reutilizable para los botones del menú
+  // Verificamos si el rol es administrador
+  const isAdmin = userRole?.toLowerCase() === "administrador";
+
   const navItemClass = `w-full flex items-center px-4 py-3 rounded-md transition-colors ${
     darkMode 
       ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" 
@@ -41,7 +42,7 @@ const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate }) =>
         `}
       >
         <div className={`p-6 text-xl font-bold border-b flex justify-between items-center ${darkMode ? "text-blue-400 border-gray-700" : "text-blue-600 border-gray-200"}`}>
-          <span>Panel Admin</span>
+          <span>Panel {isAdmin ? "Admin" : "Técnico"}</span>
           <button 
             onClick={() => setIsOpen(false)} 
             className="p-1 rounded-md hover:bg-opacity-20 hover:bg-gray-500 focus:outline-none"
@@ -52,37 +53,40 @@ const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate }) =>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           
-          {/* --- Reportes (General) --- */}
+          {/* --- Reportes (Visible para todos) --- */}
           <button onClick={() => { onNavigate?.('dashboard'); setIsOpen(false); }} className={navItemClass}>
             <FaClipboardList className="w-5 h-5 mr-3" />
             Reportes
           </button>
 
-          {/* Botón Reportes Técnicos */}
+          {/* Botón Reportes Técnicos (Visible para todos) */}
           <button onClick={() => { onNavigate?.('tech'); setIsOpen(false); }} className={navItemClass}>
             <FaFileAlt className="w-5 h-5 mr-3" />
             Reportes técnicos
           </button>
 
-          {/* Botón Estadísticas */}
+          {/* Botón Estadísticas (Visible para todos) */}
           <button onClick={() => { onNavigate?.('stadistics'); setIsOpen(false); }} className={navItemClass}>
             <FaChartBar className="w-5 h-5 mr-3" />
             Estadísticas
           </button>
 
-          {/* --- NUEVO BOTÓN: Trabajadores --- */}
-          <button onClick={() => { onNavigate?.('workers'); setIsOpen(false); }} className={navItemClass}>
-            <FaIdBadge className="w-5 h-5 mr-3" />
-            Trabajadores
-          </button>
+          {/* --- SOLO PARA ADMINISTRADORES --- */}
+          {isAdmin && (
+            <>
+              <button onClick={() => { onNavigate?.('workers'); setIsOpen(false); }} className={navItemClass}>
+                <FaIdBadge className="w-5 h-5 mr-3" />
+                Trabajadores
+              </button>
 
-          {/* --- NUEVO BOTÓN: Usuarios --- */}
-          <button onClick={() => { onNavigate?.('users'); setIsOpen(false); }} className={navItemClass}>
-            <FaUsers className="w-5 h-5 mr-3" />
-            Usuarios
-          </button>
+              <button onClick={() => { onNavigate?.('users'); setIsOpen(false); }} className={navItemClass}>
+                <FaUsers className="w-5 h-5 mr-3" />
+                Usuarios
+              </button>
+            </>
+          )}
 
-          {/* Botón Filtros */}
+          {/* Botón Filtros (Visible para todos) */}
           <button 
             onClick={() => setIsFiltersOpen(!isFiltersOpen)}
             className={`w-full flex items-center justify-between px-4 py-3 rounded-md transition-colors ${

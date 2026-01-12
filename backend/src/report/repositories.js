@@ -1,4 +1,6 @@
 import sequelize, { Report, ReportCase } from "../schemas/schemas.js";
+import { Op } from "sequelize";
+
 
 async function getAll() {
   return await Report.findAll();
@@ -14,8 +16,14 @@ async function getById(id) {
 async function createReport(data) {
   const payload = {
     caso: data.caso,
-    id_maquina: data.id_maquina,
-    id_user: data.id_user || null,
+    id_maquina: data.id_maquina, // Asegúrate de que este ID exista en la tabla Machine
+    
+    // Validamos id_user: si no viene o es 0, enviamos null
+    id_user: (data.id_user && data.id_user !== 0) ? data.id_user : null,
+    
+    // AGREGAMOS id_workers: si no viene o es 0, enviamos null
+    id_workers: (data.id_workers && data.id_workers !== 0) ? data.id_workers : null,
+    
     area: data.area,
     estado: data.estado,
     descripcion: data.descripcion,
@@ -24,9 +32,12 @@ async function createReport(data) {
     clave_acceso_windows: data.clave_win,
     fecha: data.fecha,
   };
+
+  // DEBUG: Imprime el payload en tu consola de Node para ver qué se está enviando exactamente
+  console.log("Payload enviado a la DB:", payload);
+
   return await Report.create(payload);
 }
-
 async function updateById(id, data) {
   const report = await Report.findByPk(id);
   if (!report) return null;
@@ -61,13 +72,44 @@ async function deleteById(id) {
     await t.rollback();
     throw err;
   }
+
+
+
+  
 } 
+
+async function getAllFiltered(caso) {
+  return await Report.findAll({
+    where: {
+      caso: {
+        [Op.like]: `%${caso}%`
+      }
+    }
+  });
+}
+async function getByWorkerId(workerId) {
+  try {
+    return await Report.findAll({
+      where: { id_workers: workerId },
+      include: [
+        {
+          model: Machine,
+          attributes: ['nro_maquina'] // Para mostrar el número de máquina en la card
+        }
+      ],
+      order: [['id', 'DESC']] // Los más recientes primero
+    });
+  } catch (error) {
+    throw error;
+  }
+}
 
 export const ReportRepository = {
   getAll,
   getById,
+  getAllFiltered, 
   createReport,
   updateById,
   deleteById,
-  // expose delete related helpers if needed
+  getByWorkerId,
 };

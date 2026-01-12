@@ -1,4 +1,5 @@
-import { User } from "../schemas/schemas.js";
+import sequelize, { User,Machine, Report, ReportCase, SpecializationUsers } from "../schemas/schemas.js";
+import { Op } from 'sequelize';
 
 async function getAll() {
   return await User.findAll();
@@ -26,13 +27,14 @@ async function createUser(data) {
   };
   return await User.create(payload);
 }
+
 async function updateByCI(ci, data) {
   const user = await User.findOne({ where: { C_I: ci } });
   if (!user) return null;
   const payload = {};
   if (data.nombre !== undefined) payload.nombre = data.nombre;
   if (data.apellido !== undefined) payload.apellido = data.apellido;
-  if (data.email !== undefined) payload.correo = data.email; // map email -> correo
+  if (data.email !== undefined) payload.correo = data.email;
   if (data.ficha !== undefined) payload.ficha = data.ficha;
   if (data.telefono !== undefined) payload.telefono = data.telefono;
   if (data.rol !== undefined) payload.rol = data.rol;
@@ -42,11 +44,78 @@ async function updateByCI(ci, data) {
 }
 
 async function deleteByIdOrCI(id) {
-  if (id === undefined || id === null) return 0;
-  let destroyed = await User.destroy({ where: { id } });
-  if (destroyed) return destroyed;
-  destroyed = await User.destroy({ where: { C_I: id } });
-  return destroyed;
+  if (!id) return 0;
+
+  // Usamos la instancia 'sequelize' (minúscula) para la transacción
+  const t = await sequelize.transaction();
+
+  try {
+    // 1. Obtener reportes para borrar sus casos técnicos
+    const userReports = await Report.findAll({ where: { id_user: id }, transaction: t });
+    const reportIds = userReports.map(r => r.id);
+
+    if (reportIds.length > 0) {
+      await ReportCase.destroy({ 
+        where: { id_report: { [Op.in]: reportIds } }, 
+        transaction: t 
+      });
+    }
+
+    // 2. Borrar donde el usuario fue el técnico (id_user en ReportCase)
+    await ReportCase.destroy({ where: { id_user: id }, transaction: t });
+
+    // 3. Borrar Reportes, Máquinas y Especializaciones
+    await Report.destroy({ where: { id_user: id }, transaction: t });
+    await Machine.destroy({ where: { id_user: id }, transaction: t });
+    await SpecializationUsers.destroy({ where: { id_user: id }, transaction: t });
+
+    // 4. BORRADO FINAL DEL USUARIO
+    // NOTA: Usamos [Op.or], NO [Sequelize.Op.or]
+    const destroyed = await User.destroy({ 
+      where: { 
+        [Op.or]: [
+          { id: id }, 
+          { C_I: id }
+        ] 
+      }, 
+      transaction: t 
+    });
+
+    await t.commit();
+    return destroyed;
+
+  } catch (error) {
+    if (t) await t.rollback();
+    console.error("Error en cascada:", error.message);
+    throw error;
+  }
+}
+
+// Nueva función de búsqueda para el repositorio
+async function findBySearch(term) {
+  try {
+    if (!term) return await User.findAll();
+
+    const cleanTerm = term.trim();
+    const isNumber = /^\d+$/.test(cleanTerm); 
+
+    return await User.findAll({
+      where: {
+        [Op.or]: [
+          { nombre: { [Op.like]: `%${cleanTerm}%` } },
+          { apellido: { [Op.like]: `%${cleanTerm}%` } },
+          { correo: { [Op.like]: `%${cleanTerm}%` } },
+          ...(isNumber ? [
+            { C_I: Number(cleanTerm) }, 
+            { ficha: Number(cleanTerm) }
+          ] : [])
+        ]
+      },
+      order: [['nombre', 'ASC']]
+    });
+  } catch (error) {
+    throw error;
+  }
 }
 
 export const UserRepository = {
@@ -55,4 +124,5 @@ export const UserRepository = {
   createUser,
   updateByCI,
   deleteByIdOrCI,
+  findBySearch 
 };

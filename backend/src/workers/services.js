@@ -39,16 +39,24 @@ export const WorkerService = {
   // 3. Crear un nuevo trabajador (Admin)
   CreateworkerService: async (data) => {
     try {
-      // Validar si la ficha ya existe (Usamos FICHA en mayúsculas por tu tabla)
-      const existingWorker = await WorkerRepository.findByFicha(data.FICHA || data.ficha);
-      if (existingWorker) {
-        throw new Error(`La ficha ${data.FICHA || data.ficha} ya está registrada.`);
+      // 1. Validar que la ficha sea un número válido
+      if (isNaN(data.ficha) || data.ficha === null) {
+        throw new Error("La ficha debe ser un número válido.");
       }
+
+      // 2. Verificar si la ficha ya existe
+      const existingWorker = await WorkerRepository.findByFicha(data.ficha);
+      if (existingWorker) {
+        throw new Error(`La ficha ${data.ficha} ya está registrada.`);
+      }
+
+      // 3. Crear en el repositorio
       return await WorkerRepository.create(data);
     } catch (error) {
       throw error;
     }
   },
+
 
   UpdateworkerService: async (id, data) => {
     try {
@@ -113,5 +121,18 @@ export const WorkerService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  SearchWorkersService: async (term) => {
+    try {
+      return await WorkerRepository.findBySearch(term);
+    } catch (error) {
+      throw new Error('Error al buscar trabajadores: ' + error.message);
+    }
   }
 };
+
+
+
+
+  

@@ -10,7 +10,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import Reportform from "../form/report";
 
-const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
+const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 	const [reports, setReports] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -23,30 +23,34 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 	const fetchReports = async () => {
 		setLoading(true);
 		try {
-			// --- CAMBIO CLAVE AQUÍ ---
-			let url = "http://localhost:8080/api/report";
+			const token = localStorage.getItem('token');
+			const userId = localStorage.getItem('userId');
+
+			// --- ENDPOINT ESPECÍFICO PARA EL TRABAJADOR LOGUEADO ---
+			// Filtramos por id_worker y opcionalmente por searchTerm (caso)
+			let url = `http://localhost:8080/api/report/search?id_worker=${userId}`;
 			
-			// Si hay un término de búsqueda, usamos la ruta /search
-			// que definimos para el Getbycasecontroller
 			if (searchTerm) {
-				url = `http://localhost:8080/api/report/search?caso=${encodeURIComponent(searchTerm)}`;
+				url += `&caso=${encodeURIComponent(searchTerm)}`;
 			}
 
-			console.log("Petición enviada a:", url); // Verifica esto en tu consola del navegador
+			console.log("Cargando reportes del trabajador a:", url);
 
-			const res = await axios.get(url);
+			const res = await axios.get(url, {
+				headers: { 'Authorization': `Bearer ${token}` }
+			});
+
 			setReports(Array.isArray(res.data) ? res.data : []);
 			setError(null);
 		} catch (err) {
-			console.error("Error fetching reports:", err);
-			setError("No se pudieron cargar los reportes");
+			console.error("Error fetching worker reports:", err);
+			setError("No se pudieron cargar tus reportes");
 		} finally {
 			setLoading(false);
 		}
 	};
 
 	useEffect(() => {
-		// Debounce: espera 300ms para no saturar el servidor mientras escribes
 		const delayDebounceFn = setTimeout(() => {
 			fetchReports();
 		}, 300);
@@ -72,7 +76,7 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 	};
 
 	const handleDelete = async (id) => {
-		if (!window.confirm("¿Eliminar este reporte?")) return;
+		if (!window.confirm("¿Estás seguro de eliminar este reporte?")) return;
 		try {
 			const token = localStorage.getItem('token');
 			await axios.delete(`http://localhost:8080/api/report/${id}`, {
@@ -86,7 +90,7 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 	};
 
 	if (loading && reports.length === 0) {
-		return <div className="p-10 text-center animate-pulse text-blue-500 font-bold">Buscando reportes...</div>;
+		return <div className="p-10 text-center animate-pulse text-blue-500 font-bold">Cargando mis reportes...</div>;
 	}
 
 	return (
@@ -94,12 +98,12 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 			{error && <div className="p-4 text-center text-red-500 font-bold">{error}</div>}
 
 			{reports.length === 0 && !loading ? (
-				<div className="p-20 text-center text-gray-500">
-					<p className="text-xl font-semibold">No se encontraron reportes</p>
+				<div className="p-20 text-center text-gray-500 italic border-2 border-dashed border-gray-700 rounded-xl m-4">
+					<p className="text-xl font-semibold">No tienes reportes registrados</p>
 					{searchTerm && <p className="text-sm">No hay coincidencias para "{searchTerm}"</p>}
 				</div>
 			) : (
-				<section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 p-4">
+				<section className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 p-4">
 					{reports.map((r) => (
 						<ReportCard 
 							key={r.id} 
@@ -112,6 +116,7 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 				</section>
 			)}
 
+			{/* Modal para ver detalles y editar */}
 			<Dialog
 				open={dialogOpen}
 				onClose={handleCloseDialog}
@@ -121,17 +126,17 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 					style: { 
 						backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
 						color: darkMode ? '#ffffff' : '#000000',
-						borderRadius: '12px'
+						borderRadius: '16px'
 					} 
 				}}
 			>
-				<DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-					<span className="font-bold">
+				<DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: darkMode ? '1px solid #374151' : '1px solid #eee' }}>
+					<span className="font-bold uppercase tracking-tight">
 						{selectedReport ? (selectedReport.caso || `Reporte #${selectedReport.id}`) : 'Detalle'}
 					</span>
 					<div>
 						{dialogReadOnly && (
-							<Tooltip title="Editar">
+							<Tooltip title="Editar Reporte">
 								<IconButton onClick={handleToggleEdit} size="small" sx={{ color: darkMode ? '#60a5fa' : '#2563eb', mr: 1 }}>
 									<EditIcon />
 								</IconButton>
@@ -142,7 +147,7 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 						</IconButton>
 					</div>
 				</DialogTitle>
-				<DialogContent dividers sx={{ borderColor: darkMode ? '#374151' : '#e5e7eb' }}>
+				<DialogContent dividers sx={{ mt: 2, borderColor: darkMode ? '#374151' : '#e5e7eb' }}>
 					{selectedReport && (
 						<Reportform 
 							initialData={selectedReport} 
@@ -159,4 +164,4 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 	);
 };
 
-export default ReportList;
+export default ReportListByID;
