@@ -15,30 +15,19 @@ export const GetallSpecController = async (req, res) => {
 
 export const CreateSpecController = async (req, res) => {
   try {
-	const { nombre } = req.body;
+    const { nombre } = req.body;
 
-	if (!nombre ) {
-	  return res.status(400).json({
-		message:
-		  "Todos los campos son obligatorios",
-	  });
-	}
+    if (!nombre) {
+      return res.status(400).json({ message: "El nombre es obligatorio" });
+    }
 
-	if (
-	  typeof nombre !== "string") {
-
-	  return res.status(400).json({
-		message:
-		"los campos tienen que ser un tipo de dato valido",});
-	}
-
-	await SpecializationseService.create({ nombre});
-	res.status(201).json({ message: "especializacion creado correctamente" });
+    // Llamamos al service inteligente
+    const result = await SpecializationseService.findOrCreate(nombre);
+    
+    // Devolvemos el objeto que contiene el ID
+    res.status(201).json(result); 
   } catch (error) {
-	console.error("Error:", error.message);
-	res
-	  .status(500)
-	  .json({ message: "Error al crear la especializacion", error: error.message });
+    res.status(500).json({ message: "Error al procesar especialidad", error: error.message });
   }
 };
 export const UpdateSpecController= async (req, res) => {

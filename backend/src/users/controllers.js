@@ -32,32 +32,31 @@ export const GetUserbyidController = async (req, res) => {
 
 export const CreateUserController = async (req, res) => {
   try {
-    const { ci, nombre, apellido, email, telefono, ficha, rol, extension, password } = req.body;
+    const { ci, nombre, apellido, email, telefono, ficha, rol, extension, password, nro_maquina, especializacion } = req.body;
 
-    if (!ci || !nombre || !apellido || !email || !telefono || !ficha || !rol || !extension || !password) {
-      return res.status(400).json({
-        message:
-          "Todos los campos son obligatorios",
-      });
+    // Validación básica de campos de usuario
+    if (!ci || !nombre || !email || !password) {
+      return res.status(400).json({ message: "Nombre, Email, CI y Password son obligatorios" });
     }
 
-    if (
-      typeof ci !== "number" || typeof telefono !== "number" || typeof nombre !== "string" || typeof apellido !== "string" || typeof email !== "string" || typeof ficha !== "number" || typeof rol !== "string" || typeof extension !== "number" || typeof password !== "string") {
-      return res.status(400).json({
-        message:
-          "los campos tienen que ser un tipo de dato valido",
-      });
-    }
-    // Hash password before storing
     const hashed = await bcrypt.hash(password, 10);
 
-    await UserService.create({ ci, nombre, apellido, email, telefono, ficha, rol, extension, password: hashed });
-    res.status(201).json({ message: "usuario creado correctamente" });
+    // Convertimos el string de especializaciones en un array para el servicio
+    const listaSpecs = especializacion 
+      ? especializacion.split(",").map(s => s.trim()).filter(s => s !== "")
+      : [];
+
+    const result = await UserService.createCompleteUser({
+      ci, nombre, apellido, email, telefono, ficha, rol, extension, 
+      password: hashed,
+      nro_maquina,
+      especializaciones: listaSpecs
+    });
+
+    res.status(201).json({ message: "Usuario y datos relacionados creados con éxito", data: result });
   } catch (error) {
-    console.error("Error:", error.message);
-    res
-      .status(500)
-      .json({ message: "Error al crear un usuario", error: error.message });
+    console.error("Error al crear usuario completo:", error.message);
+    res.status(500).json({ message: "Error en el servidor", error: error.message });
   }
 };
 export const UpdateUserController= async (req, res) => {

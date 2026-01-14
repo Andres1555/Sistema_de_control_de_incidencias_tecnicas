@@ -8,7 +8,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
   const [isLoading, setIsLoading] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
 
-  // Obtener fecha de hoy en formato YYYY-MM-DD para el input date
+  // Obtener fecha de hoy en formato YYYY-MM-DD para el input date nativo
   const getTodayDate = () => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -19,7 +19,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
 
   const initialFormData = {
     caso: "",
-    id_maquina: "",
+    id_maquina: "", // Aquí se guardará el NRO de máquina para el usuario
     area: "",
     estado: "",
     descripcion: "",
@@ -27,7 +27,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     nombre_windows: "", 
     clave_natural: "",
     clave_win: "",
-    fecha: getTodayDate(), // FECHA AUTOMÁTICA DE HOY
+    fecha: getTodayDate(), 
   };
 
   const [formData, setFormData] = useState(initialData || initialFormData);
@@ -42,14 +42,17 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     message: "",
   });
 
+  // --- CAMBIO CLAVE AQUÍ PARA VER EL NRO DE MÁQUINA ---
   useEffect(() => {
     if (initialData) {
       setFormData({
         ...initialData,
+        // Buscamos el número real dentro del objeto Machine que viene del backend
+        // Si no existe el objeto Machine (JOIN), busca nro_maquina o el id_maquina por defecto
+        id_maquina: initialData.Machine?.nro_maquina ?? initialData.nro_maquina ?? initialData.id_maquina ?? "",
+        
         nombre_windows: initialData.nombre_windows ?? "", 
         clave_win: initialData.clave_win ?? initialData.clave_acceso_windows ?? "",
-        id_maquina: initialData.id_maquina ?? initialData.nro_maquina ?? "",
-        // Si ya hay una fecha en initialData la usa, si no, usa la de hoy
         fecha: initialData.fecha || getTodayDate(), 
       });
     } else {
@@ -110,7 +113,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
       
       const payload = {
         ...formData,
-        nro_maquina: Number(formData.id_maquina),
+        nro_maquina: Number(formData.id_maquina), // Enviamos el NRO para que el back inteligente lo asocie
         id_maquina: Number(formData.id_maquina),
         nombre_windows: String(formData.nombre_windows)
       };
@@ -129,7 +132,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
         setModalState({ 
             isOpen: true, 
             status: "success", 
-            message: isUpdating ? "Reporte actualizado. Debe crear el reporte técnico." : "Reporte creado. Debe crear el reporte técnico." 
+            message: isUpdating ? "Reporte actualizado exitosamente" : "Reporte creado exitosamente" 
         });
         setShowTechPrompt(true);
       } else {
@@ -190,6 +193,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
               <option value="resuelto">Resuelto</option>
               <option value="en revision">En revisión</option>
               <option value="en espera">En espera</option>
+              <option value="escalado">Escalado</option>
             </select>
           </div>
 

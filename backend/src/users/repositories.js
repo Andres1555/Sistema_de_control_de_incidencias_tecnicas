@@ -14,20 +14,19 @@ async function getById(id) {
 }
 
 async function createUser(data) {
-  const payload = {
+  // Sequelize devuelve el objeto creado incluyendo el ID automáticamente
+  return await User.create({
     nombre: data.nombre,
     apellido: data.apellido,
-    correo: data.email,
+    correo: data.email, // mapeo email -> correo
     password: data.password,
-    ficha: data.ficha,
-    telefono: data.telefono,
-    C_I: data.ci,
+    ficha: Number(data.ficha),
+    telefono: Number(data.telefono),
+    C_I: Number(data.ci), // mapeo ci -> C_I
     rol: data.rol,
-    extension: data.extension,
-  };
-  return await User.create(payload);
+    extension: Number(data.extension),
+  });
 }
-
 async function updateByCI(ci, data) {
   const user = await User.findOne({ where: { C_I: ci } });
   if (!user) return null;

@@ -1,71 +1,71 @@
-import React, { useState, forwardRef } from "react";
-import {Box,Button,TextField,FormControl,InputLabel,Select,MenuItem,} from "@mui/material";
-import LoadingModal from "@/hooks/Modals/LoadingModal"; 
-// import axios from "axios"; // Descomentar si vas a usar axios directamente
+import React, { useState, forwardRef, useEffect } from "react";
+import LoadingModal from "@/hooks/Modals/LoadingModal";
+import { FaWrench, FaCheckCircle, FaClock, FaSave, FaHashtag, FaUserTie } from "react-icons/fa";
 
 const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false, readOnlyDefault = false, darkMode = false }, ref) => {
+  
+  // Función para obtener la hora actual en formato HH:mm
+  const getCurrentTime = () => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
   // --- ESTADOS ---
   const [isLoading, setIsLoading] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
-
   const [isReadOnly, setIsReadOnly] = useState(Boolean(readOnlyDefault));
 
-  // Campos esperados por el backend para ReportCase
-  const initialFormData = {
-    id_user: "",
-    id_report: "",
-    caso_tecnico: "",
-    resolucion: "",
-    tiempo: "",
-  };
+  const loggedUserName = localStorage.getItem('userName') || "Usuario";
+  const loggedUserId = localStorage.getItem('userId');
 
-  const [formData, setFormData] = useState(initialData || initialFormData);
+  const [formData, setFormData] = useState({
+    id_user: initialData?.id_user || loggedUserId || "",
+    id_report: initialData?.id_report || "",
+    caso_tecnico: initialData?.caso_tecnico || "",
+    resolucion: initialData?.resolucion || "",
+    tiempo: initialData?.tiempo || getCurrentTime(), // HORA ACTUAL POR DEFECTO
+  });
 
-  React.useEffect(() => {
-    setFormData(initialData || initialFormData);
-    setIsReadOnly(Boolean(readOnlyDefault));
-  }, [initialData, readOnlyDefault]);
-
-  // Estado del Modal de Feedback
   const [modalState, setModalState] = useState({
     isOpen: false,
-    status: "loading", // 'loading' | 'success' | 'error'
+    status: "loading",
     message: "",
   });
 
-  // --- MANEJADORES ---
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        id_user: initialData.id_user || loggedUserId,
+        id_report: initialData.id_report,
+        caso_tecnico: initialData.caso_tecnico || "",
+        resolucion: initialData.resolucion || "",
+        // Si estamos editando y existe tiempo, lo usa; si no, pone la hora actual
+        tiempo: initialData.tiempo || getCurrentTime(), 
+      });
+    }
+    setIsReadOnly(Boolean(readOnlyDefault));
+  }, [initialData, readOnlyDefault, loggedUserId]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // --- ENVÍO DEL FORMULARIO ---
   const sendForm = async () => {
-    // Validaciones básicas
-    const required = ["id_user","id_report","caso_tecnico","resolucion","tiempo"];
-    for (const k of required) {
-      if (!formData[k] && formData[k] !== 0) {
-        setModalState({ isOpen: true, status: "error", message: "Complete todos los campos obligatorios." });
-        return;
-      }
-    }
-
-    const idUserNum = Number(formData.id_user);
-    const idReportNum = Number(formData.id_report);
-    if (isNaN(idUserNum) || isNaN(idReportNum)) {
-      setModalState({ isOpen: true, status: "error", message: "id_user e id_report deben ser números válidos." });
+    if (!formData.caso_tecnico || !formData.resolucion || !formData.tiempo) {
+      setModalState({ isOpen: true, status: "error", message: "Todos los campos son obligatorios." });
       return;
     }
 
     setIsLoading(true);
-    setModalState({
-      isOpen: true,
-      status: "loading",
-      message: "Procesando solicitud...",
-    });
+    setModalState({ isOpen: true, status: "loading", message: "Guardando informe técnico..." });
 
     try {
+      const token = localStorage.getItem('token');
+      const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
       const payload = {
         id_user: Number(formData.id_user),
         id_report: Number(formData.id_report),
@@ -74,134 +74,143 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
         tiempo: String(formData.tiempo),
       };
 
-      const token = localStorage.getItem('token');
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const method = isEdit ? 'PUT' : 'POST';
+      const url = isEdit ? `${base}/api/report_cases/${initialData.id}` : `${base}/api/report_cases`;
 
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-
-      // Si estamos editando un caso ya existente
-      if (isEdit && initialData?.id) {
-        console.log('Techreport sendForm - PUT', `${base}/api/report_cases/${initialData.id}`, { headers, payload });
-        const res = await fetch(`${base}/api/report_cases/${initialData.id}`, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify(payload),
-        });
-
-        let resultBody = null;
-        try { resultBody = await res.json(); } catch (e) { /* ignore */ }
-
-        if (!res.ok) {
-          const serverMsg = (resultBody && resultBody.message) ? resultBody.message : res.statusText || 'Error en la petición';
-          console.error('Techreport - server error (update)', res.status, serverMsg, resultBody);
-          throw new Error(serverMsg);
-        }
-
-        setFormSubmitted(true);
-        setModalState({ isOpen: true, status: 'success', message: resultBody?.message || 'Caso actualizado correctamente' });
-        // notify parent and close
-        onSuccess?.();
-        return;
-      }
-
-      // LOG: mostrar headers y payload antes de enviar
-      console.log('Techreport sendForm - POST', `${base}/api/report_cases`, { headers, payload });
-
-      const res = await fetch(`${base}/api/report_cases`, {
-        method: 'POST',
-        headers,
+      const res = await fetch(url, {
+        method,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload),
       });
 
-      // Intentar parsear el cuerpo si hay alguno
-      let resultBody = null;
-      try {
-        resultBody = await res.json();
-      } catch (parseErr) {
-        console.warn('Techreport - no se recibió JSON en la respuesta', parseErr);
-      }
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Error en el servidor");
 
-      if (!res.ok) {
-        const serverMsg = (resultBody && resultBody.message) ? resultBody.message : res.statusText || 'Error en la petición';
-        console.error('Techreport - server error', res.status, serverMsg, resultBody);
-        throw new Error(serverMsg);
-      }
-
-      // 3. Éxito
       setFormSubmitted(true);
       setModalState({
         isOpen: true,
         status: "success",
-        message: (resultBody && resultBody.message) ? resultBody.message : "Operación realizada correctamente",
+        message: `Reporte resuelto exitosamente por: ${loggedUserName.toUpperCase()}`,
       });
 
-      console.error('Techreport - error:', err);
-      setFormSubmitted(false);
-      setModalState({
-        isOpen: true,
-        status: "error",
-        message: err?.message || "Hubo un error al procesar la solicitud.",
-      });
+    } catch (err) {
+      setModalState({ isOpen: true, status: "error", message: err.message });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // --- LIMPIEZA Y CIERRE ---
-  const clearForm = () => {
-    setFormData(initialFormData);
-  };
-
   const handleModalClose = () => {
     if (modalState.status === "success" && formSubmitted) {
-      clearForm();
-      onSuccess?.(); // Notificar al padre que terminó
-      onClose?.();   // Cerrar el formulario si está en un modal/drawer
+      onSuccess?.();
+      onClose?.();
     }
     setModalState((s) => ({ ...s, isOpen: false }));
-    setFormSubmitted(false);
   };
 
+  // --- ESTILOS DARK MODE ANTIGUO (GRISES) ---
+  const inputClass = `w-full p-2.5 rounded-lg border outline-none transition-all ${
+    darkMode 
+      ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" 
+      : "bg-gray-50 border-gray-300 text-gray-900 focus:border-blue-600"
+  } ${isReadOnly ? "bg-transparent border-transparent cursor-default font-semibold text-lg" : "border-solid shadow-sm"}`;
+
+  const labelClass = `block text-[10px] font-bold uppercase tracking-widest mb-1 ${darkMode ? "text-blue-400" : "text-blue-600"}`;
+
   return (
-    <>
-      <Box
-        component="form"
-        ref={ref}
-        onSubmit={(e) => e.preventDefault()}
-        className={darkMode ? 'bg-transparent text-gray-100' : ''}
-        sx={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 2,
-          p: 1,
-        }}
-      >
-        {/* Row 1 */}
-      <TextField disabled={isReadOnly} label="ID Usuario" name="id_user" type="number" variant="filled" value={formData.id_user} onChange={handleInputChange} required InputProps={{ readOnly: true }} />
-      <TextField disabled={isReadOnly} label="ID Reporte" name="id_report" type="number" variant="filled" value={formData.id_report} onChange={handleInputChange} required InputProps={{ readOnly: true }} />
-        {/* Row 2 */}
-        <TextField disabled={isReadOnly} label="Caso Técnico" name="caso_tecnico" variant="filled" multiline minRows={3} value={formData.caso_tecnico} onChange={handleInputChange} required />
-        <TextField disabled={isReadOnly} label="Resolución" name="resolucion" variant="filled" multiline minRows={3} value={formData.resolucion} onChange={handleInputChange} required />
+    <div className="p-2 animate-fade-in">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* ID REPORTE */}
+        <div>
+          <label className={labelClass}><FaHashtag className="inline mb-1 mr-1"/> ID Reporte Relacionado</label>
+          <input
+            type="text"
+            value={formData.id_report}
+            disabled={true}
+            className={`${inputClass} opacity-60`}
+          />
+        </div>
 
-        {/* Row 3 */}
-        <TextField disabled={isReadOnly} label="Tiempo" name="tiempo" type="time" variant="filled" value={formData.tiempo} onChange={handleInputChange} InputLabelProps={{ shrink: true }} required />
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Button type="button" variant="contained" color="primary" fullWidth onClick={sendForm} disabled={isLoading || isReadOnly} sx={{ py: 2 }}>
-            {isLoading ? "Cargando..." : (isEdit ? "Guardar cambios" : "Guardar")}
-          </Button>
-        </Box>
-      </Box>
+        {/* TÉCNICO RESPONSABLE */}
+        <div>
+          <label className={labelClass}><FaUserTie className="inline mb-1 mr-1"/> Técnico Responsable</label>
+          <input
+            type="text"
+            value={`${formData.id_user} - ${loggedUserName}`}
+            disabled={true}
+            className={`${inputClass} opacity-60`}
+          />
+        </div>
 
-      {/* Modal de Feedback (Carga/Éxito/Error) */}
+        {/* CASO TÉCNICO */}
+        <div className="md:col-span-2">
+          <label className={labelClass}><FaWrench className="inline mb-1 mr-1"/> Diagnóstico / Caso Técnico</label>
+          <input
+            type="text"
+            name="caso_tecnico"
+            value={formData.caso_tecnico}
+            onChange={handleInputChange}
+            disabled={isReadOnly}
+            placeholder="Resumen del fallo técnico..."
+            className={inputClass}
+          />
+        </div>
+
+        {/* RESOLUCIÓN */}
+        <div className="md:col-span-2">
+          <label className={labelClass}><FaCheckCircle className="inline mb-1 mr-1"/> Resolución Detallada</label>
+          <textarea
+            name="resolucion"
+            rows="3"
+            value={formData.resolucion}
+            onChange={handleInputChange}
+            disabled={isReadOnly}
+            placeholder="Describa la solución aplicada..."
+            className={inputClass}
+          />
+        </div>
+
+        {/* HORA DE RESOLUCIÓN (TIEMPO ACTUAL) */}
+        <div>
+          <label className={labelClass}><FaClock className="inline mb-1 mr-1"/> Hora de la Resolución</label>
+          <input
+            type="time"
+            name="tiempo"
+            value={formData.tiempo}
+            onChange={handleInputChange}
+            disabled={isReadOnly}
+            className={inputClass}
+          />
+        </div>
+
+        {/* BOTÓN DE GUARDAR */}
+        {!isReadOnly && (
+          <div className="flex items-end">
+            <button
+              onClick={sendForm}
+              disabled={isLoading}
+              className={`w-full font-bold py-3 px-6 rounded-lg shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 ${
+                darkMode ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-blue-700 hover:bg-blue-800 text-white"
+              }`}
+            >
+              {isLoading ? "Procesando..." : <><FaSave /> Guardar Informe</>}
+            </button>
+          </div>
+        )}
+      </div>
+
       <LoadingModal
         isOpen={modalState.isOpen}
         status={modalState.status}
         message={modalState.message}
         onClose={handleModalClose}
       />
-    </>
+    </div>
   );
 });
 
-export default Techreport ;
+export default Techreport;

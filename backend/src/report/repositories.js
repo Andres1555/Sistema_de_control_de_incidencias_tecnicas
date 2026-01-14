@@ -1,16 +1,25 @@
-import sequelize, { Report, ReportCase,Machine } from "../schemas/schemas.js";
+import sequelize, { Report, ReportCase, Machine } from "../schemas/schemas.js";
 import { Op } from "sequelize";
 
+// Ayudante para no repetir el include en todas las funciones
+const includeMachine = {
+  model: Machine,
+  attributes: ['nro_maquina'] // Solo traemos el número que quieres ver
+};
 
 async function getAll() {
-  return await Report.findAll();
+  // Añadimos include para que las cards también puedan mostrar el nro_maquina
+  return await Report.findAll({
+    include: [includeMachine]
+  });
 }
 
 async function getById(id) {
   if (id === undefined || id === null) return null;
-  const byPk = await Report.findByPk(id);
-  if (byPk) return byPk;
-  return null;
+  // CAMBIO CLAVE: Añadimos el include aquí para el modal de detalles
+  return await Report.findByPk(id, {
+    include: [includeMachine]
+  });
 }
 
 async function createReport(data) {
@@ -23,19 +32,17 @@ async function createReport(data) {
     estado: data.estado,
     descripcion: data.descripcion,
     nombre_natural: data.nombre_natural,
-    nombre_windows: data.nombre_windows, // Nuevo atributo
+    nombre_windows: data.nombre_windows,
     clave_natural: data.clave_natural,
     clave_acceso_windows: data.clave_win,
     fecha: data.fecha,
   });
 }
 
-// Función para buscar la máquina por el número (ej: "12")
 async function findMachineByNro(nro) {
   return await Machine.findOne({ where: { nro_maquina: Number(nro) } });
 }
 
-// Función para crear la máquina si no existe
 async function createMachine(data) {
   return await Machine.create({
     nro_maquina: data.nro_maquina,
@@ -43,11 +50,11 @@ async function createMachine(data) {
     id_workers: data.id_workers || null
   });
 }
+
 async function updateById(id, data) {
   const report = await Report.findByPk(id);
   if (!report) return null;
 
-  // Mapear 'clave_win' -> 'clave_acceso_windows' si viene en el payload
   const updatePayload = { ...data };
   if (updatePayload.clave_win !== undefined) {
     updatePayload.clave_acceso_windows = updatePayload.clave_win;
@@ -61,48 +68,36 @@ async function updateById(id, data) {
 async function deleteById(id) {
   if (id === undefined || id === null) return 0;
 
-  // Usar transacción para consistencia: eliminar dependencias y luego el reporte
   const t = await sequelize.transaction();
   try {
-    // Eliminar casos técnicos asociados
     const casesDeleted = await ReportCase.destroy({ where: { id_report: id }, transaction: t });
-    // Eliminar el reporte
     const destroyed = await Report.destroy({ where: { id }, transaction: t });
-
-    console.log(`ReportRepository.deleteById - eliminado reporte ${id}. casos eliminados: ${casesDeleted}, reporte eliminado: ${destroyed}`);
-
     await t.commit();
     return { destroyed, casesDeleted };
   } catch (err) {
     await t.rollback();
     throw err;
   }
-
-
-
-  
 } 
 
 async function getAllFiltered(caso) {
+  
   return await Report.findAll({
     where: {
       caso: {
         [Op.like]: `%${caso}%`
       }
-    }
+    },
+    include: [includeMachine]
   });
 }
+
 async function getByWorkerId(workerId) {
   try {
     return await Report.findAll({
       where: { id_workers: workerId },
-      include: [
-        {
-          model: Machine,
-          attributes: ['nro_maquina'] // Para mostrar el número de máquina en la card
-        }
-      ],
-      order: [['id', 'DESC']] // Los más recientes primero
+      include: [includeMachine], 
+      order: [['id', 'DESC']]
     });
   } catch (error) {
     throw error;

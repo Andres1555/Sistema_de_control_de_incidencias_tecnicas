@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, onSuccess, onClose }) => {
-    const [availableSpecs, setAvailableSpecs] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
+    // Inicializamos el estado. Si hay datos iniciales, unimos las especialidades con comas para el input.
     const [formData, setFormData] = useState({
         id: initialData.id || "",
         nombre: initialData.nombre || "",
@@ -12,25 +12,17 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
         correo: initialData.correo || initialData.email || "",
         password: "", 
         ficha: initialData.ficha || "",
-        telefono: initialData.telefono || "", // Campo obligatorio en el backend
-        C_I: initialData.C_I || initialData.ci || "", // Campo obligatorio en el backend
+        telefono: initialData.telefono || "",
+        C_I: initialData.C_I || initialData.ci || "",
         rol: initialData.rol || "",
-        extension: initialData.extension || "", // Campo obligatorio en el backend
-        nro_maquina: initialData.Machines ? initialData.Machines[0]?.nro_maquina : "",
-        id_especializacion: initialData.Specializations ? initialData.Specializations[0]?.id : ""
+        extension: initialData.extension || "",
+        especializacion: initialData.Specializations 
+            ? initialData.Specializations.map(s => s.nombre).join(", ") 
+            : "",
+        nro_maquina: initialData.Machines ? initialData.Machines[0]?.nro_maquina : ""
     });
 
     const isCreate = !formData.id;
-
-    useEffect(() => {
-        const fetchSpecs = async () => {
-            try {
-                const res = await axios.get("http://localhost:8080/api/specializations");
-                setAvailableSpecs(res.data);
-            } catch (err) { console.error("Error specs", err); }
-        };
-        fetchSpecs();
-    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -39,14 +31,25 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsSubmitting(true);
 
+        // 1. Procesar especialidades (convertir string a array)
+        const listaSpecs = formData.especializacion
+            .split(",")
+            .map(s => s.trim())
+            .filter(s => s !== "");
+
+        if (listaSpecs.length === 0) {
+            alert("Debe ingresar al menos una especialidad (ej: redes, sql)");
+            return;
+        }
+
+        setIsSubmitting(true);
         try {
             const token = localStorage.getItem('token');
             const headers = { 'Authorization': `Bearer ${token}` };
             const base = "http://localhost:8080/api";
 
-            // 1. Payload para /api/users (Debe tener TODOS los campos obligatorios)
+            // 2. Mapeo de payload para el controlador de usuarios
             const userPayload = {
                 nombre: formData.nombre,
                 apellido: formData.apellido,
@@ -59,42 +62,55 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
                 extension: Number(formData.extension)
             };
 
-            // Evitar enviar password vacío en edición
+            // En edición, si el password está vacío, no lo enviamos
             if (!isCreate && !userPayload.password) delete userPayload.password;
 
+            // 3. Crear o Actualizar Usuario
             let userId = formData.id;
-            
             if (isCreate) {
-                // Crear Usuario
                 const resUser = await axios.post(`${base}/users`, userPayload, { headers });
-                userId = resUser.data.user?.id || resUser.data.data?.id;
+                // Captura de ID robusta
+                userId = resUser.data?.id || resUser.data?.user?.id || resUser.data?.data?.id;
             } else {
-                // Actualizar Usuario
-                await axios.put(`${base}/users/${formData.id}`, userPayload, { headers });
+                await axios.put(`${base}/users/${userId}`, userPayload, { headers });
             }
 
-            // 2. Crear Máquina (Si se puso número)
-            if (formData.nro_maquina && userId) {
-                await axios.post(`${base}/machines`, {
-                    id_user: userId,
-                    nro_maquina: Number(formData.nro_maquina)
-                }, { headers });
+            if (!userId) throw new Error("No se pudo obtener el ID del usuario");
+
+            // 4. Crear/Actualizar Máquina (Opcional)
+            if (formData.nro_maquina) {
+                try {
+                    await axios.post(`${base}/machines`, { 
+                        id_user: Number(userId), 
+                        nro_maquina: Number(formData.nro_maquina) 
+                    }, { headers });
+                } catch (err) { console.warn("Error en máquinas:", err); }
             }
 
-            // 3. Crear Especialización (Tabla Intermedia)
-            if (formData.id_especializacion && userId) {
-                await axios.post(`${base}/specialization_users`, {
-                    id_user: userId,
-                    id_specia: Number(formData.id_especializacion)
-                }, { headers });
+            // 5. PROCESAR CADA ESPECIALIZACIÓN POR SEPARADO
+            for (const nombreSpec of listaSpecs) {
+                try {
+                    // Buscar o crear especialidad
+                    const specRes = await axios.post(`${base}/specializations`, { nombre: nombreSpec }, { headers });
+                    const specId = specRes.data?.id || specRes.data?.data?.id;
+
+                    if (specId) {
+                        // Vincular en tabla intermedia specialization_users
+                        await axios.post(`${base}/specialization_users`, { 
+                            id_user: Number(userId), 
+                            id_specia: Number(specId) 
+                        }, { headers });
+                    }
+                } catch (err) { console.warn(`Error con especialidad ${nombreSpec}:`, err); }
             }
 
+            alert(isCreate ? "Usuario creado exitosamente" : "Usuario actualizado");
             if (onSuccess) onSuccess(); 
             onClose();
 
         } catch (error) {
-            console.error("Error completo:", error.response?.data);
-            alert(error.response?.data?.message || "Faltan campos obligatorios o hay un error en los datos");
+            console.error("Error completo:", error);
+            alert(error.response?.data?.message || "Error al procesar el usuario");
         } finally {
             setIsSubmitting(false);
         }
@@ -109,54 +125,37 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
     return (
         <form onSubmit={handleSubmit} className="space-y-4 animate-fade-in">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className={labelClass}>Nombre</label>
-                    <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required />
+                <div><label className={labelClass}>Nombre</label><input type="text" name="nombre" value={formData.nombre} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
+                <div><label className={labelClass}>Apellido</label><input type="text" name="apellido" value={formData.apellido} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
+                <div><label className={labelClass}>Cédula</label><input type="number" name="C_I" value={formData.C_I} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
+                <div><label className={labelClass}>Correo</label><input type="email" name="correo" value={formData.correo} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
+                
+                <div className="md:col-span-2">
+                    <label className={labelClass}>Especializaciones (separadas por comas)</label>
+                    <input type="text" name="especializacion" value={formData.especializacion} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} placeholder="redes, sql, soporte" required />
                 </div>
+
+                <div><label className={labelClass}>Nro Máquina</label><input type="number" name="nro_maquina" value={formData.nro_maquina} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} /></div>
                 <div>
-                    <label className={labelClass}>Apellido</label>
-                    <input type="text" name="apellido" value={formData.apellido} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required />
-                </div>
-                <div>
-                    <label className={labelClass}>Cédula (C.I)</label>
-                    <input type="number" name="C_I" value={formData.C_I} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required />
-                </div>
-                <div>
-                    <label className={labelClass}>Correo Electrónico</label>
-                    <input type="email" name="correo" value={formData.correo} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required />
-                </div>
-                <div>
-                    <label className={labelClass}>Nro Máquina Asignada</label>
-                    <input type="number" name="nro_maquina" value={formData.nro_maquina} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} />
-                </div>
-                <div>
-                    <label className={labelClass}>Especialidad Principal</label>
-                    <select name="id_especializacion" value={formData.id_especializacion} onChange={handleChange} disabled={readOnlyDefault} className={inputClass}>
-                        <option value="">Seleccione...</option>
-                        {availableSpecs.map(spec => <option key={spec.id} value={spec.id}>{spec.nombre}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label className={labelClass}>Rol / Cargo</label>
+                    <label className={labelClass}>Rol</label>
                     <select name="rol" value={formData.rol} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required>
                         <option value="">Seleccione...</option>
                         <option value="tecnico">Técnico</option>
                         <option value="administrador">Administrador</option>
                     </select>
                 </div>
-                <div>
-                    <label className={labelClass}>Ficha</label>
-                    <input type="number" name="ficha" value={formData.ficha} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required />
-                </div>
+
+                <div><label className={labelClass}>Ficha</label><input type="number" name="ficha" value={formData.ficha} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
                 
-                {/* --- CAMPOS QUE FALTABAN --- */}
-                <div>
-                    <label className={labelClass}>Teléfono</label>
-                    <input type="number" name="telefono" value={formData.telefono} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required />
-                </div>
-                <div>
-                    <label className={labelClass}>Extensión</label>
-                    <input type="number" name="extension" value={formData.extension} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required />
+                <div className="flex gap-2">
+                    <div className="flex-1">
+                        <label className={labelClass}>Teléfono</label>
+                        <input type="number" name="telefono" value={formData.telefono} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required />
+                    </div>
+                    <div className="flex-1">
+                        <label className={labelClass}>Extensión</label>
+                        <input type="number" name="extension" value={formData.extension} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required />
+                    </div>
                 </div>
 
                 {!readOnlyDefault && (
@@ -168,9 +167,9 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
             </div>
 
             {!readOnlyDefault && (
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-700/30">
+                <div className="flex justify-end gap-3 pt-6 border-t border-gray-700/30">
                     <button type="button" onClick={onClose} className="px-4 py-2 text-gray-500">Cancelar</button>
-                    <button type="submit" disabled={isSubmitting} className="bg-blue-600 text-white px-8 py-2 rounded-md font-bold shadow-lg hover:bg-blue-700">
+                    <button type="submit" disabled={isSubmitting} className="bg-blue-600 text-white px-8 py-2 rounded-md font-bold shadow-lg hover:bg-blue-700 transition-all active:scale-95">
                         {isSubmitting ? "Procesando..." : (isCreate ? "Registrar Usuario" : "Guardar Cambios")}
                     </button>
                 </div>

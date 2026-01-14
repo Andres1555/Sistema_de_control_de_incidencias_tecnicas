@@ -6,6 +6,10 @@ export const SpecuserService = {
   },
 
   create: async (data) => {
+    // Validación opcional: ¿Ya existe esta relación?
+    const exists = await SpecuserRepository.findRelation(data.id_user, data.id_specia);
+    if (exists) return exists; // Si ya están vinculados, no hacemos nada
+
     return await SpecuserRepository.create(data);
   },
 

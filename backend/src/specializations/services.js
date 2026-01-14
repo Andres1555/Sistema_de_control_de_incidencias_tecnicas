@@ -1,10 +1,13 @@
 import { SpecializationRepository } from "./repositories.js";
 
 export const SpecializationseService = {
-  getAll: async () => {
-    return await SpecializationRepository.getAll();
-  },
+  
+  getAll: async () => await SpecializationRepository.getAll(),
 
+  // Este es el método que usará tu bucle del frontend
+  findOrCreate: async (nombre) => {
+    return await SpecializationRepository.findOrCreate(nombre);
+  },
   getById: async (id) => {
     const spec = await SpecializationRepository.getById(id);
     if (!spec) throw new Error("Especializacion no encontrada");

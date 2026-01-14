@@ -5,36 +5,29 @@ async function getAll() {
 }
 
 async function getById(id) {
-  if (id === undefined || id === null) return null;
-  const byPk = await Specialization.findByPk(id);
-  if (byPk) return byPk;
-  return null;
+  return await Specialization.findByPk(id);
 }
 
-async function createSpecialization(data) {
-  const payload = {
-    nombre: data.nombre,
-  };
-  return await Specialization.create(payload);
-}
-
-async function updateById(id, data) {
-  const specialization = await Specialization.findByPk(id);
-  if (!specialization) return null;
-  await specialization.update({ nombre: data.nombre });
+// CAMBIO: Ahora busca por nombre antes de crear
+async function findOrCreate(nombre) {
+  // findOrCreate devuelve un array: [instancia, creado(bool)]
+  const [specialization, created] = await Specialization.findOrCreate({
+    where: { nombre: nombre.toLowerCase().trim() },
+    defaults: { nombre: nombre.toLowerCase().trim() }
+  });
   return specialization;
-}
-
-async function deleteById(id) {
-  if (id === undefined || id === null) return 0;
-  const destroyed = await Specialization.destroy({ where: { id } });
-  return destroyed;
 }
 
 export const SpecializationRepository = {
   getAll,
   getById,
-  createSpecialization,
-  updateById,
-  deleteById,
+  findOrCreate, // Cambiamos create por findOrCreate
+  updateById: async (id, data) => {
+    const spec = await Specialization.findByPk(id);
+    if (spec) return await spec.update(data);
+    return null;
+  },
+  deleteById: async (id) => {
+    return await Specialization.destroy({ where: { id } });
+  }
 };

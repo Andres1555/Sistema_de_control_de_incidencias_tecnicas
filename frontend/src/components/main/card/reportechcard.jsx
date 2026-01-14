@@ -4,6 +4,9 @@ import { FaWrench, FaUserCog, FaFileAlt, FaTrash, FaEye, FaClock } from "react-i
 const ReportTechCard = ({ report = {}, onView, onDelete, darkMode = true }) => {
 	const { id, id_user, id_report, caso_tecnico, resolucion, tiempo, createdAt } = report;
 
+	// OBTENER EL NOMBRE DEL TÉCNICO DESDE EL LOCALSTORAGE
+	const techName = localStorage.getItem('userName') || "Técnico Asignado";
+
 	const cardBg = darkMode ? "bg-[#1a222f] border-gray-700 text-gray-100" : "bg-white border-gray-200 text-gray-800";
 	const secondaryText = darkMode ? "text-gray-400" : "text-gray-500";
 
@@ -14,6 +17,7 @@ const ReportTechCard = ({ report = {}, onView, onDelete, darkMode = true }) => {
 			<div className="flex-1">
 				<div className="flex justify-between items-start gap-2 mb-3">
 					<div className="flex gap-2">
+						{/* Icono en naranja para identificar que es técnico */}
 						<FaWrench className="text-orange-500 mt-1 shrink-0" size={14} />
 						<h3 className="text-lg font-bold leading-tight uppercase line-clamp-1">
 							{caso_tecnico || `Caso Técnico #${id}`}
@@ -29,24 +33,29 @@ const ReportTechCard = ({ report = {}, onView, onDelete, darkMode = true }) => {
 					{resolucion || "Sin resolución registrada aún."}
 				</p>
 
-				<div className="grid grid-cols-2 gap-2">
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
 					<p className={`text-[11px] flex items-center gap-2 ${secondaryText}`}>
 						<FaFileAlt className="text-orange-400" size={11} /> 
 						<strong>Ref Reporte:</strong> #{id_report}
 					</p>
+					
+					{/* Muestra el nombre guardado en el localStorage */}
 					<p className={`text-[11px] flex items-center gap-2 ${secondaryText}`}>
 						<FaUserCog className="text-orange-400" size={11} /> 
-						<strong>Técnico:</strong> {id_user}
+						<strong>Técnico:</strong> {techName}
 					</p>
+
+					{/* Cambio de etiqueta solicitado */}
 					{tiempo && (
 						<p className={`text-[11px] flex items-center gap-2 ${secondaryText} col-span-2`}>
 							<FaClock className="text-orange-400" size={11} /> 
-							<strong>Tiempo invertido:</strong> {tiempo}
+							<strong>Hora de la resolución:</strong> {tiempo}
 						</p>
 					)}
 				</div>
 			</div>
 
+			{/* Fila de acciones fija en el fondo */}
 			<div className="mt-5 pt-4 border-t border-gray-700/50 flex justify-between items-center">
 				<button
 					onClick={() => onDelete && onDelete(id)}

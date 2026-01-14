@@ -11,10 +11,42 @@ export const UserService = {
     return user;
   },
 
-  create: async (data) => {
-    return await UserRepository.createUser(data);
-  },
+  createCompleteUser: async (data) => {
+    try {
+      // 1. Crear el usuario base
+      const newUser = await UserRepository.createUser(data);
+      const userId = newUser.id;
 
+      // 2. Si viene número de máquina, crearla
+      if (data.nro_maquina) {
+        await Machine.create({
+          id_user: userId,
+          nro_maquina: Number(data.nro_maquina)
+        });
+      }
+
+      // 3. Procesar especializaciones (vienen como array desde el controlador)
+      if (data.especializaciones && data.especializaciones.length > 0) {
+        for (const nombre of data.especializaciones) {
+          // Buscar o crear la especialidad
+          const [spec] = await Specialization.findOrCreate({
+            where: { nombre: nombre.toLowerCase().trim() },
+            defaults: { nombre: nombre.toLowerCase().trim() }
+          });
+
+          // Vincular en la tabla intermedia
+          await SpecializationUsers.create({
+            id_user: userId,
+            id_specia: spec.id
+          });
+        }
+      }
+
+      return newUser;
+    } catch (error) {
+      throw error;
+    }
+  },
   update: async (ci, data) => {
     const updated = await UserRepository.updateByCI(ci, data);
     if (!updated) throw new Error("Usuario no encontrado para actualizar");

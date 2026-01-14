@@ -102,15 +102,16 @@ const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate, user
 
           {isFiltersOpen && (
             <div className={`ml-4 pl-4 border-l-2 space-y-1 ${darkMode ? "border-gray-600" : "border-blue-100"}`}>
+              {/* --- CAMBIO: Filtros actualizados --- */}
               <button className={`w-full text-left px-4 py-2 text-sm rounded-md ${
                 darkMode ? "text-gray-400 hover:text-blue-400 hover:bg-gray-700" : "text-gray-500 hover:text-blue-600 hover:bg-gray-50"
               }`}>
-                Por Especialidad
+                Por Área
               </button>
               <button className={`w-full text-left px-4 py-2 text-sm rounded-md ${
                 darkMode ? "text-gray-400 hover:text-blue-400 hover:bg-gray-700" : "text-gray-500 hover:text-blue-600 hover:bg-gray-50"
               }`}>
-                Por Tipo de Problema
+                Por Fecha
               </button>
             </div>
           )}
