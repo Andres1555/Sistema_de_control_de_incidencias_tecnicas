@@ -40,16 +40,42 @@ export const ReportService = {
     }
   },
 
-  update: async (id, data) => {
+ update: async (id, data) => {
     try {
-      const updated = await ReportRepository.updateById(id, data);
+      const updatePayload = { ...data };
+
+      // 1. Si el usuario cambió el número de máquina en el front
+      if (updatePayload.id_maquina) {
+        let machine = await ReportRepository.findMachineByNro(updatePayload.id_maquina);
+        
+        // Si no existe, la creamos (o podrías lanzar error según prefieras)
+        if (!machine) {
+          machine = await ReportRepository.createMachine({ 
+            nro_maquina: updatePayload.id_maquina,
+            id_user: updatePayload.id_user,
+            id_workers: updatePayload.id_workers
+          });
+        }
+        // Cambiamos el número por el ID REAL para la base de datos
+        updatePayload.id_maquina = machine.id;
+      }
+
+      // 2. Limpiar IDs de Usuario y Trabajador (Escudo contra SQLITE_CONSTRAINT)
+      // Si el valor es 0, vacío o undefined, forzamos null explícito
+      const cleanId = (val) => (val && val !== 0 && val !== "0" && val !== "") ? Number(val) : null;
+
+      if (updatePayload.id_user !== undefined) updatePayload.id_user = cleanId(updatePayload.id_user);
+      if (updatePayload.id_workers !== undefined) updatePayload.id_workers = cleanId(updatePayload.id_workers);
+
+      // 3. Llamar al repositorio
+      const updated = await ReportRepository.updateById(id, updatePayload);
       if (!updated) throw new Error("Reporte no encontrado para actualizar");
+      
       return updated;
     } catch (error) {
       throw error;
     }
   },
-
   delete: async (id) => {
     try {
       const result = await ReportRepository.deleteById(id);

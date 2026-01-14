@@ -61,10 +61,14 @@ async function updateById(id, data) {
     delete updatePayload.clave_win;
   }
 
+  // Actualizar en la base de datos
   await report.update(updatePayload);
-  return report;
-}
 
+  // IMPORTANTE: Devolver con el include para que el Front vea el "16" y no el ID
+  return await Report.findByPk(id, {
+    include: [{ model: Machine, attributes: ['nro_maquina'] }]
+  });
+}
 async function deleteById(id) {
   if (id === undefined || id === null) return 0;
 

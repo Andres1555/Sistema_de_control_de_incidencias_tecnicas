@@ -1,8 +1,22 @@
 import { UserRepository } from "./repositories.js";
-
+import { Machine, Specialization, SpecializationUsers } from "../schemas/schemas.js";
 export const UserService = {
-  getAll: async () => {
-    return await UserRepository.getAll();
+  getAll: async (page = 1) => {
+    try {
+      const limit = 12;
+      const offset = (page - 1) * limit;
+
+      const { count, rows } = await UserRepository.getAll(limit, offset);
+
+      return {
+        users: rows,
+        totalItems: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: parseInt(page)
+      };
+    } catch (error) {
+      throw new Error("Error en el servicio al obtener usuarios paginados: " + error.message);
+    }
   },
 
   getbyid: async (id) => {
@@ -11,48 +25,56 @@ export const UserService = {
     return user;
   },
 
-  createCompleteUser: async (data) => {
-    try {
-      // 1. Crear el usuario base
-      const newUser = await UserRepository.createUser(data);
-      const userId = newUser.id;
+ create: async (data) => {
+    // Llama a la función del repositorio que maneja la transacción completa
+    return await UserRepository.createCompleteUser(data);
+  },
 
-      // 2. Si viene número de máquina, crearla
-      if (data.nro_maquina) {
-        await Machine.create({
-          id_user: userId,
-          nro_maquina: Number(data.nro_maquina)
-        });
+   update: async (ci, data) => {
+    try {
+      // 1. Buscar al usuario original para obtener su ID real
+      const user = await UserRepository.getById(ci); // Usamos tu buscador por CI
+      if (!user) throw new Error("Usuario no encontrado");
+
+      // 2. Si viene nro_maquina, actualizar o crear en la tabla Machine
+      if (data.nro_maquina !== undefined) {
+        const nro = Number(data.nro_maquina);
+        if (nro > 0) {
+          await Machine.findOrCreate({
+            where: { nro_maquina: nro },
+            defaults: { nro_maquina: nro, id_user: user.id }
+          });
+          // Actualizamos el id_user de esa máquina por si era de otro
+          await Machine.update({ id_user: user.id }, { where: { nro_maquina: nro } });
+        }
       }
 
-      // 3. Procesar especializaciones (vienen como array desde el controlador)
-      if (data.especializaciones && data.especializaciones.length > 0) {
-        for (const nombre of data.especializaciones) {
-          // Buscar o crear la especialidad
+      // 3. Si vienen especializaciones (string "redes, sql")
+      if (data.especializacion !== undefined) {
+        const specs = data.especializacion.split(",").map(s => s.trim()).filter(s => s !== "");
+        for (const nombre of specs) {
           const [spec] = await Specialization.findOrCreate({
-            where: { nombre: nombre.toLowerCase().trim() },
-            defaults: { nombre: nombre.toLowerCase().trim() }
+            where: { nombre: nombre.toLowerCase() }
           });
-
-          // Vincular en la tabla intermedia
-          await SpecializationUsers.create({
-            id_user: userId,
-            id_specia: spec.id
+          await SpecializationUsers.findOrCreate({
+            where: { id_user: user.id, id_specia: spec.id }
           });
         }
       }
 
-      return newUser;
+      // 4. Limpiar campos numéricos para evitar SQLITE_MISMATCH
+      const cleanData = { ...data };
+      if (cleanData.telefono) cleanData.telefono = Number(cleanData.telefono);
+      if (cleanData.extension) cleanData.extension = Number(cleanData.extension);
+      if (cleanData.ficha) cleanData.ficha = Number(cleanData.ficha);
+
+      // 5. Actualizar datos básicos en la tabla Users
+      return await UserRepository.updateByCI(ci, cleanData);
+
     } catch (error) {
       throw error;
     }
   },
-  update: async (ci, data) => {
-    const updated = await UserRepository.updateByCI(ci, data);
-    if (!updated) throw new Error("Usuario no encontrado para actualizar");
-    return updated;
-  },
-
   delete: async (id) => {
     const destroyed = await UserRepository.deleteByIdOrCI(id);
     if (!destroyed) throw new Error("Usuario no encontrado para eliminar");

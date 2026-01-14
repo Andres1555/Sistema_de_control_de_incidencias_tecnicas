@@ -23,16 +23,14 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 	const fetchReports = async () => {
 		setLoading(true);
 		try {
-			// --- CAMBIO CLAVE AQUÍ ---
+			
 			let url = "http://localhost:8080/api/report";
 			
-			// Si hay un término de búsqueda, usamos la ruta /search
-			// que definimos para el Getbycasecontroller
 			if (searchTerm) {
 				url = `http://localhost:8080/api/report/search?caso=${encodeURIComponent(searchTerm)}`;
 			}
 
-			console.log("Petición enviada a:", url); // Verifica esto en tu consola del navegador
+			console.log("Petición enviada a:", url); 
 
 			const res = await axios.get(url);
 			setReports(Array.isArray(res.data) ? res.data : []);
@@ -46,7 +44,7 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 	};
 
 	useEffect(() => {
-		// Debounce: espera 300ms para no saturar el servidor mientras escribes
+		
 		const delayDebounceFn = setTimeout(() => {
 			fetchReports();
 		}, 300);

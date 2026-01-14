@@ -8,7 +8,6 @@ import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
-// --- CAMBIO: Importamos el formulario específico para trabajadores ---
 import ReportWorker from "../form/reportworker"; 
 
 const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
@@ -27,7 +26,7 @@ const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) =>
 			const token = localStorage.getItem('token');
 			const userId = localStorage.getItem('userId');
 
-			// --- CAMBIO: Endpoint actualizado a 'by-worker' ---
+			
 			let url = `http://localhost:8080/api/report/by-worker?id_worker=${userId}`;
 			
 			if (searchTerm) {
@@ -116,7 +115,7 @@ const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) =>
 				</section>
 			)}
 
-			{/* Modal para ver detalles y editar */}
+			{}
 			<Dialog
 				open={dialogOpen}
 				onClose={handleCloseDialog}
@@ -149,7 +148,7 @@ const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) =>
 				</DialogTitle>
 				<DialogContent dividers sx={{ mt: 2, borderColor: darkMode ? '#374151' : '#e5e7eb' }}>
 					{selectedReport && (
-						/* --- CAMBIO: Usamos ReportWorker en lugar de Reportform --- */
+						
 						<ReportWorker 
 							initialData={selectedReport} 
 							isEdit={dialogIsEdit} 

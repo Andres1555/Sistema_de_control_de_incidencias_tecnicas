@@ -9,12 +9,19 @@ import Tooltip from '@mui/material/Tooltip';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import UserForm from "../form/usersform";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi"; // Iconos para paginación
 
-// Agregamos searchTerm y refreshKey a las props
 const UserList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 	const [users, setUsers] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+
+	// --- ESTADOS DE PAGINACIÓN ---
+	const [pagination, setPagination] = useState({
+		currentPage: 1,
+		totalPages: 1,
+		totalItems: 0
+	});
 
 	// Estados para el Modal (Ver / Editar)
 	const [selectedUser, setSelectedUser] = useState(null);
@@ -22,25 +29,33 @@ const UserList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 	const [dialogReadOnly, setDialogReadOnly] = useState(true);
 	const [dialogIsEdit, setDialogIsEdit] = useState(false);
 
-	// 1. Cargar usuarios (soporta búsqueda y carga normal)
-	const fetchUsers = async () => {
+	// 1. Cargar usuarios (soporta búsqueda y carga normal paginada)
+	const fetchUsers = async (page = 1) => {
 		setLoading(true);
 		setError(null);
 		try {
-			// Construcción de URL dinámica
-			let url = "http://localhost:8080/api/users";
+			let url = `http://localhost:8080/api/users?page=${page}`;
 			
 			if (searchTerm) {
-				// Cambiamos al endpoint de búsqueda configurado en el backend
+				// El endpoint de búsqueda suele devolver la lista completa filtrada
 				url = `http://localhost:8080/api/users/search?search=${encodeURIComponent(searchTerm)}`;
 			}
 
-			console.log("Pidiendo usuarios a:", url);
 			const res = await axios.get(url);
 			
-			// Manejamos la respuesta: si es búsqueda suele ser array, si es lista puede venir envuelto
-			const data = Array.isArray(res.data) ? res.data : (res.data.users || []);
-			setUsers(data);
+			// Si es búsqueda, res.data es el array directo. Si es paginado, viene en res.data.users
+			if (searchTerm) {
+				const searchData = Array.isArray(res.data) ? res.data : (res.data.users || []);
+				setUsers(searchData);
+				setPagination({ currentPage: 1, totalPages: 1, totalItems: searchData.length });
+			} else {
+				setUsers(res.data.users || []);
+				setPagination({
+					currentPage: res.data.currentPage || 1,
+					totalPages: res.data.totalPages || 1,
+					totalItems: res.data.totalItems || 0
+				});
+			}
 		} catch (err) {
 			console.error("Error fetching users:", err);
 			setError("No se pudieron cargar los usuarios del sistema");
@@ -49,14 +64,21 @@ const UserList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 		}
 	};
 
-	// 2. useEffect con Debounce para reaccionar al buscador y al refreshKey
+	// 2. useEffect para reaccionar al buscador, al refreshKey y cambios de página
 	useEffect(() => {
 		const timer = setTimeout(() => {
-			fetchUsers();
+			fetchUsers(1); // Al buscar o refrescar, volvemos a la página 1
 		}, 300);
 
 		return () => clearTimeout(timer);
 	}, [searchTerm, refreshKey]);
+
+	const handlePageChange = (newPage) => {
+		if (newPage >= 1 && newPage <= pagination.totalPages) {
+			fetchUsers(newPage);
+			window.scrollTo({ top: 0, behavior: 'smooth' });
+		}
+	};
 
 	// Manejo de Visualización
 	const handleView = (user) => {
@@ -76,27 +98,24 @@ const UserList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 		setDialogIsEdit(true);
 	};
 
-	// Manejo de Eliminación
 	const handleDelete = async (id) => {
 		const confirm = window.confirm("¿Estás seguro de eliminar este usuario?");
 		if (!confirm) return;
 		try {
 			const token = localStorage.getItem('token');
-			const headers = {};
-			if (token) headers['Authorization'] = `Bearer ${token}`;
-			
-			await axios.delete(`http://localhost:8080/api/users/${id}`, { headers });
-			fetchUsers();
+			await axios.delete(`http://localhost:8080/api/users/${id}`, {
+				headers: { 'Authorization': `Bearer ${token}` }
+			});
+			fetchUsers(pagination.currentPage);
 		} catch (err) {
-			console.error('Error deleting user', err);
 			alert(err?.response?.data?.message || 'No se pudo eliminar el usuario');
 		}
 	};
 
-	if (loading && users.length === 0) return <div className="p-10 text-center animate-pulse text-blue-500 font-bold">BUSCANDO USUARIOS...</div>;
+	if (loading && users.length === 0) return <div className="p-10 text-center animate-pulse text-blue-500 font-bold">CARGANDO USUARIOS...</div>;
 
 	return (
-		<>
+		<div className="space-y-10">
 			{error && <div className="p-4 text-center text-red-600 font-bold">{error}</div>}
 
 			{/* Mensaje cuando no hay resultados */}
@@ -116,6 +135,59 @@ const UserList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 						/>
 					))}
 				</section>
+			)}
+
+			{/* --- CONTROLES DE PAGINACIÓN --- */}
+			{!searchTerm && pagination.totalPages > 1 && (
+				<div className="flex flex-col items-center justify-center gap-4 py-8 border-t border-gray-700/20">
+					<div className="flex items-center gap-4">
+						<button
+							disabled={pagination.currentPage === 1}
+							onClick={() => handlePageChange(pagination.currentPage - 1)}
+							className={`flex items-center gap-1 px-4 py-2 rounded-lg border transition-all ${
+								darkMode ? "border-gray-700 hover:bg-gray-800 text-gray-300 disabled:opacity-20" : "border-gray-200 hover:bg-gray-100 text-gray-600 disabled:opacity-30"
+							}`}
+						>
+							<FiChevronLeft /> Anterior
+						</button>
+
+						<div className="flex items-center gap-2">
+							{[...Array(pagination.totalPages)].map((_, index) => {
+								const pageNumber = index + 1;
+								// Mostrar solo páginas cercanas a la actual
+								if (pageNumber === 1 || pageNumber === pagination.totalPages || (pageNumber >= pagination.currentPage - 1 && pageNumber <= pagination.currentPage + 1)) {
+									return (
+										<button
+											key={pageNumber}
+											onClick={() => handlePageChange(pageNumber)}
+											className={`w-10 h-10 rounded-lg font-bold transition-all ${
+												pagination.currentPage === pageNumber 
+													? "bg-blue-600 text-white shadow-lg scale-110" 
+													: darkMode ? "text-gray-400 hover:bg-gray-800" : "text-gray-600 hover:bg-gray-100"
+											}`}
+										>
+											{pageNumber}
+										</button>
+									);
+								}
+								return null;
+							})}
+						</div>
+
+						<button
+							disabled={pagination.currentPage === pagination.totalPages}
+							onClick={() => handlePageChange(pagination.currentPage + 1)}
+							className={`flex items-center gap-1 px-4 py-2 rounded-lg border transition-all ${
+								darkMode ? "border-gray-700 hover:bg-gray-800 text-gray-300 disabled:opacity-20" : "border-gray-200 hover:bg-gray-100 text-gray-600 disabled:opacity-30"
+							}`}
+						>
+							Siguiente <FiChevronRight />
+						</button>
+					</div>
+					<p className={`text-sm font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+						Total: {pagination.totalItems} usuarios registrados
+					</p>
+				</div>
 			)}
 
 			{/* Modal de Detalle / Edición */}
@@ -157,13 +229,13 @@ const UserList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 							isEdit={dialogIsEdit} 
 							readOnlyDefault={dialogReadOnly} 
 							darkMode={darkMode} 
-							onSuccess={() => { fetchUsers(); handleCloseDialog(); }} 
+							onSuccess={() => { fetchUsers(pagination.currentPage); handleCloseDialog(); }} 
 							onClose={handleCloseDialog} 
 						/>
 					)}
 				</DialogContent>
 			</Dialog>
-		</>
+		</div>
 	);
 };
 

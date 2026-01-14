@@ -19,7 +19,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
 
   const initialFormData = {
     caso: "",
-    id_maquina: "", // Aquí se guardará el NRO de máquina para el usuario
+    id_maquina: "", 
     area: "",
     estado: "",
     descripcion: "",

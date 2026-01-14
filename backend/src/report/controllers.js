@@ -18,7 +18,7 @@ export const CreateReportController = async (req, res) => {
   try {
     const { 
       nro_maquina, caso, area, estado, descripcion, 
-      nombre_natural, nombre_windows, clave_natural, clave_win, fecha 
+      nombre_natural, clave_natural, clave_win, fecha 
     } = req.body;
 
     // Obtenemos el ID y Rol del token (inyectados por verifyToken)
@@ -35,7 +35,6 @@ export const CreateReportController = async (req, res) => {
       estado,
       descripcion,
       nombre_natural,
-      nombre_windows,
       clave_natural,
       clave_win,
       fecha,
@@ -61,33 +60,24 @@ export const CreateReportController = async (req, res) => {
     });
   }
 };
-export const UpdateReportController= async (req, res) => {
+
+export const UpdateReportController = async (req, res) => {
   try {
     const { id } = req.params;
     const idnumber = Number(id);
     if (isNaN(idnumber)) return res.status(400).json({ message: 'id no valida' });
 
-    // Nota: 'id_user' no se permite modificar desde el cliente; se toma del token en la creación
-    const allowed = ['caso','id_maquina','area','estado','descripcion','nombre_natural','clave_natural','clave_win','fecha'];
-    const payload = {};
-    for (const k of allowed) {
-      if (req.body[k] !== undefined) payload[k] = req.body[k];
-    }
-
-    console.log('UpdateReportController - payload recibido:', payload);
-
-    // Validaciones simples
-    if (payload.fecha && isNaN(Date.parse(payload.fecha))) return res.status(400).json({ message: "Fecha inválida" });
-    if (payload.id_maquina && isNaN(Number(payload.id_maquina))) return res.status(400).json({ message: "id_maquina debe ser un número" });
-
-    const updated = await ReportService.update(idnumber, payload);
-    res.status(200).json({ message: "reporte actualizado correctamente", report: updated });
+    // Pasamos el body tal cual, el Servicio se encargará de limpiar los IDs
+    const updated = await ReportService.update(idnumber, req.body);
+    
+    res.status(200).json({ 
+      message: "reporte actualizado correctamente", 
+      report: updated 
+    });
   } catch (error) {
     console.error("Error en el controlador:", error.message);
-    res
-      .status(500)
-      .json({
-        message: "Error al actualizar el reporte",
+    res.status(500).json({
+        message: "Error al actualizar el reporte. Verifique IDs de usuario/trabajador.",
         error: error.message,
       });
   }

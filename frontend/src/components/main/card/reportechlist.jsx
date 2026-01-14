@@ -15,7 +15,7 @@ const ReportTechList = ({ userId, darkMode = true }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Dialog state
+  
   const [selectedCase, setSelectedCase] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogReadOnly, setDialogReadOnly] = useState(true);
