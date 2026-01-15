@@ -1,16 +1,22 @@
 import {ReportService} from "./services.js";
 import { Machine } from "../schemas/schemas.js";
 
-
 export const GetallReportController = async (req, res) => {
   try {
-	const report = await ReportService.getAll();
-	res.status(200).json(report);
+    
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+
+    const result = await ReportService.getAll(null, page, limit);
+    
+    
+    res.status(200).json(result);
   } catch (error) {
-	console.error("Error en el controlador", error.message);
-	res
-	  .status(500)
-	  .json({ message: "Error al obtener al obtener todos los reportes", error: error.message });
+    console.error("Error en el controlador", error.message);
+    res.status(500).json({ 
+      message: "Error al obtener todos los reportes", 
+      error: error.message 
+    });
   }
 };
 

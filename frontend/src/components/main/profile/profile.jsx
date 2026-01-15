@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import LoadingModal from "@/hooks/Modals/LoadingModal";
-import { FaUser, FaEnvelope, FaPhone, FaCamera, FaSave, FaPen } from "react-icons/fa";
+import { FaUser, FaEnvelope, FaPhone, FaSave, FaPen } from "react-icons/fa";
 
 const UserProfile = ({ darkMode }) => {
-  // Estado para alternar entre "Ver" y "Editar"
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [modalState, setModalState] = useState({ isOpen: false, status: 'loading', message: '' });
 
-  // Datos del usuario (usamos nombres compatibles con el backend)
   const [user, setUser] = useState({
     nombre: "",
     apellido: "",
@@ -16,29 +16,29 @@ const UserProfile = ({ darkMode }) => {
     ficha: "",
     ci: "",
     role: "",
-    avatar: "https://via.placeholder.com/150"
+    avatar: "" 
   });
 
-  // Función para manejar cambios en los inputs
+  const getInitial = () => {
+    if (user.nombre) return user.nombre.charAt(0).toUpperCase();
+    return "?";
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setUser((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Decodificar token para obtener CI en caso de que se necesite
   const decodeToken = (token) => {
     if (!token) return null;
     try {
       const payload = token.split('.')[1];
       const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-      const json = decodeURIComponent(atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
+      const json = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
       return JSON.parse(json);
     } catch (e) { return null; }
   };
 
-  // Cargar usuario actual al montar
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -51,7 +51,7 @@ const UserProfile = ({ darkMode }) => {
         if (!res.ok) return;
         const data = await res.json();
         setUser({
-          nombre: data.nombre || data.name || "",
+          nombre: data.nombre || "",
           apellido: data.apellido || "",
           email: data.correo || data.email || "",
           telefono: data.telefono ? String(data.telefono) : "",
@@ -59,7 +59,7 @@ const UserProfile = ({ darkMode }) => {
           ficha: data.ficha ? String(data.ficha) : "",
           ci: data.C_I ? String(data.C_I) : "",
           role: data.rol || "",
-          avatar: data.avatar || "https://via.placeholder.com/150"
+          avatar: data.avatar || "" 
         });
       } catch (err) {
         console.error('Error fetching profile', err);
@@ -68,268 +68,138 @@ const UserProfile = ({ darkMode }) => {
     loadUser();
   }, []);
 
-  // --- Estilos Dinámicos (Modo Oscuro vs Claro) ---
-  const theme = {
-    card: darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200",
-    textPrimary: darkMode ? "text-gray-100" : "text-gray-800",
-    textSecondary: darkMode ? "text-gray-400" : "text-gray-500",
-    input: darkMode 
-      ? "bg-gray-700 border-gray-600 text-white focus:ring-blue-500" 
-      : "bg-gray-50 border-gray-300 text-gray-900 focus:ring-blue-500",
-    divider: darkMode ? "border-gray-700" : "border-gray-100"
-  };
-
-  const [isSaving, setIsSaving] = useState(false);
-  const [modalState, setModalState] = useState({ isOpen: false, status: 'loading', message: '' });
-
-  const handleModalClose = () => {
-    setModalState((s) => ({ ...s, isOpen: false }));
-  };
-
   const handleSave = async () => {
     try {
-      // Validaciones mínimas
       if (!user.nombre || !user.apellido || !user.email) {
-        setModalState({ isOpen: true, status: 'error', message: 'Nombre, Apellido y Email son obligatorios.' });
+        setModalState({ isOpen: true, status: 'error', message: 'Datos obligatorios faltantes.' });
         return;
       }
-
-      const payload = {};
-      payload.nombre = user.nombre;
-      payload.apellido = user.apellido;
-      payload.email = user.email;
-      if (user.telefono !== "") payload.telefono = Number(user.telefono);
-      if (user.extension !== "") payload.extension = Number(user.extension);
-      // Incluir ficha oculto si existe
-      if (user.ficha !== undefined && user.ficha !== "") payload.ficha = Number(user.ficha);
-
+      setIsSaving(true);
       const token = localStorage.getItem('token');
-      const decoded = decodeToken(token);
-      const ci = decoded?.ci;
-      if (!ci) {
-        setModalState({ isOpen: true, status: 'error', message: 'No se pudo obtener CI del token.' });
-        return;
-      }
-
+      const ci = decodeToken(token)?.ci;
       const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
+      
       const res = await fetch(`${base}/api/users/${ci}`, {
         method: 'PUT',
-        headers,
-        body: JSON.stringify(payload),
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+            nombre: user.nombre,
+            apellido: user.apellido,
+            email: user.email,
+            telefono: Number(user.telefono),
+            extension: Number(user.extension)
+        }),
       });
 
-      const body = await res.json().catch(() => null);
-      if (!res.ok) {
-        const msg = (body && body.message) ? body.message : res.statusText || 'Error al actualizar';
-        setModalState({ isOpen: true, status: 'error', message: msg });
-        return;
-      }
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message || 'Error al actualizar');
 
-      // éxito
-      setModalState({ isOpen: true, status: 'success', message: body?.message || 'Perfil actualizado correctamente' });
+      setModalState({ isOpen: true, status: 'success', message: 'Perfil actualizado correctamente' });
       setIsEditing(false);
-
-      // actualizar estado local con lo que haya en body.user (si viene)
-      if (body?.user) {
-        setUser((prev) => ({ ...prev,
-          nombre: body.user.nombre || prev.nombre,
-          apellido: body.user.apellido || prev.apellido,
-          email: body.user.correo || body.user.email || prev.email,
-          telefono: body.user.telefono ? String(body.user.telefono) : prev.telefono,
-          extension: body.user.extension ? String(body.user.extension) : prev.extension
-        }));
-      }
-
     } catch (err) {
-      console.error('Error saving profile', err);
-      setModalState({ isOpen: true, status: 'error', message: err?.message || 'Error al guardar' });
+      setModalState({ isOpen: true, status: 'error', message: err.message });
+    } finally {
+      setIsSaving(false);
     }
-  }
+  };
+
+  const theme = {
+    card: darkMode ? "bg-[#1e293b] border-slate-700" : "bg-white border-slate-200",
+    textPrimary: darkMode ? "text-white" : "text-slate-900",
+    textSecondary: darkMode ? "text-slate-400" : "text-slate-500",
+    fieldBg: darkMode ? "bg-slate-800/50" : "bg-slate-50",
+    fieldBorder: darkMode ? "border-slate-700" : "border-slate-200",
+  };
 
   return (
-    <div className={`w-full max-w-5xl mx-auto rounded-2xl shadow-xl border overflow-hidden transition-all duration-300 ${theme.card}`}>
+    <div className={`w-full max-w-5xl mx-auto rounded-3xl shadow-2xl border overflow-hidden transition-all duration-500 ${theme.card}`}>
       
-      {/* 1. PORTADA (BANNER) */}
-      <div className="relative h-48 bg-gradient-to-r from-gray-400 to-gray-600">
-        {/* Botón Editar/Guardar Flotante */}
+      {/* 1. PORTADA */}
+      <div className="relative h-60 bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900">
+        <div className="absolute inset-0 bg-black/10"></div>
         <button 
-          onClick={async () => {
-            if (isEditing) {
-              // Guardar cambios
-              setIsSaving(true);
-              await handleSave();
-              setIsSaving(false);
-              return;
-            }
-            setIsEditing(true);
-          }}
-          className="absolute top-6 right-6 bg-white/20 hover:bg-white/30 backdrop-blur text-white px-5 py-2 rounded-full flex items-center gap-2 transition-all font-medium shadow-lg"
+          onClick={() => isEditing ? handleSave() : setIsEditing(true)}
+          className="absolute top-8 right-8 bg-white text-slate-900 px-6 py-2.5 rounded-2xl flex items-center gap-2 transition-all hover:scale-105 font-bold shadow-2xl z-20"
         >
-          {isEditing ? <><FaSave /> {isSaving ? 'Guardando...' : 'Guardar'}</> : <><FaPen size={14} /> Editar</>}
+          {isEditing ? <><FaSave /> {isSaving ? 'Guardando...' : 'Guardar'}</> : <><FaPen size={12} /> Editar Perfil</>}
         </button>
       </div>
 
-      <div className="px-8 pb-10">
-        {/* 2. ENCABEZADO: FOTO Y NOMBRE */}
-        <div className="relative flex flex-col sm:flex-row items-center sm:items-end -mt-20 mb-8">
-          
-          {/* Avatar */}
-          <div className="relative group">
-            <img 
-              src={user.avatar} 
-              alt="Avatar" 
-              className={`w-40 h-40 rounded-full border-4 object-cover shadow-md transition-colors ${darkMode ? "border-gray-800" : "border-white"}`} 
-            />
-            {isEditing && (
-              <button className="absolute bottom-2 right-2 bg-blue-600 text-white p-2.5 rounded-full hover:bg-blue-700 shadow-lg transition-transform transform hover:scale-110">
-                <FaCamera size={16} />
-              </button>
-            )}
-          </div>
-
-          {/* Textos: Nombre y Rol */}
-          <div className="mt-4 sm:mt-0 sm:ml-6 text-center sm:text-left flex-1 pb-2">
-            <h2 className={`text-3xl font-bold min-h-[40px] ${theme.textPrimary}`}>
-              { (user.nombre || user.apellido) ? `${user.nombre || ''} ${user.apellido || ''}`.trim() : "Nombre del Usuario" }
-            </h2>
-            <p className={`text-lg font-medium min-h-[28px] ${darkMode ? "text-blue-400" : "text-blue-600"}`}>
-              {user.role || "Rol / Cargo"}
-            </p>
-          </div>
-        </div>
-
-        {/* 3. GRID DE INFORMACIÓN */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          
-          {/* COLUMNA IZQUIERDA: DATOS DE CONTACTO */}
-          <div className="lg:col-span-2 space-y-8">
-            <div>
-              <h3 className={`text-xl font-semibold border-b pb-3 mb-4 ${theme.textPrimary} ${theme.divider}`}>
-                Información Personal
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <ProfileField 
-                  label="Nombre" 
-                  icon={FaUser} 
-                  name="nombre" 
-                  value={user.nombre} 
-                  placeholder="Ingrese nombre..."
-                  isEditing={isEditing} 
-                  handleChange={handleChange} 
-                  theme={theme}
-                />
-
-                <ProfileField 
-                  label="Apellido" 
-                  icon={FaUser} 
-                  name="apellido" 
-                  value={user.apellido} 
-                  placeholder="Ingrese apellido..."
-                  isEditing={isEditing} 
-                  handleChange={handleChange} 
-                  theme={theme}
-                />
-
-                <ProfileField 
-                  label="Correo Electrónico" 
-                  icon={FaEnvelope} 
-                  name="email" 
-                  value={user.email} 
-                  placeholder="ejemplo@correo.com"
-                  isEditing={isEditing} 
-                  handleChange={handleChange} 
-                  theme={theme}
-                />
-
-                <ProfileField 
-                  label="Teléfono" 
-                  icon={FaPhone} 
-                  name="telefono" 
-                  value={user.telefono} 
-                  placeholder="000000000"
-                  isEditing={isEditing} 
-                  handleChange={handleChange} 
-                  theme={theme}
-                />
-
-                <ProfileField 
-                  label="Extensión" 
-                  icon={FaPhone} 
-                  name="extension" 
-                  value={user.extension} 
-                  placeholder="123"
-                  isEditing={isEditing} 
-                  handleChange={handleChange} 
-                  theme={theme}
-                />
-
-                {/* Mostrar Cédula y Ficha (no editables) */}
-                <ProfileField 
-                  label="Cédula" 
-                  icon={FaUser} 
-                  name="ci" 
-                  value={user.ci} 
-                  placeholder="Cédula"
-                  isEditing={false} 
-                  handleChange={() => {}} 
-                  theme={theme}
-                />
-
-                <ProfileField 
-                  label="Ficha" 
-                  icon={FaUser} 
-                  name="ficha" 
-                  value={user.ficha} 
-                  placeholder="Ficha"
-                  isEditing={false} 
-                  handleChange={() => {}} 
-                  theme={theme}
-                />
-              </div>
+      <div className="px-12 pb-14">
+        {/* 2. CABECERA */}
+        <div className="relative flex flex-col sm:flex-row items-center sm:items-end -mt-28 mb-12">
+          <div className="relative z-10">
+            <div className={`w-48 h-48 rounded-[2.5rem] border-[8px] shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-300 ${darkMode ? "border-[#1e293b] bg-slate-800" : "border-white bg-slate-100"}`}>
+              {user.avatar ? (
+                <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600">
+                  <span className="text-7xl font-black text-white drop-shadow-lg">{getInitial()}</span>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* COLUMNA DERECHA: BIO / SOBRE MÍ */}
-          {/* Eliminado: Sección 'Sobre Mí' ya no se muestra según requerimiento */}
+          <div className="mt-8 sm:mt-0 sm:ml-10 text-center sm:text-left flex-1">
+            <h2 className={`text-5xl font-black tracking-tighter mb-2 ${theme.textPrimary}`}>
+              {user.nombre ? `${user.nombre} ${user.apellido}` : "Usuario"}
+            </h2>
+            <div className="flex flex-wrap justify-center sm:justify-start gap-3">
+               <span className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-500/30">
+                  CÉDULA: {user.ci || "---"}
+               </span>
+               <span className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-slate-500 text-white text-xs font-bold uppercase tracking-widest shadow-lg">
+                  FICHA: {user.ficha || "---"}
+               </span>
+               <span className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-widest border ${theme.fieldBorder} ${theme.textSecondary} bg-white/50 backdrop-blur-sm`}>
+                  {user.role || "MIEMBRO"}
+               </span>
+            </div>
+          </div>
+        </div>
 
+        {/* 3. GRID DE CAJAS DETALLADAS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <DetailBox label="Nombres" icon={FaUser} name="nombre" value={user.nombre} isEditing={isEditing} onChange={handleChange} theme={theme} />
+            <DetailBox label="Apellidos" icon={FaUser} name="apellido" value={user.apellido} isEditing={isEditing} onChange={handleChange} theme={theme} />
+            <DetailBox label="Correo Electrónico" icon={FaEnvelope} name="email" value={user.email} isEditing={isEditing} onChange={handleChange} theme={theme} />
+            <DetailBox label="Teléfono de Contacto" icon={FaPhone} name="telefono" value={user.telefono} isEditing={isEditing} onChange={handleChange} theme={theme} />
+            <DetailBox label="Extensión" icon={FaPhone} name="extension" value={user.extension} isEditing={isEditing} onChange={handleChange} theme={theme} />
         </div>
       </div>
 
-      {/* Modal feedback */}
-      <LoadingModal isOpen={modalState.isOpen} status={modalState.status} message={modalState.message} onClose={handleModalClose} />
+      <LoadingModal 
+        isOpen={modalState.isOpen} 
+        status={modalState.status} 
+        message={modalState.message} 
+        onClose={() => setModalState(s => ({...s, isOpen: false}))} 
+      />
     </div>
   );
 };
 
-// --- Subcomponente para los campos (Inputs) ---
-const ProfileField = ({ label, icon: Icon, name, value, placeholder, isEditing, handleChange, theme }) => (
-  <div>
-    <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${theme.textSecondary}`}>
-      {label}
-    </label>
-    <div className={`flex items-center rounded-lg transition-all duration-200 ${isEditing ? theme.input + " border px-3" : "px-0 border-transparent"}`}>
-      <span className={`py-3 pr-3 ${isEditing ? "opacity-50" : "opacity-100"}`}>
-        <Icon className={theme.textSecondary} />
-      </span>
-      <input
-        type="text"
-        name={name}
-        disabled={!isEditing}
-        value={value}
-        onChange={handleChange}
-        placeholder={isEditing ? placeholder : ""}
-        className={`w-full py-2.5 bg-transparent outline-none transition-colors ${
-          !isEditing 
-            ? `font-medium text-lg cursor-default ${theme.textPrimary}` 
-            : `text-sm ${theme.textPrimary}`
-        }`}
-      />
+const DetailBox = ({ label, icon: Icon, name, value, isEditing, onChange, theme }) => (
+  <div className={`p-5 rounded-3xl border transition-all duration-300 ${theme.fieldBg} ${isEditing ? 'border-blue-500 shadow-lg shadow-blue-500/10' : theme.fieldBorder}`}>
+    <div className="flex items-center gap-4 mb-3">
+      <div className={`p-3 rounded-2xl ${isEditing ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/40' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
+        <Icon size={18} />
+      </div>
+      <label className={`text-[11px] font-black uppercase tracking-[0.2em] ${theme.textSecondary}`}>
+        {label}
+      </label>
     </div>
-    {!isEditing && <div className={`h-[1px] w-full ${theme.divider} mt-1`}></div>}
+    <input
+      type="text"
+      name={name}
+      disabled={!isEditing}
+      value={value}
+      onChange={onChange}
+      className={`w-full bg-transparent outline-none font-bold transition-all ${isEditing ? 'text-blue-600 text-base' : `text-lg ${theme.textPrimary}`}`}
+      placeholder="---"
+    />
   </div>
 );
 

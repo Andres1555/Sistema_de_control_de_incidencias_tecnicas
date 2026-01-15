@@ -1,16 +1,19 @@
 import sequelize, { Report, ReportCase, Machine } from "../schemas/schemas.js";
 import { Op } from "sequelize";
 
-// Ayudante para no repetir el include en todas las funciones
+
 const includeMachine = {
   model: Machine,
-  attributes: ['nro_maquina'] // Solo traemos el número que quieres ver
+  attributes: ['nro_maquina']
 };
 
-async function getAll() {
-  // Añadimos include para que las cards también puedan mostrar el nro_maquina
-  return await Report.findAll({
-    include: [includeMachine]
+async function getAll(limit, offset) {
+  // findAndCountAll devuelve { count: total, rows: [data] }
+  return await Report.findAndCountAll({
+    limit: limit,
+    offset: offset,
+    include: [includeMachine],
+    order: [['fecha', 'DESC']] // Opcional: ordenar por los más recientes
   });
 }
 

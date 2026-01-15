@@ -1,14 +1,14 @@
 import React, { useState, forwardRef, useEffect } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent } from "@mui/material"; 
 import LoadingModal from "@/hooks/Modals/LoadingModal";
 import Techreport from "./techreport";
+import { FaTrash, FaSave, FaPlus } from "react-icons/fa"; // Añadidos iconos para consistencia
 
 const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false, readOnlyDefault = false, darkMode = false }, ref) => {
-  // --- ESTADOS ---
+  // ... (Estados y lógica se mantienen igual)
   const [isLoading, setIsLoading] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
 
-  // Obtener fecha de hoy en formato YYYY-MM-DD para el input date nativo
   const getTodayDate = () => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -31,9 +31,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
   };
 
   const [formData, setFormData] = useState(initialData || initialFormData);
-  const [showTechPrompt, setShowTechPrompt] = useState(false);
   const [showTechDialog, setShowTechDialog] = useState(false);
-  const [createdReport, setCreatedReport] = useState(null);
   const [techInitialData, setTechInitialData] = useState(null);
 
   const [modalState, setModalState] = useState({
@@ -42,15 +40,11 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     message: "",
   });
 
-  // --- CAMBIO CLAVE AQUÍ PARA VER EL NRO DE MÁQUINA ---
   useEffect(() => {
     if (initialData) {
       setFormData({
         ...initialData,
-        // Buscamos el número real dentro del objeto Machine que viene del backend
-        // Si no existe el objeto Machine (JOIN), busca nro_maquina o el id_maquina por defecto
         id_maquina: initialData.Machine?.nro_maquina ?? initialData.nro_maquina ?? initialData.id_maquina ?? "",
-        
         nombre_windows: initialData.nombre_windows ?? "", 
         clave_win: initialData.clave_win ?? initialData.clave_acceso_windows ?? "",
         fecha: initialData.fecha || getTodayDate(), 
@@ -73,21 +67,6 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
       const json = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
       return JSON.parse(json);
     } catch (e) { return null; }
-  };
-
-  const handleContinueToTech = () => {
-    const token = localStorage.getItem('token');
-    const decoded = decodeToken(token);
-    setTechInitialData({ id_user: decoded?.id ?? "", id_report: createdReport?.id ?? "" });
-    setShowTechPrompt(false);
-    setShowTechDialog(true);
-  };
-
-  const handleTechSuccess = () => {
-    setShowTechDialog(false);
-    onSuccess?.();
-    onClose?.();
-    setModalState({ isOpen: true, status: "success", message: "Reporte técnico creado correctamente." });
   };
 
   const sendForm = async () => {
@@ -113,7 +92,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
       
       const payload = {
         ...formData,
-        nro_maquina: Number(formData.id_maquina), // Enviamos el NRO para que el back inteligente lo asocie
+        nro_maquina: Number(formData.id_maquina),
         id_maquina: Number(formData.id_maquina),
         nombre_windows: String(formData.nombre_windows)
       };
@@ -127,21 +106,22 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || "Error en el servidor");
 
+      const reportId = result?.report?.id || result?.data?.id || initialData?.id;
+
+      setModalState({ 
+          isOpen: true, 
+          status: "success", 
+          message: isUpdating ? "Reporte actualizado exitosamente" : "Reporte creado exitosamente" 
+      });
+
       if (formData.estado === 'resuelto') {
-        setCreatedReport(result?.report || result?.data || null);
-        setModalState({ 
-            isOpen: true, 
-            status: "success", 
-            message: isUpdating ? "Reporte actualizado exitosamente" : "Reporte creado exitosamente" 
+        setTechInitialData({ 
+          id_user: decodeToken(token)?.id ?? "", 
+          id_report: reportId 
         });
-        setShowTechPrompt(true);
+        setFormSubmitted(false);
       } else {
         setFormSubmitted(true);
-        setModalState({ 
-            isOpen: true, 
-            status: "success", 
-            message: isUpdating ? "Reporte actualizado exitosamente" : "Reporte creado exitosamente" 
-        });
       }
     } catch (err) {
       setModalState({ isOpen: true, status: "error", message: err.message });
@@ -151,26 +131,31 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
   };
 
   const handleModalClose = () => {
-    if (modalState.status === "success" && formSubmitted) {
-      onSuccess?.();
-      onClose?.();
-    }
+    const wasResuelto = formData.estado === 'resuelto';
+    const isSuccess = modalState.status === "success";
     setModalState(s => ({ ...s, isOpen: false }));
-    setFormSubmitted(false);
+    if (isSuccess) {
+      if (wasResuelto) setShowTechDialog(true);
+      else {
+        onSuccess?.();
+        onClose?.();
+      }
+    }
   };
 
-  const inputClass = `w-full p-2.5 rounded-lg border outline-none transition-all ${
+  const inputClass = `w-full p-2.5 rounded-xl border outline-none transition-all font-bold ${
     darkMode 
       ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" 
       : "bg-gray-50 border-gray-300 text-gray-900 focus:border-blue-600"
-  } ${readOnlyDefault ? "bg-transparent border-transparent cursor-default font-semibold text-lg" : "border-solid shadow-sm"}`;
+  } ${readOnlyDefault ? "bg-transparent border-transparent cursor-default font-black text-lg" : "border-solid shadow-sm"}`;
 
-  const labelClass = `block text-[10px] font-bold uppercase tracking-widest mb-1 ${darkMode ? "text-blue-400" : "text-blue-600"}`;
+  const labelClass = `block text-[10px] font-black uppercase tracking-widest mb-1 ${darkMode ? "text-blue-400" : "text-blue-600"}`;
 
   return (
     <>
       <div className="space-y-6 animate-fade-in p-2">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Campos del formulario... */}
           <div className="md:col-span-2">
             <label className={labelClass}>Título del Caso / Incidencia</label>
             <input type="text" name="caso" value={formData.caso} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} placeholder="Ej: Falla de red..." />
@@ -229,37 +214,41 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
         </div>
 
         {!readOnlyDefault && (
-          <div className="flex justify-end gap-3 pt-6 border-t border-gray-700/30">
-            <button type="button" onClick={onClose} className={`px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-500/10 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Cancelar
+          /* --- SECCIÓN DE BOTONES ACTUALIZADA --- */
+          <div className="flex flex-col md:flex-row justify-end gap-3 pt-6 border-t border-gray-700/30">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              /* ESTILO: Letras Rojo Sólido, Borde Rojo */
+              className={`flex-1 md:flex-none h-11 px-8 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border-2 ${
+                darkMode 
+                ? "bg-transparent border-red-600 text-red-500 hover:bg-red-600 hover:text-white" 
+                : "bg-white border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+              }`}
+            >
+              <FaTrash size={12} /> Cancelar
             </button>
+            
             <button 
               type="button" 
               onClick={sendForm} 
               disabled={isLoading} 
-              className="bg-blue-600 text-white px-8 py-2 rounded-md font-bold shadow-lg hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"
+              /* ESTILO: Bloque Negro/Azul Sólido */
+              className={`flex-1 md:flex-none h-11 px-10 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-md active:scale-95 text-white ${
+                darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-[#1a1a1a] hover:bg-blue-700"
+              } disabled:opacity-50`}
             >
+              {isEdit ? <FaSave size={14} /> : <FaPlus size={14} />}
               {isLoading ? "Enviando..." : (isEdit ? "Guardar Cambios" : "Crear Reporte")}
             </button>
           </div>
         )}
       </div>
 
-      <Dialog open={showTechPrompt} onClose={() => setShowTechPrompt(false)}>
-        <DialogTitle>Crear reporte técnico</DialogTitle>
-        <DialogContent>
-          <Typography>El reporte fue guardado con éxito. ¿Desea crear el reporte de caso técnico ahora?</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => { setShowTechPrompt(false); onSuccess?.(); onClose?.(); }}>Más tarde</Button>
-          <Button onClick={handleContinueToTech} variant="contained">Continuar</Button>
-        </DialogActions>
-      </Dialog>
-
       <Dialog open={showTechDialog} onClose={() => setShowTechDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Registrar reporte técnico</DialogTitle>
+        <DialogTitle className="font-black uppercase text-sm">Registrar reporte técnico</DialogTitle>
         <DialogContent>
-          <Techreport initialData={techInitialData} onSuccess={handleTechSuccess} onClose={() => setShowTechDialog(false)} darkMode={darkMode} />
+          <Techreport initialData={techInitialData} onSuccess={() => { setShowTechDialog(false); onSuccess?.(); onClose?.(); }} onClose={() => setShowTechDialog(false)} darkMode={darkMode} />
         </DialogContent>
       </Dialog>
 

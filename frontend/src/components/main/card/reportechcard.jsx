@@ -1,77 +1,68 @@
 import React from "react";
-import { FaWrench, FaUserCog, FaFileAlt, FaTrash, FaEye, FaClock } from "react-icons/fa";
+import { FaWrench, FaUserCog, FaFileAlt, FaTrash, FaEye } from "react-icons/fa";
 
 const ReportTechCard = ({ report = {}, onView, onDelete, darkMode = true }) => {
-	const { id, id_user, id_report, caso_tecnico, resolucion, tiempo, createdAt } = report;
+    const { id, id_report, caso_tecnico, resolucion, createdAt } = report;
+    const techName = localStorage.getItem('userName') || "Técnico";
 
-	// OBTENER EL NOMBRE DEL TÉCNICO DESDE EL LOCALSTORAGE
-	const techName = localStorage.getItem('userName') || "Técnico Asignado";
+    const cardBg = darkMode ? "bg-[#1a222f] border-gray-700 text-gray-100" : "bg-white border-gray-200 text-gray-800";
+    const secondaryText = darkMode ? "text-gray-400" : "text-gray-500";
 
-	const cardBg = darkMode ? "bg-[#1a222f] border-gray-700 text-gray-100" : "bg-white border-gray-200 text-gray-800";
-	const secondaryText = darkMode ? "text-gray-400" : "text-gray-500";
+    return (
+        <article className={`${cardBg} rounded-xl shadow-md p-4 md:p-5 border flex flex-col h-full min-h-[260px] transition-all hover:shadow-lg no-blur`}>
+            <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-start gap-2 mb-3">
+                    <div className="flex gap-2 min-w-0 flex-1">
+                        <FaWrench className="text-orange-500 mt-1 shrink-0" size={14} />
+                        <h3 className="text-sm md:text-base font-black leading-tight uppercase truncate">
+                            {caso_tecnico || `Caso #${id}`}
+                        </h3>
+                    </div>
+                    <p className="text-[10px] font-bold opacity-60 shrink-0">
+                        {createdAt ? new Date(createdAt).toLocaleDateString() : "--/--"}
+                    </p>
+                </div>
 
-	const dateStr = createdAt ? new Date(createdAt).toLocaleDateString() : "---";
+                <p className={`text-xs md:text-sm mb-4 line-clamp-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    {resolucion || "Sin resolución registrada."}
+                </p>
 
-	return (
-		<article className={`${cardBg} rounded-xl shadow-md p-5 border flex flex-col h-full min-h-[240px] transition-all hover:shadow-lg`}>
-			<div className="flex-1">
-				<div className="flex justify-between items-start gap-2 mb-3">
-					<div className="flex gap-2">
-						{/* Icono en naranja para identificar que es técnico */}
-						<FaWrench className="text-orange-500 mt-1 shrink-0" size={14} />
-						<h3 className="text-lg font-bold leading-tight uppercase line-clamp-1">
-							{caso_tecnico || `Caso Técnico #${id}`}
-						</h3>
-					</div>
-					<div className="text-right shrink-0">
-						<p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Registrado</p>
-						<p className="text-[11px] font-semibold">{dateStr}</p>
-					</div>
-				</div>
+                <div className="space-y-1.5">
+                    <div className={`text-[10px] md:text-[11px] flex items-center gap-2 ${secondaryText}`}>
+                        <FaFileAlt className="text-orange-400 shrink-0" size={11} /> 
+                        <span className="truncate"><strong className="font-black uppercase">Ref:</strong> #{id_report}</span>
+                    </div>
+                    <div className={`text-[10px] md:text-[11px] flex items-center gap-2 ${secondaryText}`}>
+                        <FaUserCog className="text-orange-400 shrink-0" size={11} /> 
+                        <span className="truncate"><strong className="font-black uppercase">Técnico:</strong> {techName}</span>
+                    </div>
+                </div>
+            </div>
 
-				<p className={`text-sm mb-4 line-clamp-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-					{resolucion || "Sin resolución registrada aún."}
-				</p>
-
-				<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-					<p className={`text-[11px] flex items-center gap-2 ${secondaryText}`}>
-						<FaFileAlt className="text-orange-400" size={11} /> 
-						<strong>Ref Reporte:</strong> #{id_report}
-					</p>
-					
-					{/* Muestra el nombre guardado en el localStorage */}
-					<p className={`text-[11px] flex items-center gap-2 ${secondaryText}`}>
-						<FaUserCog className="text-orange-400" size={11} /> 
-						<strong>Técnico:</strong> {techName}
-					</p>
-
-					{/* Cambio de etiqueta solicitado */}
-					{tiempo && (
-						<p className={`text-[11px] flex items-center gap-2 ${secondaryText} col-span-2`}>
-							<FaClock className="text-orange-400" size={11} /> 
-							<strong>Hora de la resolución:</strong> {tiempo}
-						</p>
-					)}
-				</div>
-			</div>
-
-			{/* Fila de acciones fija en el fondo */}
-			<div className="mt-5 pt-4 border-t border-gray-700/50 flex justify-between items-center">
-				<button
-					onClick={() => onDelete && onDelete(id)}
-					className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-[#242d3c] hover:bg-red-600 text-gray-300 hover:text-white rounded-lg transition-all"
-				>
-					<FaTrash size={12} /> Eliminar
-				</button>
-				<button
-					onClick={() => onView && onView(report)}
-					className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-[#242d3c] hover:bg-orange-600 text-gray-300 hover:text-white rounded-lg transition-all"
-				>
-					<FaEye size={14} /> Ver detalles
-				</button>
-			</div>
-		</article>
-	);
+            {/* BOTONES DE ACCIÓN */}
+            <div className="mt-5 pt-4 border-t border-gray-700/30 flex items-center gap-2">
+                <button
+                    onClick={() => onDelete && onDelete(id)}
+                    /* ESTILO: Letras Rojo Sólido, Borde Rojo, Fondo Claro */
+                    className={`flex-1 h-10 flex items-center justify-center gap-2 px-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border-2 ${
+                        darkMode 
+                        ? "bg-transparent border-red-600 text-red-500 hover:bg-red-600 hover:text-white" 
+                        : "bg-white border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                    }`}
+                >
+                    <FaTrash size={12} /> <span>Eliminar</span>
+                </button>
+                
+                <button
+                    onClick={() => onView && onView(report)}
+                    /* ESTILO: Fondo Negro Sólido, Letras Blancas */
+                    className="flex-1 h-10 flex items-center justify-center gap-2 px-2 bg-[#1a1a1a] hover:bg-orange-600 text-white rounded-xl text-[11px] font-black transition-all uppercase shadow-md active:scale-95 border border-transparent"
+                >
+                    <FaEye size={14} /> <span>Detalles</span>
+                </button>
+            </div>
+        </article>
+    );
 };
 
 export default ReportTechCard;

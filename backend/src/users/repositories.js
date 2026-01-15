@@ -1,16 +1,18 @@
 import sequelize, { User, Machine, Report, ReportCase, Specialization, SpecializationUsers } from "../schemas/schemas.js";
 import { Op } from 'sequelize';
 
+// repositories.js
 async function getAll(limit, offset) {
   return await User.findAndCountAll({
     limit: limit,
     offset: offset,
+    distinct: true, // ESTO ES VITAL: Evita que cuente varias veces al mismo usuario si tiene varias especializaciones
     include: [
       { model: Machine, attributes: ['nro_maquina'] },
       { 
         model: Specialization, 
         attributes: ['nombre'],
-        through: { attributes: [] } // Oculta la tabla intermedia en el JSON
+        through: { attributes: [] } 
       }
     ],
     order: [['id', 'ASC']]

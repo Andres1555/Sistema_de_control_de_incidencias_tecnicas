@@ -7,3 +7,4 @@ Thumbs.db
 .dockerignore
 .compose.yaml
 .dockerfile
+Backend/Pasantiatest.sqlite

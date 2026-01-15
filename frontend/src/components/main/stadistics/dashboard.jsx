@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-// Importamos algunos iconos para mejorar la interfaz
 import { FiChevronLeft, FiChevronRight, FiCalendar, FiRefreshCw } from "react-icons/fi";
 
 const colors = ["#4CAF50", "#F44336", "#FFC107", "#2196F3", "#9C27B0", "#FF5722", "#607D8B"];
 
-// Componente PieChart (se mantiene igual, solo pequeños ajustes de estilo)
+// --- COMPONENTE PIE CHART ---
 const PieChart = ({ data = [], size = 220, darkMode }) => {
   if (!Array.isArray(data) || data.length === 0) {
     return <div className="py-10 text-gray-500 italic">No hay datos para mostrar</div>;
@@ -28,10 +27,11 @@ const PieChart = ({ data = [], size = 220, darkMode }) => {
   return (
     <div className="flex flex-col lg:flex-row items-center gap-8 justify-center">
       <div 
+        className="transition-transform duration-500 hover:scale-105"
         style={{ 
           width: size, height: size, borderRadius: '50%', 
           background: `conic-gradient(${stops})`,
-          boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+          boxShadow: '0 8px 25px rgba(0,0,0,0.2)'
         }} 
       />
       <div className="flex flex-col gap-2">
@@ -39,7 +39,7 @@ const PieChart = ({ data = [], size = 220, darkMode }) => {
           <div key={s.estado} className="flex items-center gap-3">
             <div className="w-3 h-3 rounded-sm" style={{ background: colors[i % colors.length] }} />
             <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                <span className="font-bold uppercase text-[11px]">{s.estado}:</span> {s.cantidad} ({s.porcentaje.toFixed(1)}%)
+                <span className="font-black uppercase text-[10px] tracking-tighter">{s.estado}:</span> {s.cantidad} ({s.porcentaje.toFixed(1)}%)
             </span>
           </div>
         ))}
@@ -53,9 +53,7 @@ const Dashboard = ({ darkMode = false }) => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [period, setPeriod] = useState('month'); 
-  // Usamos formato ISO (YYYY-MM-DD) para el input date nativo
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
@@ -83,7 +81,6 @@ const Dashboard = ({ darkMode = false }) => {
     return () => { mounted = false; };
   }, [period, selectedDate]);
 
-  // Función para navegar en el tiempo (Botones Anterior/Siguiente)
   const navigateDate = (direction) => {
     const date = new Date(selectedDate + 'T00:00:00');
     switch (period) {
@@ -98,25 +95,23 @@ const Dashboard = ({ darkMode = false }) => {
 
   const resetToday = () => setSelectedDate(new Date().toISOString().split('T')[0]);
 
-  const controlStyles = darkMode 
-    ? "bg-gray-800 border-gray-700 text-gray-200" 
-    : "bg-white border-gray-200 text-gray-700";
-
   return (
-    <div className="p-2">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Estadísticas de Reportes</h2>
+    <div className="p-2 animate-fade-in">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <h2 className={`text-3xl font-black uppercase tracking-tighter ${darkMode ? 'text-white' : 'text-[#1a1a1a]'}`}>
+          Panel de Estadísticas
+        </h2>
         
-        {/* Selector de Periodo */}
-        <div className="flex bg-blue-600/10 p-1 rounded-lg">
+        {/* Selector de Periodo - FONDO NEGRO TEXTO BLANCO SOLIDO */}
+        <div className="flex p-1.5 rounded-2xl bg-gray-500/10 border border-gray-500/20 shadow-inner">
           {['day', 'week', 'month', 'year'].map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-4 py-1.5 rounded-md text-xs font-bold uppercase transition-all ${
+              className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase transition-all active:scale-95 shadow-md ${
                 period === p 
-                  ? "bg-blue-600 text-white shadow-md" 
-                  : "text-blue-600 hover:bg-blue-600/10"
+                  ? "bg-[#1a1a1a] text-white" 
+                  : "text-gray-500 hover:text-[#1a1a1a]"
               }`}
             >
               {p === 'day' ? 'Día' : p === 'week' ? 'Semana' : p === 'month' ? 'Mes' : 'Año'}
@@ -125,94 +120,64 @@ const Dashboard = ({ darkMode = false }) => {
         </div>
       </div>
 
-      {/* CONTROLES DE FECHA INTUITIVOS */}
-      <div className={`flex flex-wrap items-center gap-3 p-4 rounded-xl border mb-8 ${controlStyles}`}>
+      {/* CONTROLES DE FECHA - FLECHAS CON ICONO BLANCO SOLIDO */}
+      <div className={`flex flex-wrap items-center gap-4 p-6 rounded-3xl border mb-10 shadow-sm ${
+        darkMode ? "bg-gray-800/50 border-gray-700" : "bg-white border-gray-200"
+      }`}>
         <div className="flex items-center gap-2 mr-4">
-          <FiCalendar className="text-blue-500" />
-          <span className="text-sm font-bold uppercase tracking-wider">Fecha de consulta:</span>
+          <FiCalendar className="text-blue-500" size={20} />
+          <span className={`text-[11px] font-black uppercase tracking-widest ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            Consulta Temporal
+          </span>
         </div>
 
-        <div className="flex items-center gap-1 bg-gray-500/10 rounded-lg p-1">
+        <div className="flex items-center gap-3">
+          {/* Botón Flecha Izquierda - Fondo Negro Icono Blanco */}
           <button 
             onClick={() => navigateDate(-1)}
-            className="p-2 hover:bg-blue-600 hover:text-white rounded-md transition-colors"
-            title="Anterior"
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-[#1a1a1a] text-white transition-all active:scale-90 shadow-lg hover:bg-gray-800"
           >
-            <FiChevronLeft size={20} />
+            <FiChevronLeft size={24} strokeWidth={4} />
           </button>
 
           <input 
             type="date" 
             value={selectedDate} 
             onChange={(e) => setSelectedDate(e.target.value)}
-            className={`px-3 py-1.5 rounded-md border-none bg-transparent font-semibold focus:ring-0 cursor-pointer`}
+            className={`px-4 py-2 rounded-xl border-2 border-gray-500/20 bg-transparent font-black text-sm outline-none transition-all cursor-pointer ${
+              darkMode ? 'text-white' : 'text-black'
+            } focus:border-blue-500`}
           />
 
+          {/* Botón Flecha Derecha - Fondo Negro Icono Blanco */}
           <button 
             onClick={() => navigateDate(1)}
-            className="p-2 hover:bg-blue-600 hover:text-white rounded-md transition-colors"
-            title="Siguiente"
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-[#1a1a1a] text-white transition-all active:scale-90 shadow-lg hover:bg-gray-800"
           >
-            <FiChevronRight size={20} />
+            <FiChevronRight size={24} strokeWidth={4} />
           </button>
         </div>
 
+        {/* Botón HOY - Fondo Rojo Texto Blanco */}
         <button 
           onClick={resetToday}
-          className="ml-auto flex items-center gap-2 px-4 py-2 text-xs font-bold border border-blue-500/50 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-all"
+          className="ml-auto flex items-center gap-3 h-11 px-8 text-[10px] font-black bg-red-600 text-white hover:bg-red-700 rounded-xl transition-all uppercase active:scale-95 shadow-xl"
         >
-          <FiRefreshCw /> HOY
+          <FiRefreshCw className="stroke-[3]" size={14} /> 
+          Volver a hoy
         </button>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-20 animate-pulse text-blue-500 font-bold uppercase tracking-widest">
-            Actualizando datos...
-        </div>
-      ) : error ? (
-        <div className="bg-red-500/10 border border-red-500 text-red-500 p-4 rounded-lg text-center">
-            {error}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Gráfico */}
-          <div className={`lg:col-span-2 p-6 rounded-2xl border ${darkMode ? 'bg-[#1a222f] border-gray-700' : 'bg-white border-gray-200'} shadow-sm`}> 
-            <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-6 flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full" />
-              Distribución por estado
-            </h3>
+      {/* ... Resto del Dashboard ... */}
+      {!loading && !error && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className={`lg:col-span-2 p-8 rounded-[2rem] border-2 ${darkMode ? 'bg-[#1a222f] border-gray-700' : 'bg-white border-gray-100'} shadow-xl`}> 
             <PieChart data={data} darkMode={darkMode} />
           </div>
-
-          {/* Tarjeta de Resumen */}
           <div className="flex flex-col gap-6">
-            <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-[#1a222f] border-gray-700' : 'bg-white border-gray-200'} shadow-sm`}>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Total de Reportes</p>
-                <h4 className="text-4xl font-black text-blue-500">{total}</h4>
-            </div>
-
-            <div className={`p-6 rounded-2xl border flex-1 ${darkMode ? 'bg-[#1a222f] border-gray-700' : 'bg-white border-gray-200'} shadow-sm`}> 
-                <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-4">Métricas Detalladas</h3>
-                <div className="space-y-4">
-                {data.length === 0 && <div className="text-gray-500 text-sm italic">Sin registros en este periodo</div>}
-                {data.map((d, i) => (
-                    <div key={d.estado} className="group">
-                        <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-bold uppercase text-gray-400">{d.estado}</span>
-                            <span className="text-xs font-black">{d.cantidad}</span>
-                        </div>
-                        <div className="w-full bg-gray-500/10 h-1.5 rounded-full overflow-hidden">
-                            <div 
-                                className="h-full transition-all duration-1000" 
-                                style={{ 
-                                    width: `${d.porcentaje}%`, 
-                                    background: colors[i % colors.length] 
-                                }} 
-                            />
-                        </div>
-                    </div>
-                ))}
-                </div>
+            <div className={`p-8 rounded-[2rem] border-2 ${darkMode ? 'bg-[#1a222f] border-gray-700' : 'bg-white border-gray-100'} shadow-xl`}>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Total Procesados</p>
+                <h4 className="text-6xl font-black text-blue-600 tracking-tighter">{total}</h4>
             </div>
           </div>
         </div>

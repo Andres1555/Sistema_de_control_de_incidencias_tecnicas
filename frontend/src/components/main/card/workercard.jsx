@@ -2,65 +2,63 @@ import React from "react";
 import { FaUser, FaIdCard, FaBuilding, FaTrash, FaEye } from "react-icons/fa";
 
 const WorkerCard = ({ worker = {}, onView, onDelete, darkMode = true }) => {
-	const { id, ficha, nombres, apellidos, anio_nac, mes_nac, dia_nac, dpto, gcia } = worker;
+    const { id, ficha, nombres, apellidos, dpto, gcia } = worker;
 
-	const cardBg = darkMode ? "bg-[#1a222f] border-gray-700 text-gray-100" : "bg-white border-gray-200 text-gray-800";
-	const secondaryText = darkMode ? "text-gray-400" : "text-gray-500";
+    const cardBg = darkMode ? "bg-[#1a222f] border-gray-700 text-gray-100" : "bg-white border-gray-200 text-gray-800";
+    const secondaryText = darkMode ? "text-gray-400" : "text-gray-500";
 
-	const birthDate = dia_nac && mes_nac && anio_nac 
-		? `${String(dia_nac).padStart(2, '0')}/${String(mes_nac).padStart(2, '0')}/${anio_nac}`
-		: "23/01/1976"; // Ejemplo de tu foto
+    return (
+        <article className={`${cardBg} rounded-xl shadow-md p-4 md:p-5 border flex flex-col h-full min-h-[260px] transition-all hover:shadow-lg no-blur overflow-hidden`}>
+            <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2 mb-4">
+                    <div className="flex-1 min-w-0">
+                        <h3 className="text-sm md:text-base font-black flex items-center gap-2 uppercase truncate">
+                            <FaUser className="text-blue-500 text-xs shrink-0" />
+                            <span className="truncate">{nombres} {apellidos}</span>
+                        </h3>
+                        <p className={`mt-1 text-[10px] md:text-xs flex items-center gap-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <FaIdCard className="text-[10px] text-blue-400 shrink-0" />
+                            Ficha: {ficha || "N/A"}
+                        </p>
+                    </div>
+                </div>
 
-	return (
-		<article className={`${cardBg} rounded-xl shadow-md p-5 border flex flex-col h-full min-h-[220px] transition-all hover:shadow-lg`}>
-			{/* CONTENIDO SUPERIOR (Crecimiento flexible) */}
-			<div className="flex-1">
-				<div className="flex justify-between items-start gap-2 mb-3">
-					<div className="flex gap-2">
-						<FaUser className="text-blue-500 mt-1 shrink-0" size={14} />
-						<h3 className="text-lg font-bold leading-tight uppercase">
-							{nombres} {apellidos}
-						</h3>
-					</div>
-					<div className="text-right shrink-0">
-						<p className="text-[9px] text-gray-500 font-bold uppercase">Nacimiento</p>
-						<p className="text-[11px] font-semibold">{birthDate}</p>
-					</div>
-				</div>
+                <div className="mt-2 space-y-1.5">
+                    <div className={`text-[10px] flex items-center gap-2 ${secondaryText}`}>
+                        <FaBuilding className="shrink-0 text-blue-400" size={10} /> 
+                        <span className="truncate"><strong className="font-black uppercase">Gcia:</strong> {gcia || "N/A"}</span>
+                    </div>
+                    <div className={`text-[10px] flex items-center gap-2 ${secondaryText}`}>
+                        <FaBuilding className="shrink-0 text-blue-400" size={10} /> 
+                        <span className="truncate"><strong className="font-black uppercase">Dpto:</strong> {dpto || "N/A"}</span>
+                    </div>
+                </div>
+            </div>
 
-				<div className="space-y-1">
-					<p className="text-sm font-medium text-blue-400 flex items-center gap-2">
-						<FaIdCard size={13} /> Ficha: {ficha}
-					</p>
-					<div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
-						<p className={`text-[11px] flex items-center gap-1 ${secondaryText}`}>
-							<FaBuilding size={11} /> <strong>Gerencia:</strong> {gcia}
-						</p>
-						<p className={`text-[11px] flex items-center gap-1 ${secondaryText}`}>
-							<FaBuilding size={11} /> <strong>Dpto:</strong> {dpto}
-						</p>
-					</div>
-				</div>
-			</div>
+            {/* BOTONES DE ACCIÓN UNIFICADOS */}
+            <div className="flex items-center gap-2 pt-4 mt-auto border-t border-gray-700/30">
+                <button
+                    onClick={() => onDelete && onDelete(id)}
+                    /* ESTILO: Letras Rojo Sólido, Borde Rojo, Fondo Claro */
+                    className={`flex-1 h-10 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border-2 ${
+                        darkMode 
+                        ? "bg-transparent border-red-600 text-red-500 hover:bg-red-600 hover:text-white" 
+                        : "bg-white border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                    }`}
+                >
+                    <FaTrash size={12} /> <span>Eliminar</span>
+                </button>
 
-			{/* BOTONES POSICIÓN FIJA (Footer) */}
-			<div className="mt-5 pt-4 border-t border-gray-700/50 flex justify-between items-center">
-				<button
-					onClick={() => onDelete && onDelete(id)}
-					className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-[#242d3c] hover:bg-red-600 text-gray-300 hover:text-white rounded-lg transition-all"
-				>
-					<FaTrash size={12} /> Eliminar
-				</button>
-
-				<button
-					onClick={() => onView && onView(worker)} // Asegúrate de que pase el objeto worker completo
-					className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-[#242d3c] hover:bg-blue-600 text-gray-300 hover:text-white rounded-lg transition-all"
-				>
-					<FaEye size={14} /> Ver detalles
-				</button>
-			</div>
-		</article>
-	);
+                <button
+                    onClick={() => onView && onView(worker)}
+                    /* ESTILO: Fondo Negro Sólido, Letras Blancas */
+                    className="flex-1 h-10 flex items-center justify-center gap-2 bg-[#1a1a1a] hover:bg-blue-600 text-white rounded-xl text-[11px] font-black transition-all uppercase shadow-md active:scale-95 border border-transparent"
+                >
+                    <FaEye size={14} /> <span>Detalles</span>
+                </button>
+            </div>
+        </article>
+    );
 };
 
 export default WorkerCard;

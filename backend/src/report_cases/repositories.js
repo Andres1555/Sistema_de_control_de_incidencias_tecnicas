@@ -1,7 +1,11 @@
 import { ReportCase } from "../schemas/schemas.js";
 
-async function getAll() {
-  return await ReportCase.findAll();
+async function getAll(limit, offset) {
+  return await ReportCase.findAndCountAll({
+    limit: limit,
+    offset: offset,
+    // order: [['id', 'ASC']] // Opcional: para mantener siempre el mismo orden
+  });
 }
 
 async function getById(id) {

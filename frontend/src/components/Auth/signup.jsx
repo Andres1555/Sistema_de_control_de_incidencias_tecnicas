@@ -93,7 +93,6 @@ const SignUp = () => {
         } catch (e) { console.warn(e); }
       }
 
-      // ÉXITO: Se activa el modal
       setModalState({ 
         isOpen: true, 
         status: 'success', 
@@ -109,102 +108,123 @@ const SignUp = () => {
     }
   };
 
-  // --- FUNCIÓN DE CIERRE DE MODAL CON REDIRECCIÓN CORREGIDA ---
   const handleModalClose = () => {
     const wasSuccess = modalState.status === 'success';
     setModalState(prev => ({ ...prev, isOpen: false }));
-    
-    // Si el registro fue bien, mandamos a la raíz "/" (donde está tu Login)
     if (wasSuccess) {
       navigate('/', { replace: true });
     }
   };
 
   return (
-    <div className={`${darkMode ? "fixed inset-0 bg-gray-900" : "fixed inset-0 bg-blue-600"} flex items-center justify-center overflow-y-auto p-4`}>
-      <div className={`${darkMode ? "bg-[#1a222f] text-gray-100" : "bg-white text-black"} p-8 rounded-xl shadow-lg w-full max-w-2xl mx-auto text-center relative transition-all duration-300`}>
+    // CAMBIO: Se eliminó fixed y se usó min-h-screen con flex-col para permitir scroll natural en móviles
+    <div className={`${darkMode ? "bg-gray-900" : "bg-blue-600"} min-h-screen flex items-center justify-center p-2 sm:p-4 md:p-8 transition-colors duration-300`}>
+      
+      {/* CAMBIO: Se ajustó el max-w y se añadió overflow-hidden */}
+      <div className={`${darkMode ? "bg-[#1a222f] text-gray-100" : "bg-white text-black"} 
+        w-full max-w-3xl rounded-2xl shadow-2xl relative transition-all duration-300 overflow-hidden`}>
         
-        <button type="button" onClick={toggleTheme} className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-500/20">
+        {/* Botón de tema */}
+        <button type="button" onClick={toggleTheme} className="absolute top-4 right-4 z-10 p-2 rounded-full hover:bg-gray-500/20 transition-colors">
           {darkMode ? <FiSun size={20} className="text-yellow-400" /> : <FiMoon size={20} className="text-blue-600" />}
         </button>
 
-        <h2 className="text-3xl font-bold text-blue-600 mb-2 uppercase">Crear Cuenta</h2>
-        <p className={`text-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Regístrate para acceder al sistema</p>
-        
-        {error && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/50 text-red-500 rounded-lg text-sm font-bold">
-            {error}
-          </div>
-        )}
+        {/* Contenido del Formulario */}
+        <div className="p-5 sm:p-8 md:p-10">
+          <header className="text-center mb-6">
+            <h2 className="text-2xl sm:text-3xl font-black text-blue-600 mb-2 uppercase tracking-tight">Crear Cuenta</h2>
+            <p className={`text-xs sm:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Completa tus datos para unirte al sistema</p>
+          </header>
+          
+          {error && (
+            <div className="mb-6 p-3 bg-red-500/10 border border-red-500/50 text-red-500 rounded-lg text-[11px] sm:text-xs font-bold text-center">
+              {error}
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-            <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-blue-500 ml-1">Nombre</label>
-                <input type="text" name="nombre" value={formData.nombre} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-300"} w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-600`} required />
-            </div>
-            <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-blue-500 ml-1">Apellido</label>
-                <input type="text" name="apellido" value={formData.apellido} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-300"} w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-600`} required />
-            </div>
-            <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-blue-500 ml-1">Correo Electrónico</label>
-                <input type="email" name="correo" value={formData.correo} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-300"} w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-600`} required />
-            </div>
-            <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-blue-500 ml-1">Contraseña</label>
-                <input type="password" name="password" value={formData.password} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-300"} w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-600`} required />
-            </div>
-            <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-blue-500 ml-1">Cédula</label>
-                <input type="text" name="C_I" value={formData.C_I} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-300"} w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-600`} required />
-            </div>
-            <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-blue-500 ml-1">Ficha</label>
-                <input type="text" name="ficha" value={formData.ficha} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-300"} w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-600`} required />
-            </div>
-            <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-blue-500 ml-1">Rol</label>
-                <select name="rol" value={formData.rol} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-300"} w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-600`} required>
-                    <option value="">Seleccione...</option>
-                    <option value="tecnico">Técnico</option>
-                    <option value="administrador">Administrador</option>
-                </select>
-            </div>
-            <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-blue-500 ml-1">Especialidades</label>
-                <input type="text" name="especializacion" placeholder="redes, sql..." value={formData.especializacion} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-300"} w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-600`} required />
-            </div>
-            <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-blue-500 ml-1">Nro Máquina</label>
-                <input type="number" name="numero_maquina" value={formData.numero_maquina} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-300"} w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-600`} />
-            </div>
-            <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-blue-500 ml-1">Teléfono</label>
-                <input type="text" name="telefono" value={formData.telefono} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-300"} w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-600`} required />
-            </div>
-            <div className="space-y-1 sm:col-span-2">
-                <label className="text-[10px] font-bold uppercase text-blue-500 ml-1">Extensión</label>
-                <input type="text" name="extension" value={formData.extension} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-300"} w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-600`} required />
-            </div>
-          </div>
-          <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 mt-4 uppercase">
-            {isLoading ? 'Registrando...' : 'Finalizar Registro'}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* GRID RESPONSIVE: 1 columna en móvil, 2 en tablets/escritorio */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 sm:gap-y-4 text-left">
+              
+              <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-blue-500 ml-1 tracking-wider">Nombre</label>
+                  <input type="text" name="nombre" value={formData.nombre} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-gray-50 border-gray-300"} w-full p-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-blue-600 transition-all`} required />
+              </div>
 
-        <LoadingModal 
-          isOpen={modalState.isOpen} 
-          status={modalState.status} 
-          message={modalState.message} 
-          onClose={handleModalClose} 
-        />
+              <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-blue-500 ml-1 tracking-wider">Apellido</label>
+                  <input type="text" name="apellido" value={formData.apellido} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-gray-50 border-gray-300"} w-full p-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-blue-600 transition-all`} required />
+              </div>
 
-        <p className="mt-6 text-center text-sm">
-            {/* Redirección manual corregida a la raíz "/" */}
-          ¿Ya tienes cuenta? <Link to="/" className="text-blue-600 font-bold hover:underline transition-all">Inicia sesión</Link>
-        </p>
+              <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-blue-500 ml-1 tracking-wider">Correo Electrónico</label>
+                  <input type="email" name="correo" value={formData.correo} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-gray-50 border-gray-300"} w-full p-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-blue-600 transition-all`} required />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-blue-500 ml-1 tracking-wider">Contraseña</label>
+                  <input type="password" name="password" value={formData.password} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-gray-50 border-gray-300"} w-full p-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-blue-600 transition-all`} required />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-blue-500 ml-1 tracking-wider">Cédula</label>
+                  <input type="text" name="C_I" value={formData.C_I} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-gray-50 border-gray-300"} w-full p-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-blue-600 transition-all`} required />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-blue-500 ml-1 tracking-wider">Ficha</label>
+                  <input type="text" name="ficha" value={formData.ficha} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-gray-50 border-gray-300"} w-full p-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-blue-600 transition-all`} required />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-blue-500 ml-1 tracking-wider">Rol</label>
+                  <select name="rol" value={formData.rol} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-gray-50 border-gray-300"} w-full p-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-blue-600 transition-all cursor-pointer`} required>
+                      <option value="">Seleccione...</option>
+                      <option value="tecnico">Técnico</option>
+                      <option value="administrador">Administrador</option>
+                  </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-blue-500 ml-1 tracking-wider">Especialidades</label>
+                  <input type="text" name="especializacion" placeholder="redes, sql..." value={formData.especializacion} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-gray-50 border-gray-300"} w-full p-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-blue-600 transition-all`} required />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-blue-500 ml-1 tracking-wider">Nro Máquina</label>
+                  <input type="number" name="numero_maquina" value={formData.numero_maquina} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-gray-50 border-gray-300"} w-full p-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-blue-600 transition-all`} />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-blue-500 ml-1 tracking-wider">Teléfono</label>
+                  <input type="text" name="telefono" value={formData.telefono} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-gray-50 border-gray-300"} w-full p-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-blue-600 transition-all`} required />
+              </div>
+
+              <div className="flex flex-col gap-1 md:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-blue-500 ml-1 tracking-wider">Extensión</label>
+                  <input type="text" name="extension" value={formData.extension} onChange={(e) => handleInputChange(e, setFormData)} className={`${darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-gray-50 border-gray-300"} w-full p-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-blue-600 transition-all`} required />
+              </div>
+            </div>
+
+            <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-black hover:bg-blue-700 transition-all shadow-xl active:scale-95 disabled:opacity-50 mt-6 uppercase tracking-widest text-sm">
+              {isLoading ? 'Procesando...' : 'Finalizar Registro'}
+            </button>
+          </form>
+
+          <footer className="mt-8 text-center">
+            <p className={`text-xs sm:text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              ¿Ya tienes cuenta? <Link to="/" className="text-blue-600 font-black hover:underline transition-all ml-1">Inicia sesión</Link>
+            </p>
+          </footer>
+        </div>
       </div>
+
+      <LoadingModal 
+        isOpen={modalState.isOpen} 
+        status={modalState.status} 
+        message={modalState.message} 
+        onClose={handleModalClose} 
+      />
     </div>
   );
 };

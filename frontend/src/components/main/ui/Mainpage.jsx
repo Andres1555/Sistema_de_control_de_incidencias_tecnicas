@@ -7,12 +7,10 @@ import { FiSun, FiMoon, FiMenu, FiLogOut } from "react-icons/fi";
 import { Dialog, DialogContent, DialogTitle, IconButton, Tabs, Tab, Box } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
-// Formularios
+// Formularios y Listas
 import ReportForm from "../form/report"; 
 import WorkerForm from "../form/workersreport"; 
 import UserForm from "../form/usersform";     
-
-// Listas
 import ReportList from "../card/reportlist";
 import ReportTechList from "../card/reportechlist";
 import Dashboard from "../stadistics/dashboard";
@@ -20,7 +18,6 @@ import WorkerList from "../card/workerlist";
 import UserList from "../card/userlist";
 
 const Mainpage = () => {
-  // --- Estados ---
   const [menuOpen, setMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     const t = localStorage.getItem('theme');
@@ -32,11 +29,10 @@ const Mainpage = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState(0);
+  const [isSearchMobileOpen, setIsSearchMobileOpen] = useState(false);
 
-  // Datos del Usuario para el Avatar estilo Gmail
   const userName = localStorage.getItem('userName') || "Usuario";
   const userInitial = userName.charAt(0).toUpperCase();
-
   const userRole = localStorage.getItem('role')?.toLowerCase() || "";
   const isAdmin = userRole === "administrador";
 
@@ -81,37 +77,25 @@ const Mainpage = () => {
 
   const getHeaderTitle = () => {
     switch(view) {
-      case 'dashboard': return "Gestión de Reportes";
-      case 'tech': return "Reportes Técnicos";
-      case 'stadistics': return "Estadísticas Generales";
-      case 'workers': return "Gestión de Trabajadores";
-      case 'users': return "Gestión de Usuarios";
-      case 'profile': return "Mi Perfil";
-      default: return "Panel de Administración";
-    }
-  };
-
-  const getSearchPlaceholder = () => {
-    switch(view) {
-      case 'dashboard': return "Buscar reporte...";
-      case 'tech': return "Buscar reporte técnico...";
-      case 'workers': return "Buscar trabajador...";
-      case 'users': return "Buscar usuario...";
-      default: return "Buscar...";
+      case 'dashboard': return "Reportes";
+      case 'tech': return "Técnicos";
+      case 'workers': return "Trabajadores";
+      case 'users': return "Usuarios";
+      case 'profile': return "Perfil";
+      default: return "Panel";
     }
   };
 
   const showSearch = ["dashboard", "tech", "workers", "users"].includes(view);
 
-  useEffect(() => {
-    setSearchTerm("");
-    if (!isAdmin && (view === "workers" || view === "users")) {
-      setView("dashboard");
-    }
-  }, [view, isAdmin]);
+  // --- CONFIGURACIÓN DE COLORES SÓLIDOS (ESTILO BLOQUE) ---
+  const solidBtnClass = darkMode 
+    ? "bg-slate-800 text-white hover:bg-blue-600 border border-slate-700" 
+    : "bg-[#1a1a1a] text-white hover:bg-blue-700 shadow-lg active:scale-95";
 
-  // Colores dinámicos del Avatar
-  const avatarBg = darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-blue-700 hover:bg-blue-800";
+  const logoutBtnClass = darkMode
+    ? "bg-red-900/40 text-red-400 border border-red-500/50 hover:bg-red-600 hover:text-white"
+    : "bg-red-600 text-white hover:bg-red-700 shadow-lg active:scale-95";
 
   return (
     <SidebarLayout 
@@ -121,81 +105,92 @@ const Mainpage = () => {
       onNavigate={setView}
       userRole={userRole}
     >
-      {/* --- HEADER AZUL NAVY --- */}
-      <header className={`${
-        darkMode 
-          ? "bg-[#1e293b] text-slate-100 border-slate-700" 
-          : "bg-white text-slate-800 border-slate-200"
-        } shadow-sm w-full border-b transition-colors sticky top-0 z-40`}>
-        <div className="w-full px-6 py-3 flex items-center justify-between">
+      <header className={`${darkMode ? "bg-[#1e293b] text-slate-100 border-slate-700" : "bg-white text-slate-800 border-slate-200"} shadow-sm w-full border-b sticky top-0 z-40 transition-colors`}>
+        <div className="w-full px-3 md:px-6 py-2.5 flex items-center justify-between gap-2">
           
-          <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-slate-500/10 transition-colors focus:outline-none">
-              <FiMenu size={24} />
+          {/* LADO IZQUIERDO: Menú y Atrás con bloques sólidos */}
+          <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-shrink">
+            <button 
+              onClick={() => setSidebarOpen(true)} 
+              className={`p-2.5 rounded-xl transition-all flex-shrink-0 ${solidBtnClass}`}
+            >
+              <FiMenu size={20} className="md:w-6 md:h-6" />
             </button>
 
-            <div className="flex items-center gap-2">
-              {view !== "dashboard" && (
-                <button onClick={() => setView("dashboard")} className="p-1 rounded-full hover:bg-slate-500/20 transition text-sm">
-                  <FaArrowLeft />
-                </button>
-              )}
-              <h1 className="text-xl font-bold tracking-tight">{getHeaderTitle()}</h1>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-5">
-            {/* Buscador */}
-            {showSearch && (
-              <div className="relative hidden lg:block animate-fade-in">
-                <input
-                  type="text"
-                  placeholder={getSearchPlaceholder()}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className={`pl-10 pr-4 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all w-80 ${
-                    darkMode 
-                      ? "bg-[#334155] text-white border-slate-600 placeholder-slate-400" 
-                      : "bg-slate-50 text-slate-800 border-slate-300"
-                  }`}
-                />
-                <FaSearch className="absolute left-3 top-2.5 text-slate-400" />
+            {!isSearchMobileOpen && (
+              <div className="flex items-center gap-2 min-w-0">
+                {view !== "dashboard" && (
+                  <button 
+                    onClick={() => setView("dashboard")} 
+                    className={`p-2 rounded-xl transition-all flex-shrink-0 ${solidBtnClass}`}
+                  >
+                    <FaArrowLeft size={14} />
+                  </button>
+                )}
+                <h1 className="text-base md:text-xl font-black truncate leading-tight uppercase tracking-tighter ml-1">
+                  {getHeaderTitle()}
+                </h1>
               </div>
             )}
+          </div>
 
-            <button onClick={toggleTheme} className="text-xl p-2 rounded-full hover:bg-slate-500/10 transition-colors">
-              {darkMode ? <FiSun className="text-yellow-400" /> : <FiMoon className="text-blue-700" />}
+          {/* LADO DERECHO: Acciones */}
+          <div className="flex items-center gap-1 md:gap-4 flex-shrink-0">
+            {showSearch && (
+              <>
+                <button onClick={() => setIsSearchMobileOpen(true)} className="lg:hidden p-2 rounded-full hover:bg-slate-500/10 flex-shrink-0">
+                  <FaSearch size={18} className="text-slate-500" />
+                </button>
+                
+                <div className="relative hidden lg:block">
+                  <input
+                    type="text"
+                    placeholder="Buscar..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className={`pl-10 pr-4 py-2 border rounded-xl text-sm w-48 xl:w-80 transition-all font-black ${
+                      darkMode ? "bg-[#334155] text-white border-slate-600" : "bg-slate-50 border-slate-300 text-slate-900"
+                    }`}
+                  />
+                  <FaSearch className="absolute left-3 top-2.5 text-slate-400" />
+                </div>
+              </>
+            )}
+
+            <button onClick={toggleTheme} className="p-2 rounded-full flex-shrink-0 transition-transform active:scale-90">
+              {darkMode ? <FiSun className="text-yellow-400" size={18} /> : <FiMoon className="text-blue-700" size={18} />}
             </button>
 
-            {/* BOTÓN PERFIL ESTILO GMAIL */}
-            <div className="relative" ref={menuRef}>
+            {/* Avatar Perfil Sólido */}
+            <div className="relative flex-shrink-0" ref={menuRef}>
               <button 
                 onClick={() => setMenuOpen(!menuOpen)} 
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-base shadow-sm transform transition-all active:scale-90 focus:outline-none ${avatarBg}`}
+                className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center text-white font-black text-xs md:text-base shadow-xl transition-all active:scale-90 ${darkMode ? 'bg-blue-600' : 'bg-[#1a1a1a]'}`}
               >
                 {userInitial}
               </button>
 
-              {/* DROPDOWN MENU */}
               {menuOpen && (
-                <div className={`absolute right-0 mt-3 w-64 rounded-2xl shadow-2xl z-50 py-2 overflow-hidden border animate-in fade-in zoom-in duration-150 ${
-                  darkMode ? "bg-[#1e293b] border-slate-700 text-slate-200" : "bg-white border-slate-200 text-slate-800"
+                <div className={`absolute right-0 mt-3 w-56 md:w-64 rounded-2xl shadow-2xl z-50 py-2 border animate-in zoom-in-95 duration-100 ${
+                  darkMode ? "bg-[#1e293b] border-slate-700" : "bg-white border-slate-200"
                 }`}>
-                  <div className={`px-4 py-3 mb-2 border-b flex flex-col ${darkMode ? "border-slate-700 bg-slate-800/40" : "border-slate-100 bg-slate-50"}`}>
-                    <span className="text-[10px] font-black uppercase opacity-40 tracking-widest">Cuenta</span>
-                    <span className="text-sm font-bold truncate">{userName}</span>
-                    <span className="text-[11px] opacity-60 capitalize">{userRole}</span>
+                   <div className={`px-4 py-3 mb-2 border-b flex flex-col ${darkMode ? "border-slate-700 bg-slate-800/40" : "border-slate-100 bg-slate-50"}`}>
+                    <span className="text-[10px] font-black uppercase opacity-40">Cuenta</span>
+                    <span className={`text-sm font-black truncate ${darkMode ? "text-white" : "text-slate-900"}`}>{userName}</span>
+                    <span className="text-[10px] font-bold opacity-60 capitalize">{userRole}</span>
                   </div>
-                  
                   <div className="px-2 space-y-1">
-                    <button onClick={() => { setView("profile"); setMenuOpen(false); }} className={`flex items-center gap-3 w-full text-left px-3 py-2 text-sm rounded-xl transition-colors ${darkMode ? "hover:bg-slate-700" : "hover:bg-slate-100"}`}>
-                      <FaUser className="text-blue-500" /> Mi Perfil
+                    <button 
+                      onClick={() => { setView("profile"); setMenuOpen(false); }} 
+                      className={`flex items-center gap-3 w-full px-4 py-3 text-xs md:text-sm font-black rounded-xl transition-all uppercase tracking-tighter ${solidBtnClass}`}
+                    >
+                      <FaUser size={12} /> Mi Perfil
                     </button>
-                    
-                    <div className={`h-[1px] mx-2 ${darkMode ? "bg-slate-700" : "bg-slate-100"}`}></div>
-                    
-                    <button onClick={handleLogout} className={`flex items-center gap-3 w-full text-left px-3 py-2 text-sm font-bold text-red-500 rounded-xl transition-colors ${darkMode ? "hover:bg-red-500/10" : "hover:bg-red-50"}`}>
-                      <FiLogOut /> Cerrar sesión
+                    <button 
+                      onClick={handleLogout} 
+                      className={`flex items-center gap-3 w-full px-4 py-3 text-xs md:text-sm font-black rounded-xl transition-all uppercase tracking-tighter ${logoutBtnClass}`}
+                    >
+                      <FiLogOut size={14} /> Cerrar sesión
                     </button>
                   </div>
                 </div>
@@ -203,61 +198,90 @@ const Mainpage = () => {
             </div>
           </div>
         </div>
+
+        {/* Buscador Expandible Mobile */}
+        {showSearch && isSearchMobileOpen && (
+            <div className="absolute inset-0 px-3 bg-inherit flex items-center z-50 animate-in slide-in-from-top-2">
+              <div className="relative w-full flex items-center gap-2">
+                <FaSearch className="absolute left-3 text-slate-400" size={14} />
+                <input
+                 autoFocus
+                 type="text"
+                 placeholder="Buscar..."
+                 value={searchTerm}
+                 onChange={(e) => setSearchTerm(e.target.value)}
+                 className={`w-full pl-9 pr-10 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-black ${
+                   darkMode ? "bg-[#334155] text-white border-slate-600" : "bg-slate-50 border-slate-300 text-slate-900"
+                 }`}
+               />
+               <button 
+                 onClick={() => {setIsSearchMobileOpen(false); setSearchTerm("")}} 
+                 className={`p-2 rounded-xl ${solidBtnClass}`}
+               >
+                 <CloseIcon fontSize="small" />
+               </button>
+              </div>
+            </div>
+        )}
       </header>
 
-      {/* --- FONDO PRINCIPAL AZUL NAVY DEEP --- */}
-      <main className={`flex-grow w-full px-6 py-6 h-[calc(100vh-68px)] overflow-y-auto transition-colors duration-300 ${
-        darkMode ? "bg-[#0f172a] text-slate-100" : "bg-slate-50 text-slate-800"
+      {/* --- MAIN CONTENT --- */}
+      <main className={`flex-grow w-full px-3 md:px-6 py-4 md:py-6 h-[calc(100vh-64px)] overflow-y-auto ${
+        darkMode ? "bg-[#0f172a]" : "bg-slate-100"
       }`}>
-        {view === "dashboard" && <ReportList key={refreshKey} darkMode={darkMode} searchTerm={searchTerm} />}
-        {view === "stadistics" && <Dashboard darkMode={darkMode} />}
-        {view === "tech" && <ReportTechList key={refreshKey} userId={Number(localStorage.getItem('userId')) || undefined} darkMode={darkMode} searchTerm={searchTerm} />}
-        {isAdmin && view === "workers" && <WorkerList key={refreshKey} darkMode={darkMode} searchTerm={searchTerm} />}
-        {isAdmin && view === "users" && <UserList key={refreshKey} darkMode={darkMode} searchTerm={searchTerm} />}
-        {view === "profile" && <UserProfile darkMode={darkMode} />}
+        <div className="max-w-7xl mx-auto">
+          {view === "dashboard" && <ReportList key={refreshKey} darkMode={darkMode} searchTerm={searchTerm} />}
+          {view === "stadistics" && <Dashboard darkMode={darkMode} />}
+          {view === "tech" && <ReportTechList key={refreshKey} userId={Number(localStorage.getItem('userId')) || undefined} darkMode={darkMode} searchTerm={searchTerm} />}
+          {isAdmin && view === "workers" && <WorkerList key={refreshKey} darkMode={darkMode} searchTerm={searchTerm} />}
+          {isAdmin && view === "users" && <UserList key={refreshKey} darkMode={darkMode} searchTerm={searchTerm} />}
+          {view === "profile" && <UserProfile darkMode={darkMode} />}
+        </div>
       </main>
 
-      {/* BOTÓN FLOTANTE (+) */}
+      {/* BOTÓN FLOTANTE SÓLIDO */}
       {!isFormOpen && (
         <button
           onClick={handleOpenForm}
-          className="fixed bottom-8 right-8 p-4 rounded-full shadow-2xl bg-blue-600 hover:bg-blue-700 text-white transition-all transform hover:scale-110 active:scale-95 z-30 flex items-center justify-center"
+          className={`fixed bottom-6 right-6 md:bottom-8 md:right-8 w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl text-white transition-all transform hover:scale-110 active:scale-95 z-30 flex items-center justify-center ${
+            darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-[#1a1a1a] hover:bg-blue-700"
+          }`}
         >
-          <FaPlus size={24} />
+          <FaPlus size={20} className="md:size-6" />
         </button>
       )}
 
-      {/* MODAL AZUL NAVY */}
+      {/* DIALOG / MODAL (Actualizado con fuentes fuertes) */}
       <Dialog
         open={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         fullWidth
         maxWidth="sm"
+        fullScreen={window.innerWidth < 640}
         PaperProps={{
           style: {
             backgroundColor: darkMode ? "#1e293b" : "#ffffff", 
             color: darkMode ? "#f1f5f9" : "#000000",
-            borderRadius: '20px',
+            borderRadius: window.innerWidth < 640 ? '0' : '24px',
             backgroundImage: 'none'
           },
         }}
       >
-        <DialogTitle sx={{ m: 0, p: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span className="font-bold uppercase text-xs tracking-widest opacity-60">Añadir Nuevo Registro</span>
-          <IconButton onClick={() => setIsFormOpen(false)} sx={{ color: darkMode ? '#94a3b8' : 'inherit' }}>
+        <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span className="font-black text-[10px] md:text-xs uppercase tracking-widest opacity-60">Nuevo Registro</span>
+          <IconButton onClick={() => setIsFormOpen(false)} size="small" sx={{ color: darkMode ? '#94a3b8' : 'inherit' }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-
         <Box sx={{ borderBottom: 1, borderColor: darkMode ? 'rgba(148,163,184,0.1)' : 'divider' }}>
           <Tabs 
             value={activeTab} 
             onChange={(e, v) => setActiveTab(v)} 
             variant="fullWidth"
             sx={{
-              '& .MuiTab-root': { fontSize: '0.75rem', fontWeight: 'bold', color: darkMode ? '#94a3b8' : 'inherit' },
+              '& .MuiTab-root': { fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase' },
               '& .Mui-selected': { color: '#3b82f6 !important' },
-              '& .MuiTabs-indicator': { backgroundColor: '#3b82f6', height: 3 }
+              '& .MuiTabs-indicator': { backgroundColor: '#3b82f6', height: '3px' }
             }}
           >
             <Tab label="Reporte" />
@@ -265,8 +289,7 @@ const Mainpage = () => {
             {isAdmin && <Tab label="Usuario" />}
           </Tabs>
         </Box>
-        
-        <DialogContent dividers sx={{ borderColor: darkMode ? '#334155' : '#f1f5f9', p: 3 }}>
+        <DialogContent sx={{ p: { xs: 2, md: 3 } }}>
           {activeTab === 0 && <ReportForm onSuccess={handleFormSuccess} onClose={() => setIsFormOpen(false)} darkMode={darkMode} />}
           {isAdmin && activeTab === 1 && <WorkerForm initialData={{}} readOnlyDefault={false} onSuccess={handleFormSuccess} onClose={() => setIsFormOpen(false)} darkMode={darkMode} />}
           {isAdmin && activeTab === 2 && <UserForm initialData={{}} readOnlyDefault={false} onSuccess={handleFormSuccess} onClose={() => setIsFormOpen(false)} darkMode={darkMode} />}

@@ -1,18 +1,19 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import LoadingModal from "@/hooks/Modals/LoadingModal";
 import "tailwindcss";
-import { FiSun, FiMoon } from "react-icons/fi";
+import { FiSun, FiMoon, FiHash, FiArrowLeft } from "react-icons/fi";
 
 const WorkersLogin = () => {
   const [formData, setFormData] = useState({ ficha: "" });
   const navigate = useNavigate();
+  
   const [darkMode, setDarkMode] = useState(() => {
     const t = localStorage.getItem('theme');
-    if (t === 'dark') return true;
-    if (t === 'light') return false;
-    return true;
+    // Por defecto Dark Mode activado si no hay preferencia
+    if (t === null) return true;
+    return t === 'dark';
   });
 
   const toggleTheme = () => setDarkMode((s) => {
@@ -63,32 +64,90 @@ const WorkersLogin = () => {
   };
 
   return (
-    <div className={`${darkMode ? "fixed inset-0 bg-gray-900" : "fixed inset-0 bg-blue-600"} flex items-center justify-center`}>
-      <div className={`${darkMode ? "bg-gray-800 text-gray-100" : "bg-white text-black"} p-8 rounded-xl shadow-lg w-full max-w-md mx-auto text-center relative`}>
-        <button onClick={toggleTheme} className="absolute top-3 right-3 p-1 rounded opacity-90">
-          {darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}
+    /* CONTENEDOR PRINCIPAL: min-h-screen para evitar cortes con el teclado móvil */
+    <div className={`min-h-screen w-full flex items-center justify-center p-4 transition-colors duration-500 ${
+      darkMode ? "bg-[#0f172a]" : "bg-blue-600"
+    }`}>
+      
+      {/* TARJETA: Max-width pequeño para logins de un solo campo */}
+      <div className={`w-full max-w-sm p-6 sm:p-10 rounded-3xl shadow-2xl relative transition-all duration-300 border ${
+        darkMode ? "bg-[#1e293b] border-slate-700 text-white" : "bg-white border-white text-black"
+      }`}>
+        
+        {/* Botón Volver */}
+        <Link 
+          to="/" 
+          className={`absolute top-5 left-5 p-2 rounded-xl transition-colors ${
+            darkMode ? "hover:bg-slate-700 text-slate-400" : "hover:bg-gray-100 text-gray-500"
+          }`}
+        >
+          <FiArrowLeft size={20} />
+        </Link>
+
+        {/* Botón de Tema */}
+        <button 
+          onClick={toggleTheme} 
+          className="absolute top-5 right-5 p-2 rounded-xl hover:bg-slate-500/20 transition-colors z-10"
+        >
+          {darkMode ? <FiSun size={20} className="text-yellow-400" /> : <FiMoon size={20} className="text-blue-600" />}
         </button>
-        <h2 className="text-2xl font-bold text-blue-700 mb-6">Ingreso - Trabajador</h2>
-        {error && <div className="mb-4 text-sm text-red-400">{error}</div>}
-        <form onSubmit={handleSubmit} className="space-y-4 text-left mx-auto" style={{ maxWidth: "380px" }}>
-          <input
-            type="text"
-            name="ficha"
-            placeholder="Ficha"
-            value={formData.ficha}
-            onChange={(e) => setFormData({ ...formData, ficha: e.target.value })}
-            className={`${darkMode ? "bg-gray-700 text-gray-100 border-gray-600" : "bg-white text-black border-gray-300"} w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600`}
-          />
+
+        <header className="text-center mt-4 mb-8">
+            <h2 className={`text-2xl md:text-3xl font-black mb-2 uppercase tracking-tighter ${darkMode ? "text-blue-400" : "text-blue-700"}`}>
+                Acceso Planta
+            </h2>
+            <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-gray-400'}`}>
+                Ingresa tu número de ficha
+            </p>
+        </header>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 text-red-500 rounded-2xl text-[10px] font-black text-center uppercase animate-pulse">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ml-1 ${darkMode ? "text-blue-400" : "text-blue-600"}`}>
+              <FiHash size={14}/> Número de Ficha
+            </label>
+            <input
+              type="text"
+              name="ficha"
+              placeholder="Ej: 45678"
+              value={formData.ficha}
+              onChange={(e) => setFormData({ ...formData, ficha: e.target.value })}
+              className={`w-full px-5 py-4 text-center text-lg font-bold tracking-widest border rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                darkMode ? "bg-[#334155] border-slate-600 text-white placeholder-slate-500" : "bg-gray-50 border-gray-200 text-black"
+              }`}
+              required
+            />
+          </div>
 
           <button
             type="submit"
-            className="w-full bg-blue-700 text-black py-2 rounded-lg font-semibold hover:bg-blue-800 transition-colors"
+            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-blue-700 transform transition-all active:scale-95 shadow-xl shadow-blue-900/20 disabled:opacity-50"
             disabled={isLoading}
           >
             {isLoading ? 'Verificando...' : 'Entrar'}
           </button>
         </form>
-        <LoadingModal isOpen={modalState.isOpen} status={modalState.status} message={modalState.message} onClose={handleModalClose} />
+
+        <footer className="mt-8 text-center">
+            <Link to="/" className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
+              darkMode ? "text-slate-500 hover:text-blue-400" : "text-gray-400 hover:text-blue-700"
+            }`}>
+              Regresar al Login General
+            </Link>
+        </footer>
+
+        <LoadingModal 
+          isOpen={modalState.isOpen} 
+          status={modalState.status} 
+          message={modalState.message} 
+          onClose={handleModalClose} 
+        />
       </div>
     </div>
   );

@@ -1,10 +1,9 @@
 import React, { useState, forwardRef, useEffect } from "react";
 import LoadingModal from "@/hooks/Modals/LoadingModal";
-import { FaWrench, FaCheckCircle, FaClock, FaSave, FaHashtag, FaUserTie } from "react-icons/fa";
+import { FaWrench, FaCheckCircle, FaClock, FaSave, FaHashtag, FaUserTie, FaTrash } from "react-icons/fa";
 
 const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false, readOnlyDefault = false, darkMode = false }, ref) => {
   
-  // Función para obtener la hora actual en formato HH:mm
   const getCurrentTime = () => {
     const now = new Date();
     const hours = String(now.getHours()).padStart(2, '0');
@@ -12,7 +11,6 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     return `${hours}:${minutes}`;
   };
 
-  // --- ESTADOS ---
   const [isLoading, setIsLoading] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(Boolean(readOnlyDefault));
@@ -25,7 +23,7 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     id_report: initialData?.id_report || "",
     caso_tecnico: initialData?.caso_tecnico || "",
     resolucion: initialData?.resolucion || "",
-    tiempo: initialData?.tiempo || getCurrentTime(), // HORA ACTUAL POR DEFECTO
+    tiempo: initialData?.tiempo || getCurrentTime(),
   });
 
   const [modalState, setModalState] = useState({
@@ -41,7 +39,6 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
         id_report: initialData.id_report,
         caso_tecnico: initialData.caso_tecnico || "",
         resolucion: initialData.resolucion || "",
-        // Si estamos editando y existe tiempo, lo usa; si no, pone la hora actual
         tiempo: initialData.tiempo || getCurrentTime(), 
       });
     }
@@ -111,14 +108,14 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     setModalState((s) => ({ ...s, isOpen: false }));
   };
 
-  // --- ESTILOS DARK MODE ANTIGUO (GRISES) ---
-  const inputClass = `w-full p-2.5 rounded-lg border outline-none transition-all ${
+  // --- ESTILOS UNIFICADOS ---
+  const inputClass = `w-full p-2.5 rounded-xl border outline-none transition-all font-bold ${
     darkMode 
       ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" 
       : "bg-gray-50 border-gray-300 text-gray-900 focus:border-blue-600"
-  } ${isReadOnly ? "bg-transparent border-transparent cursor-default font-semibold text-lg" : "border-solid shadow-sm"}`;
+  } ${isReadOnly ? "bg-transparent border-transparent cursor-default font-black text-lg" : "border-solid shadow-sm"}`;
 
-  const labelClass = `block text-[10px] font-bold uppercase tracking-widest mb-1 ${darkMode ? "text-blue-400" : "text-blue-600"}`;
+  const labelClass = `block text-[10px] font-black uppercase tracking-widest mb-1 ${darkMode ? "text-blue-400" : "text-blue-600"}`;
 
   return (
     <div className="p-2 animate-fade-in">
@@ -127,23 +124,13 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
         {/* ID REPORTE */}
         <div>
           <label className={labelClass}><FaHashtag className="inline mb-1 mr-1"/> ID Reporte Relacionado</label>
-          <input
-            type="text"
-            value={formData.id_report}
-            disabled={true}
-            className={`${inputClass} opacity-60`}
-          />
+          <input type="text" value={formData.id_report} disabled={true} className={`${inputClass} opacity-60`} />
         </div>
 
         {/* TÉCNICO RESPONSABLE */}
         <div>
           <label className={labelClass}><FaUserTie className="inline mb-1 mr-1"/> Técnico Responsable</label>
-          <input
-            type="text"
-            value={`${formData.id_user} - ${loggedUserName}`}
-            disabled={true}
-            className={`${inputClass} opacity-60`}
-          />
+          <input type="text" value={`${formData.id_user} - ${loggedUserName}`} disabled={true} className={`${inputClass} opacity-60`} />
         </div>
 
         {/* CASO TÉCNICO */}
@@ -174,7 +161,7 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
           />
         </div>
 
-        {/* HORA DE RESOLUCIÓN (TIEMPO ACTUAL) */}
+        {/* HORA DE RESOLUCIÓN */}
         <div>
           <label className={labelClass}><FaClock className="inline mb-1 mr-1"/> Hora de la Resolución</label>
           <input
@@ -187,17 +174,31 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
           />
         </div>
 
-        {/* BOTÓN DE GUARDAR */}
+        {/* BOTONES UNIFICADOS */}
         {!isReadOnly && (
-          <div className="flex items-end">
+          <div className="md:col-span-2 flex flex-col md:flex-row justify-end gap-3 pt-4 border-t border-gray-700/30">
+            <button
+              type="button"
+              onClick={onClose}
+              /* ESTILO: Letras Rojo Sólido, Borde Rojo */
+              className={`flex-1 md:flex-none h-11 px-8 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border-2 ${
+                darkMode 
+                ? "bg-transparent border-red-600 text-red-500 hover:bg-red-600 hover:text-white" 
+                : "bg-white border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+              }`}
+            >
+              <FaTrash size={12} /> Cancelar
+            </button>
+
             <button
               onClick={sendForm}
               disabled={isLoading}
-              className={`w-full font-bold py-3 px-6 rounded-lg shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 ${
-                darkMode ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-blue-700 hover:bg-blue-800 text-white"
-              }`}
+              /* ESTILO: Bloque Negro/Azul Sólido */
+              className={`flex-1 md:flex-none h-11 px-10 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-md active:scale-95 text-white ${
+                darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-[#1a1a1a] hover:bg-blue-700"
+              } disabled:opacity-50`}
             >
-              {isLoading ? "Procesando..." : <><FaSave /> Guardar Informe</>}
+              {isLoading ? "Procesando..." : <><FaSave size={14}/> Guardar Informe</>}
             </button>
           </div>
         )}

@@ -3,16 +3,21 @@ import {ReportcaseService} from "./services.js";
 
 export const GetallReportcaseController = async (req, res) => {
   try {
-	const reportcase = await ReportcaseService.getAll();
-	res.status(200).json(reportcase);
+    
+    const page = parseInt(req.query.page) || 1;
+    const limit = 12;
+
+    const result = await ReportcaseService.getAll(page, limit);
+    
+    res.status(200).json(result);
   } catch (error) {
-	console.error("Error en el controlador", error.message);
-	res
-	  .status(500)
-	  .json({ message: "Error al obtener al obtener todos los reportes", error: error.message });
+    console.error("Error en el controlador", error.message);
+    res.status(500).json({ 
+      message: "Error al obtener todos los casos de reporte", 
+      error: error.message 
+    });
   }
 };
-
 export const CreateReportcaseController = async (req, res) => {
   try {
 	// LOG: mostrar headers y body para depuración

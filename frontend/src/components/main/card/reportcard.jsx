@@ -1,90 +1,91 @@
 import React from "react";
-import { FaClipboardList, FaMapMarkerAlt, FaUser, FaTrash, FaEye } from "react-icons/fa";
+import { FaClipboardList, FaMapMarkerAlt, FaUser, FaTrash, FaEye, FaCheckCircle } from "react-icons/fa";
 
 const ReportCard = ({ report = {}, onView, onDelete, darkMode = true }) => {
-	const { id, caso, descripcion, estado, fecha, area, nombre_natural } = report;
+    const { id, caso, descripcion, estado, fecha, area, nombre_natural } = report;
+    
+    // Extraemos el nombre del usuario actual para el "Solucionado por" de frontend
+    const currentUserName = localStorage.getItem('userName') || "Técnico";
+    const userRole = localStorage.getItem('role')?.toLowerCase();
+    const isWorker = userRole === 'worker';
 
-	// OBTENER ROL PARA VALIDACIÓN
-	const userRole = localStorage.getItem('role')?.toLowerCase();
-	const isWorker = userRole === 'worker';
+    const isResolved = (estado || "").toLowerCase() === "resuelto" || (estado || "").toLowerCase() === "resolved";
 
-	const statusColor = () => {
-		switch ((estado || "").toLowerCase()) {
-			case "abierto": case "open": return "bg-green-500/20 text-green-400 border-green-500/50";
-			case "en proceso": case "in progress": return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50";
-			case "cerrado": case "closed": return "bg-gray-500/20 text-gray-400 border-gray-500/50";
-			case "urgente": return "bg-red-500/20 text-red-400 border-red-500/50";
-			default: return "bg-blue-500/20 text-blue-400 border-blue-500/50";
-		}
-	};
+    const statusColor = () => {
+        const s = (estado || "").toLowerCase();
+        switch (s) {
+            case "resuelto": case "resolved": return "bg-green-500 text-white border-green-600";
+            case "en revision": case "en revisión": case "en proceso": return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50";
+            case "en espera": case "abierto": case "urgente": case "pendiente": return "bg-red-500/20 text-red-400 border-red-500/50";
+            default: return "bg-gray-500/20 text-gray-400 border-gray-500/50";
+        }
+    };
 
-	const cardBg = darkMode ? "bg-[#1a222f] border-gray-700 text-gray-100" : "bg-white border-gray-200 text-gray-800";
-	const secondaryText = darkMode ? "text-gray-400" : "text-gray-500";
+    const cardBg = darkMode ? "bg-[#1a222f] border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900";
+    const secondaryText = darkMode ? "text-gray-400" : "text-gray-600";
 
-	function formatDateShort(dateStr) {
-		if (!dateStr) return "-";
-		try {
-			const d = new Date(dateStr);
-			return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-		} catch (e) { return dateStr; }
-	}
+    return (
+        <article className={`${cardBg} rounded-xl shadow-md p-4 md:p-5 border flex flex-col h-full min-h-[260px] transition-all hover:shadow-lg`}>
+            <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-start gap-2 mb-3">
+                    <div className="flex gap-2 min-w-0 flex-1">
+                        <FaClipboardList className="text-blue-500 mt-1 shrink-0" size={14} />
+                        <h3 className="text-sm md:text-base font-black leading-tight uppercase truncate">
+                            {caso || `Reporte #${id}`}
+                        </h3>
+                    </div>
+                    <div className="flex flex-col items-end shrink-0">
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase mb-1 ${statusColor()}`}>
+                            {estado || "S/E"}
+                        </span>
+                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-tighter">
+                            {fecha ? new Date(fecha).toLocaleDateString() : "--/--/--"}
+                        </p>
+                    </div>
+                </div>
 
-	return (
-		<article className={`${cardBg} rounded-xl shadow-md p-5 border flex flex-col h-full min-h-[240px] transition-all hover:shadow-lg`}>
-			<div className="flex-1">
-				<div className="flex justify-between items-start gap-2 mb-3">
-					<div className="flex gap-2">
-						<FaClipboardList className="text-blue-500 mt-1 shrink-0" size={14} />
-						<h3 className="text-lg font-bold leading-tight uppercase line-clamp-1">
-							{caso || `Reporte #${id}`}
-						</h3>
-					</div>
-					<div className="flex flex-col items-end shrink-0">
-						<span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase mb-1 ${statusColor()}`}>
-							{estado || "S/E"}
-						</span>
-						<p className="text-[10px] text-gray-500 font-bold uppercase">{formatDateShort(fecha)}</p>
-					</div>
-				</div>
+                <p className={`text-xs md:text-sm mb-4 line-clamp-2 italic opacity-80 font-medium ${secondaryText}`}>
+                    "{descripcion || "Sin descripción"}"
+                </p>
 
-				<p className={`text-sm mb-4 line-clamp-2 italic ${secondaryText}`}>
-					"{descripcion || "Sin descripción"}"
-				</p>
+                <div className="space-y-1.5">
+                    <p className={`text-[10px] md:text-[11px] flex items-center gap-2 ${secondaryText}`}>
+                        <FaMapMarkerAlt className="text-blue-400 shrink-0" size={11} /> 
+                        <span className="truncate"><strong className="font-black uppercase">Área:</strong> {area || "N/A"}</span>
+                    </p>
+                    <p className={`text-[10px] md:text-[11px] flex items-center gap-2 ${secondaryText}`}>
+                        <FaUser className="text-blue-400 shrink-0" size={11} /> 
+                        <span className="truncate"><strong className="font-black uppercase">Por:</strong> {nombre_natural || "Anónimo"}</span>
+                    </p>
 
-				<div className="space-y-1.5">
-					<p className={`text-[11px] flex items-center gap-2 ${secondaryText}`}>
-						<FaMapMarkerAlt className="text-blue-400" size={11} /> 
-						<strong>Área:</strong> {area || "No especificada"}
-					</p>
-					<p className={`text-[11px] flex items-center gap-2 ${secondaryText}`}>
-						<FaUser className="text-blue-400" size={11} /> 
-						<strong>Reportado por:</strong> {nombre_natural || "Anónimo"}
-					</p>
-				</div>
-			</div>
+                    {/* CAMPO NUEVO: Solo aparece si el estado es Resuelto */}
+                    {isResolved && (
+                        <p className={`text-[10px] md:text-[11px] flex items-center gap-2 text-green-500 animate-in fade-in duration-500`}>
+                            <FaCheckCircle className="shrink-0" size={11} /> 
+                            <span className="truncate"><strong className="font-black uppercase">Solucionado por:</strong> {currentUserName}</span>
+                        </p>
+                    )}
+                </div>
+            </div>
 
-			{/* Fila de acciones */}
-			<div className={`mt-5 pt-4 border-t border-gray-700/50 flex ${isWorker ? 'justify-end' : 'justify-between'} items-center`}>
-				
-				{/* MOSTRAR ELIMINAR SOLO SI NO ES WORKER */}
-				{!isWorker && (
-					<button
-						onClick={() => onDelete && onDelete(id)}
-						className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-[#242d3c] hover:bg-red-600 text-gray-300 hover:text-white rounded-lg transition-all"
-					>
-						<FaTrash size={12} /> Eliminar
-					</button>
-				)}
-
-				<button
-					onClick={() => onView && onView(report)}
-					className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-[#242d3c] hover:bg-blue-600 text-gray-300 hover:text-white rounded-lg transition-all"
-				>
-					<FaEye size={14} /> Ver detalles
-				</button>
-			</div>
-		</article>
-	);
+            <div className="mt-5 pt-4 border-t border-gray-500/30 flex items-center gap-2">
+                {!isWorker && (
+                    <button
+                        onClick={() => onDelete && onDelete(id)}
+                        className="flex-1 h-10 flex items-center justify-center gap-2 px-2 bg-[#1a1a1a] hover:bg-red-700 text-red-600 hover:text-white rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border border-transparent"
+                    >
+                        <FaTrash size={12} /> <span>Eliminar</span>
+                    </button>
+                )}
+                <button
+                    onClick={() => onView && onView(report)}
+                    className={`${isWorker ? 'w-full' : 'flex-1'} h-10 flex items-center justify-center gap-2 px-2 bg-[#1a1a1a] hover:bg-blue-600 text-white rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border border-transparent`}
+                >
+                    <FaEye size={14} /> <span>Detalles</span>
+                </button>
+            </div>
+        </article>
+    );
 };
 
 export default ReportCard;

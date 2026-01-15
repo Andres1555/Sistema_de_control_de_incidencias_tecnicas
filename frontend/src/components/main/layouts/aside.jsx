@@ -11,116 +11,130 @@ import { FiChevronDown, FiChevronRight, FiX } from "react-icons/fi";
 
 const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate, userRole }) => {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-
-  // Verificamos si el rol es administrador
   const isAdmin = userRole?.toLowerCase() === "administrador";
 
-  const navItemClass = `w-full flex items-center px-4 py-3 rounded-md transition-colors ${
+  // CLASE DE BOTÓN SÓLIDO (Estilo "Eliminar/Detalles" de tu imagen)
+  // En modo claro: Fondo negro sólido (#1a1a1a) con texto blanco.
+  // En modo oscuro: Fondo slate oscuro con texto blanco.
+  const navItemClass = `w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 antialiased font-black group mb-2 shadow-md ${
     darkMode 
-      ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" 
-      : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+      ? "bg-slate-800 text-white hover:bg-blue-600" 
+      : "bg-[#1a1a1a] text-white hover:bg-blue-700 active:scale-95"
+  }`;
+
+  // Clase para los sub-filtros desplegables
+  const subItemClass = `w-full text-left px-4 py-2.5 text-[11px] font-black uppercase tracking-tight rounded-lg transition-all mb-1 ${
+    darkMode 
+      ? "bg-slate-700/50 text-slate-200 hover:bg-blue-600 hover:text-white" 
+      : "bg-[#2a2a2a] text-white hover:bg-blue-600 shadow-sm"
   }`;
 
   return (
-    <div className={`relative min-h-screen w-screen overflow-hidden ${darkMode ? "bg-gray-900" : "bg-gray-100"}`}>
+    <div className={`relative min-h-screen w-screen overflow-hidden transition-colors duration-500 ${darkMode ? "bg-[#0f172a]" : "bg-gray-100"}`}>
       
-      {/* --- FONDO OSCURO (Backdrop) --- */}
+      {/* Backdrop con desenfoque */}
       <div 
-        className={`fixed inset-0 z-40 bg-black transition-opacity duration-300 ${
-          isOpen ? "opacity-50 pointer-events-auto" : "opacity-0 pointer-events-none"
+        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setIsOpen(false)}
       />
 
-      {/* --- SIDEBAR DESLIZANTE --- */}
+      {/* --- SIDEBAR --- */}
       <aside 
         className={`
-          fixed top-0 left-0 z-50 h-screen w-64 shadow-2xl 
-          transform transition-transform duration-300 ease-in-out
+          fixed top-0 left-0 z-50 h-screen w-72 shadow-2xl 
+          transform transition-transform duration-300 ease-in-out flex flex-col
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          ${darkMode ? "bg-gray-800 border-r border-gray-700 text-gray-100" : "bg-white border-r border-gray-200 text-gray-800"}
+          ${darkMode ? "bg-[#1e293b] border-r border-slate-700" : "bg-white border-r border-gray-200"}
         `}
       >
-        <div className={`p-6 text-xl font-bold border-b flex justify-between items-center ${darkMode ? "text-blue-400 border-gray-700" : "text-blue-600 border-gray-200"}`}>
-          <span>Panel {isAdmin ? "Admin" : "Técnico"}</span>
+        {/* Cabecera */}
+        <div className={`p-6 border-b flex justify-between items-center ${darkMode ? "border-slate-700" : "border-gray-100"}`}>
+          <div className="flex flex-col">
+            <span className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? "text-slate-500" : "text-gray-400"}`}>Sistema</span>
+            <span className={`text-xl font-black tracking-tighter ${darkMode ? "text-blue-400" : "text-blue-700"}`}>
+              {isAdmin ? "ADMIN PANEL" : "TÉCNICO"}
+            </span>
+          </div>
           <button 
             onClick={() => setIsOpen(false)} 
-            className="p-1 rounded-md hover:bg-opacity-20 hover:bg-gray-500 focus:outline-none"
+            className={`p-2 rounded-xl transition-colors ${darkMode ? "text-white hover:bg-slate-700" : "text-gray-900 hover:bg-gray-100"}`}
           >
             <FiX size={24} />
           </button>
         </div>
 
+        {/* Navegación Principal */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           
-          {/* --- Reportes (Visible para todos) --- */}
           <button onClick={() => { onNavigate?.('dashboard'); setIsOpen(false); }} className={navItemClass}>
-            <FaClipboardList className="w-5 h-5 mr-3" />
-            Reportes
+            <FaClipboardList className="w-5 h-5 mr-3 flex-shrink-0 text-blue-400 group-hover:text-white transition-colors" />
+            <span className="truncate">Reportes</span>
           </button>
 
-          {/* Botón Reportes Técnicos (Visible para todos) */}
           <button onClick={() => { onNavigate?.('tech'); setIsOpen(false); }} className={navItemClass}>
-            <FaFileAlt className="w-5 h-5 mr-3" />
-            Reportes técnicos
+            <FaFileAlt className="w-5 h-5 mr-3 flex-shrink-0 text-blue-400 group-hover:text-white transition-colors" />
+            <span className="truncate">Reportes Técnicos</span>
           </button>
 
-          {/* Botón Estadísticas (Visible para todos) */}
           <button onClick={() => { onNavigate?.('stadistics'); setIsOpen(false); }} className={navItemClass}>
-            <FaChartBar className="w-5 h-5 mr-3" />
-            Estadísticas
+            <FaChartBar className="w-5 h-5 mr-3 flex-shrink-0 text-blue-400 group-hover:text-white transition-colors" />
+            <span className="truncate">Estadísticas</span>
           </button>
 
-          {/* --- SOLO PARA ADMINISTRADORES --- */}
           {isAdmin && (
-            <>
+            <div className="pt-4 mt-4 border-t border-gray-200 space-y-1">
+              <span className="px-4 mb-2 block text-[10px] font-black uppercase tracking-widest text-gray-400">Gestión Principal</span>
               <button onClick={() => { onNavigate?.('workers'); setIsOpen(false); }} className={navItemClass}>
-                <FaIdBadge className="w-5 h-5 mr-3" />
-                Trabajadores
+                <FaIdBadge className="w-5 h-5 mr-3 flex-shrink-0 text-blue-400 group-hover:text-white transition-colors" />
+                <span className="truncate">Trabajadores</span>
               </button>
-
               <button onClick={() => { onNavigate?.('users'); setIsOpen(false); }} className={navItemClass}>
-                <FaUsers className="w-5 h-5 mr-3" />
-                Usuarios
-              </button>
-            </>
-          )}
-
-          {/* Botón Filtros (Visible para todos) */}
-          <button 
-            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-md transition-colors ${
-              darkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-            }`}
-          >
-            <div className="flex items-center">
-              <FaFilter className="w-5 h-5 mr-3" />
-              Filtros
-            </div>
-            {isFiltersOpen ? <FiChevronDown /> : <FiChevronRight />}
-          </button>
-
-          {isFiltersOpen && (
-            <div className={`ml-4 pl-4 border-l-2 space-y-1 ${darkMode ? "border-gray-600" : "border-blue-100"}`}>
-              {/* --- CAMBIO: Filtros actualizados --- */}
-              <button className={`w-full text-left px-4 py-2 text-sm rounded-md ${
-                darkMode ? "text-gray-400 hover:text-blue-400 hover:bg-gray-700" : "text-gray-500 hover:text-blue-600 hover:bg-gray-50"
-              }`}>
-                Por Área
-              </button>
-              <button className={`w-full text-left px-4 py-2 text-sm rounded-md ${
-                darkMode ? "text-gray-400 hover:text-blue-400 hover:bg-gray-700" : "text-gray-500 hover:text-blue-600 hover:bg-gray-50"
-              }`}>
-                Por Fecha
+                <FaUsers className="w-5 h-5 mr-3 flex-shrink-0 text-blue-400 group-hover:text-white transition-colors" />
+                <span className="truncate">Usuarios</span>
               </button>
             </div>
           )}
 
+          {/* Sección de Filtros */}
+          <div className="pt-2">
+            <button 
+              onClick={() => setIsFiltersOpen(!isFiltersOpen)} 
+              className={navItemClass}
+            >
+              <div className="flex items-center truncate">
+                <FaFilter className="w-5 h-5 mr-3 flex-shrink-0 text-blue-400 group-hover:text-white transition-colors" />
+                <span>Filtros</span>
+              </div>
+              <div className="ml-auto">
+                {isFiltersOpen ? <FiChevronDown /> : <FiChevronRight />}
+              </div>
+            </button>
+
+            {isFiltersOpen && (
+              <div className={`ml-4 mt-1 pl-4 border-l-2 space-y-1 ${darkMode ? "border-slate-700" : "border-gray-300"}`}>
+                <button className={subItemClass}>
+                  Por Área
+                </button>
+                <button className={subItemClass}>
+                  Por Fecha
+                </button>
+              </div>
+            )}
+          </div>
         </nav>
+
+        {/* Footer */}
+        <div className={`p-4 border-t ${darkMode ? "border-slate-700" : "border-gray-100"}`}>
+           <p className={`text-[10px] text-center font-black uppercase tracking-widest ${darkMode ? "text-slate-600" : "text-gray-400"}`}>
+             v1.0.2 - Planta Industrial
+           </p>
+        </div>
       </aside>
 
-      {/* --- CONTENIDO PRINCIPAL --- */}
-      <div className="w-full h-full relative">
+      {/* Contenido Principal */}
+      <div className="w-full h-full relative overflow-hidden">
         {children}
       </div>
     </div>

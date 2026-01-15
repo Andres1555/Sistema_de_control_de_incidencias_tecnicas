@@ -1,18 +1,29 @@
 import { ReportRepository } from "./repositories.js";
 
 export const ReportService = {
-  // Obtiene todos los reportes o filtrados si el repositorio lo permite
-  getAll: async (caso = null) => {
+  
+ getAll: async (caso = null, page = 1, limit = 12) => {
     try {
-      // Si pasamos un caso, usamos el filtrado, si no, el getAll normal
+      
+      const offset = (page - 1) * limit;
+
       if (caso) {
-        return await ReportRepository.getAllFiltered(caso);
+        return await ReportRepository.getAllFiltered(caso, limit, offset);
       }
-      return await ReportRepository.getAll();
+      
+      const { count, rows } = await ReportRepository.getAll(limit, offset);
+
+      return {
+        totalItems: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page,
+        data: rows
+      };
     } catch (error) {
       throw new Error('Error al obtener reportes: ' + error.message);
     }
   },
+
 
   CreateReportWithMachineService: async (data) => {
     try {

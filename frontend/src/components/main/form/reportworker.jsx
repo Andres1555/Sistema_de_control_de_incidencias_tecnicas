@@ -1,5 +1,5 @@
 import React, { useState, forwardRef, useEffect } from "react";
-import { Box } from "@mui/material";
+import { FaTrash, FaPaperPlane, FaSave } from "react-icons/fa"; // Iconos para consistencia
 import LoadingModal from "@/hooks/Modals/LoadingModal";
 
 const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = false, readOnlyDefault = false, darkMode = false }, ref) => {
@@ -17,7 +17,7 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
     caso: "",
     id_maquina: "",
     area: "",
-    estado: "en espera", // FIJO POR DEFECTO
+    estado: "en espera",
     descripcion: "",
     nombre_natural: "",
     nombre_windows: "", 
@@ -38,7 +38,6 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
     if (initialData) {
       setFormData({
         ...initialData,
-        // Al editar, si no tiene estado por alguna razón, forzamos "en espera"
         estado: initialData.estado || "en espera",
         nombre_windows: initialData.nombre_windows ?? "", 
         clave_win: initialData.clave_win ?? initialData.clave_acceso_windows ?? "",
@@ -89,7 +88,6 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
       });
 
       const result = await res.json();
-
       if (!res.ok) throw new Error(result.message || "Error al procesar el reporte");
 
       setFormSubmitted(true);
@@ -107,20 +105,19 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
     }
   };
 
-  // --- ESTILOS ---
-  const inputClass = `w-full p-2.5 rounded-lg border outline-none transition-all ${
+  // --- ESTILOS UNIFICADOS ---
+  const inputClass = `w-full p-2.5 rounded-xl border outline-none transition-all font-bold ${
     darkMode 
       ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" 
       : "bg-gray-50 border-gray-300 text-gray-900 focus:border-blue-600"
-  } ${readOnlyDefault ? "bg-transparent border-transparent cursor-default font-semibold text-lg" : "border-solid shadow-sm"}`;
+  } ${readOnlyDefault ? "bg-transparent border-transparent cursor-default font-black text-lg" : "border-solid shadow-sm"}`;
 
-  const labelClass = `block text-[10px] font-bold uppercase tracking-widest mb-1 ${darkMode ? "text-blue-400" : "text-blue-600"}`;
+  const labelClass = `block text-[10px] font-black uppercase tracking-widest mb-1 ${darkMode ? "text-blue-400" : "text-blue-600"}`;
 
   return (
     <>
       <div className="space-y-6 animate-fade-in p-2">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
           <div className="md:col-span-2">
             <label className={labelClass}>Título de la Falla</label>
             <input type="text" name="caso" value={formData.caso} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} placeholder="Ej: Monitor no enciende" />
@@ -136,15 +133,9 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
             <input type="text" name="area" value={formData.area} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} placeholder="Ej: Reducción" />
           </div>
 
-          {/* ESTADO BLOQUEADO PARA EL WORKER */}
           <div>
             <label className={labelClass}>Estado</label>
-            <select 
-              name="estado" 
-              value={formData.estado} 
-              disabled={true} // SIEMPRE DESHABILITADO PARA WORKERS
-              className={`${inputClass} opacity-60 cursor-not-allowed`}
-            >
+            <select name="estado" value={formData.estado} disabled={true} className={`${inputClass} opacity-60 cursor-not-allowed`}>
               <option value="en espera">En espera</option>
             </select>
           </div>
@@ -181,16 +172,31 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
         </div>
 
         {!readOnlyDefault && (
-          <div className="flex justify-end gap-3 pt-6 border-t border-gray-700/30">
-            <button type="button" onClick={onClose} className={`px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-500/10 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Cancelar
+          /* --- SECCIÓN DE BOTONES UNIFICADA --- */
+          <div className="flex flex-col md:flex-row justify-end gap-3 pt-6 border-t border-gray-700/30">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              /* ESTILO: Letras Rojo Sólido, Borde Rojo */
+              className={`flex-1 md:flex-none h-11 px-8 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border-2 ${
+                darkMode 
+                ? "bg-transparent border-red-600 text-red-500 hover:bg-red-600 hover:text-white" 
+                : "bg-white border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+              }`}
+            >
+              <FaTrash size={12} /> Cancelar
             </button>
+            
             <button 
               type="button" 
               onClick={sendForm} 
               disabled={isLoading} 
-              className="bg-blue-600 text-white px-8 py-2 rounded-md font-bold shadow-lg hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"
+              /* ESTILO: Bloque Sólido (Negro o Azul) */
+              className={`flex-1 md:flex-none h-11 px-10 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-md active:scale-95 text-white ${
+                darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-[#1a1a1a] hover:bg-blue-700"
+              } disabled:opacity-50`}
             >
+              {isEdit ? <FaSave size={14} /> : <FaPaperPlane size={14} />}
               {isLoading ? "Enviando..." : (isEdit ? "Guardar Cambios" : "Enviar Reporte")}
             </button>
           </div>

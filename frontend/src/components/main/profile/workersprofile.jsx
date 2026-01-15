@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import LoadingModal from "@/hooks/Modals/LoadingModal";
-import { FaUser, FaIdCard, FaBuilding, FaCamera, FaSave, FaPen } from "react-icons/fa";
+import { FaUser, FaBuilding, FaCalendarAlt, FaSave, FaPen } from "react-icons/fa";
 
 const WorkerProfile = ({ darkMode }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -17,8 +17,13 @@ const WorkerProfile = ({ darkMode }) => {
     nac_ano: "",
     departamento: "",
     gerencia: "",
-    avatar: "https://via.placeholder.com/150"
+    avatar: "" 
   });
+
+  const getInitial = () => {
+    if (worker.nombres) return worker.nombres.charAt(0).toUpperCase();
+    return "?";
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,27 +32,13 @@ const WorkerProfile = ({ darkMode }) => {
 
   useEffect(() => {
     const loadWorker = async () => {
-      console.log("%c--- INICIANDO CARGA DE PERFIL ---", "color: blue; font-weight: bold;");
-      
       try {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('userId');
+        if (!userId || userId === "undefined") return;
 
-        console.log("Token encontrado:", token ? "SÍ" : "NO");
-        console.log("ID de usuario en localStorage:", userId);
-
-        if (!userId || userId === "undefined") {
-          console.error("ERROR: No hay un ID válido en el localStorage.");
-          return;
-        }
-
-        // Si tu backend corre en un puerto distinto al 8080, cámbialo aquí manualmente para probar
         const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-        const url = `${base}/api/workers/${userId}`;
-        
-        console.log("Llamando a la URL:", url);
-
-        const res = await fetch(url, {
+        const res = await fetch(`${base}/api/workers/${userId}`, {
           method: 'GET',
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -55,18 +46,9 @@ const WorkerProfile = ({ darkMode }) => {
           }
         });
 
-        console.log("Respuesta del servidor (Status):", res.status);
-
-        if (!res.ok) {
-          const errorMsg = await res.text();
-          console.error("Error del servidor:", errorMsg);
-          return;
-        }
-
+        if (!res.ok) return;
         const data = await res.json();
-        console.log("DATOS RECIBIDOS:", data);
 
-        // Ajustamos los nombres según tu Schema de Sequelize
         setWorker({
           id: data.id || userId,
           ficha: data.ficha || "",
@@ -77,13 +59,10 @@ const WorkerProfile = ({ darkMode }) => {
           nac_ano: data.anio_nac || "",
           departamento: data.dpto || "",
           gerencia: data.gcia || "",
-          avatar: data.avatar || "https://via.placeholder.com/150"
+          avatar: data.avatar || ""
         });
-
-        console.log("%cDATOS APLICADOS AL ESTADO CORRECTAMENTE", "color: green; font-weight: bold;");
-
       } catch (err) {
-        console.error('ERROR CRÍTICO EN EL FETCH:', err);
+        console.error('Error loading worker profile:', err);
       }
     };
     loadWorker();
@@ -117,7 +96,7 @@ const WorkerProfile = ({ darkMode }) => {
 
       if (!res.ok) throw new Error('Error al actualizar');
 
-      setModalState({ isOpen: true, status: 'success', message: 'Actualizado correctamente' });
+      setModalState({ isOpen: true, status: 'success', message: 'Datos actualizados correctamente' });
       setIsEditing(false);
     } catch (err) {
       setModalState({ isOpen: true, status: 'error', message: err.message });
@@ -127,71 +106,121 @@ const WorkerProfile = ({ darkMode }) => {
   };
 
   const theme = {
-    card: darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200",
-    textPrimary: darkMode ? "text-gray-100" : "text-gray-800",
-    textSecondary: darkMode ? "text-gray-400" : "text-gray-500",
-    input: darkMode 
-      ? "bg-gray-700 border-gray-600 text-white focus:ring-blue-500" 
-      : "bg-gray-50 border-gray-300 text-gray-900 focus:ring-blue-500",
-    divider: darkMode ? "border-gray-700" : "border-gray-100"
+    card: darkMode ? "bg-[#1e293b] border-slate-700" : "bg-white border-slate-200",
+    textPrimary: darkMode ? "text-white" : "text-slate-900",
+    textSecondary: darkMode ? "text-slate-400" : "text-slate-500",
+    fieldBg: darkMode ? "bg-slate-800/50" : "bg-slate-50",
+    fieldBorder: darkMode ? "border-slate-700" : "border-slate-200",
   };
 
   return (
-    <div className={`w-full max-w-5xl mx-auto rounded-2xl shadow-xl border overflow-hidden transition-all duration-300 ${theme.card}`}>
-      <div className="relative h-48 bg-gradient-to-r from-blue-600 to-indigo-800">
+    <div className={`w-full max-w-5xl mx-auto rounded-3xl shadow-2xl border overflow-hidden transition-all duration-500 ${theme.card}`}>
+      
+      {/* 1. PORTADA */}
+      <div className="relative h-60 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700">
+        <div className="absolute inset-0 bg-black/10"></div>
         <button 
           onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-          className="absolute top-6 right-6 bg-white/20 hover:bg-white/30 backdrop-blur text-white px-5 py-2 rounded-full flex items-center gap-2 transition-all font-medium shadow-lg z-10"
+          className="absolute top-8 right-8 bg-white text-slate-900 px-6 py-2.5 rounded-2xl flex items-center gap-2 transition-all hover:scale-105 font-bold shadow-2xl z-20"
         >
-          {isEditing ? <><FaSave /> {isSaving ? 'Guardando...' : 'Guardar'}</> : <><FaPen size={14} /> Editar Perfil</>}
+          {isEditing ? <><FaSave /> {isSaving ? 'Guardando...' : 'Guardar'}</> : <><FaPen size={12} /> Editar Perfil</>}
         </button>
       </div>
 
-      <div className="px-8 pb-10">
-        <div className="relative flex flex-col sm:flex-row items-center sm:items-end -mt-20 mb-8">
-          <div className="relative">
-            <img src={worker.avatar} className={`w-40 h-40 rounded-full border-4 object-cover shadow-md ${darkMode ? "border-gray-800" : "border-white"}`} alt="Avatar" />
+      <div className="px-12 pb-14">
+        {/* 2. CABECERA: AVATAR Y TÍTULOS */}
+        <div className="relative flex flex-col sm:flex-row items-center sm:items-end -mt-28 mb-12">
+          <div className="relative z-10">
+            <div className={`w-48 h-48 rounded-[2.5rem] border-[8px] shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-300 ${darkMode ? "border-[#1e293b] bg-slate-800" : "border-white bg-slate-100"}`}>
+              {worker.avatar ? (
+                <img src={worker.avatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600">
+                  <span className="text-7xl font-black text-white drop-shadow-lg">{getInitial()}</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="mt-4 sm:mt-0 sm:ml-6 text-center sm:text-left flex-1">
-            <h2 className={`text-3xl font-bold ${theme.textPrimary}`}>
-              {worker.nombres ? `${worker.nombres} ${worker.apellidos}` : "Cargando..."}
+
+          <div className="mt-8 sm:mt-0 sm:ml-10 text-center sm:text-left flex-1">
+            <h2 className={`text-5xl font-black tracking-tighter mb-2 ${theme.textPrimary}`}>
+              {worker.nombres ? `${worker.nombres} ${worker.apellidos}` : "Trabajador"}
             </h2>
-            <p className={`text-lg font-medium ${darkMode ? "text-blue-400" : "text-blue-600"}`}>
-              ID: {worker.id || "..."} | Ficha: {worker.ficha || "..."}
-            </p>
+            <div className="flex flex-wrap justify-center sm:justify-start gap-3">
+               <span className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-emerald-500 text-white text-xs font-bold uppercase tracking-widest shadow-lg shadow-emerald-500/30">
+                  FICHA NO. {worker.ficha || "---"}
+               </span>
+               <span className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-widest border ${theme.fieldBorder} ${theme.textSecondary} bg-white/50 backdrop-blur-sm`}>
+                  {worker.gerencia || "SIN GERENCIA"}
+               </span>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-            <ProfileField label="Ficha" icon={FaIdCard} name="ficha" value={worker.ficha} isEditing={isEditing} handleChange={handleChange} theme={theme} />
-            <ProfileField label="Nombres" icon={FaUser} name="nombres" value={worker.nombres} isEditing={isEditing} handleChange={handleChange} theme={theme} />
-            <ProfileField label="Apellidos" icon={FaUser} name="apellidos" value={worker.apellidos} isEditing={isEditing} handleChange={handleChange} theme={theme} />
+        {/* 3. GRID DE CAJAS DETALLADAS (FICHA ELIMINADA DE AQUÍ) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <DetailBox label="Nombres" icon={FaUser} name="nombres" value={worker.nombres} isEditing={isEditing} onChange={handleChange} theme={theme} />
+            <DetailBox label="Apellidos" icon={FaUser} name="apellidos" value={worker.apellidos} isEditing={isEditing} onChange={handleChange} theme={theme} />
+            <DetailBox label="Gerencia" icon={FaBuilding} name="gerencia" value={worker.gerencia} isEditing={isEditing} onChange={handleChange} theme={theme} />
+            <DetailBox label="Departamento" icon={FaBuilding} name="departamento" value={worker.departamento} isEditing={isEditing} onChange={handleChange} theme={theme} />
             
-            <div className="md:col-span-2">
-                <label className={`block text-xs font-bold uppercase mb-2 ${theme.textSecondary}`}>Fecha de Nacimiento</label>
-                <div className="flex gap-2">
-                    <input type="number" name="nac_dia" placeholder="DD" value={worker.nac_dia} onChange={handleChange} disabled={!isEditing} className={`w-20 p-2 rounded-md border ${isEditing ? theme.input : "bg-transparent border-transparent"}`} />
-                    <input type="number" name="nac_mes" placeholder="MM" value={worker.nac_mes} onChange={handleChange} disabled={!isEditing} className={`w-20 p-2 rounded-md border ${isEditing ? theme.input : "bg-transparent border-transparent"}`} />
-                    <input type="number" name="nac_ano" placeholder="AAAA" value={worker.nac_ano} onChange={handleChange} disabled={!isEditing} className={`w-32 p-2 rounded-md border ${isEditing ? theme.input : "bg-transparent border-transparent"}`} />
+            {/* Caja de Fecha de Nacimiento */}
+            <div className={`p-5 rounded-3xl border transition-all duration-300 ${theme.fieldBg} ${isEditing ? 'border-emerald-500 shadow-lg shadow-emerald-500/10' : theme.fieldBorder} md:col-span-2`}>
+              <div className="flex items-center gap-4 mb-3">
+                <div className={`p-3 rounded-2xl ${isEditing ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
+                  <FaCalendarAlt size={18} />
                 </div>
+                <label className={`text-[11px] font-black uppercase tracking-[0.2em] ${theme.textSecondary}`}>Fecha de Nacimiento</label>
+              </div>
+              <div className="flex items-center gap-6 max-w-md">
+                <div className="flex-1">
+                   <p className={`text-[10px] uppercase font-bold mb-1 ${theme.textSecondary} text-center`}>Día</p>
+                   <input type="number" name="nac_dia" placeholder="DD" value={worker.nac_dia} onChange={handleChange} disabled={!isEditing} className={`w-full bg-transparent outline-none font-bold text-center ${isEditing ? 'text-emerald-500 border-b-2 border-emerald-500/20' : theme.textPrimary} text-xl`} />
+                </div>
+                <span className={`text-2xl mt-4 ${theme.textSecondary}`}>/</span>
+                <div className="flex-1">
+                   <p className={`text-[10px] uppercase font-bold mb-1 ${theme.textSecondary} text-center`}>Mes</p>
+                   <input type="number" name="nac_mes" placeholder="MM" value={worker.nac_mes} onChange={handleChange} disabled={!isEditing} className={`w-full bg-transparent outline-none font-bold text-center ${isEditing ? 'text-emerald-500 border-b-2 border-emerald-500/20' : theme.textPrimary} text-xl`} />
+                </div>
+                <span className={`text-2xl mt-4 ${theme.textSecondary}`}>/</span>
+                <div className="flex-1">
+                   <p className={`text-[10px] uppercase font-bold mb-1 ${theme.textSecondary} text-center`}>Año</p>
+                   <input type="number" name="nac_ano" placeholder="AAAA" value={worker.nac_ano} onChange={handleChange} disabled={!isEditing} className={`w-full bg-transparent outline-none font-bold text-center ${isEditing ? 'text-emerald-500 border-b-2 border-emerald-500/20' : theme.textPrimary} text-xl`} />
+                </div>
+              </div>
             </div>
-
-            <ProfileField label="Gerencia" icon={FaBuilding} name="gerencia" value={worker.gerencia} isEditing={isEditing} handleChange={handleChange} theme={theme} />
-            <ProfileField label="Departamento" icon={FaBuilding} name="departamento" value={worker.departamento} isEditing={isEditing} handleChange={handleChange} theme={theme} />
         </div>
       </div>
-      <LoadingModal isOpen={modalState.isOpen} status={modalState.status} message={modalState.message} onClose={() => setModalState(p => ({...p, isOpen: false}))} />
+
+      <LoadingModal 
+        isOpen={modalState.isOpen} 
+        status={modalState.status} 
+        message={modalState.message} 
+        onClose={() => setModalState(s => ({...s, isOpen: false}))} 
+      />
     </div>
   );
 };
 
-const ProfileField = ({ label, icon: Icon, name, value, isEditing, handleChange, theme }) => (
-  <div>
-    <label className={`block text-xs font-bold uppercase mb-1 ${theme.textSecondary}`}>{label}</label>
-    <div className={`flex items-center rounded-lg border ${isEditing ? theme.input : "border-transparent px-0"}`}>
-      <span className="p-2"><Icon className={theme.textSecondary} /></span>
-      <input type="text" name={name} value={value} onChange={handleChange} disabled={!isEditing} className={`w-full p-2 bg-transparent outline-none ${theme.textPrimary}`} />
+const DetailBox = ({ label, icon: Icon, name, value, isEditing, onChange, theme }) => (
+  <div className={`p-5 rounded-3xl border transition-all duration-300 ${theme.fieldBg} ${isEditing ? 'border-emerald-500 shadow-lg shadow-emerald-500/10' : theme.fieldBorder}`}>
+    <div className="flex items-center gap-4 mb-3">
+      <div className={`p-3 rounded-2xl ${isEditing ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/40' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
+        <Icon size={18} />
+      </div>
+      <label className={`text-[11px] font-black uppercase tracking-[0.2em] ${theme.textSecondary}`}>
+        {label}
+      </label>
     </div>
+    <input
+      type="text"
+      name={name}
+      disabled={!isEditing}
+      value={value}
+      onChange={onChange}
+      className={`w-full bg-transparent outline-none font-bold transition-all ${isEditing ? 'text-emerald-500 text-base' : `text-lg ${theme.textPrimary}`}`}
+      placeholder="---"
+    />
   </div>
 );
 

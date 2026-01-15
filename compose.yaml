@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+	backend:
+		build:
+			context: .
+			dockerfile: backend/Dockerfile
+		image: incidencias_backend:latest
+		ports:
+			- "8080:8080"
+		volumes:
+			- ./backend:/usr/src/app
+		environment:
+			- PORT=8080
+			- SKIP_DB_SETUP=0
+		restart: unless-stopped
+
+	frontend:
+		build:
+			context: .
+			dockerfile: frontend/Dockerfile
+		image: incidencias_frontend:latest
+		ports:
+			- "80:80"
+		restart: unless-stopped
+
+volumes: {}
+

@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { FaTrash, FaSave, FaUserPlus } from "react-icons/fa"; // Iconos para consistencia
+import LoadingModal from "@/hooks/Modals/LoadingModal"; 
 
 const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, onSuccess, onClose }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     
+    const [modalState, setModalState] = useState({
+        isOpen: false,
+        status: "loading",
+        message: "",
+    });
+
     const [formData, setFormData] = useState({
         id: "",
         nombre: "",
@@ -21,15 +29,12 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
 
     const isCreate = !initialData.id;
 
-    // --- SINCRONIZACIÓN DE DATOS (Para que aparezcan al pulsar Ver Detalles) ---
     useEffect(() => {
         if (initialData && Object.keys(initialData).length > 0) {
-            // 1. Extraer el número de máquina del objeto anidado que envía el backend
             const machineVal = initialData.Machines?.length > 0 
                 ? initialData.Machines[0].nro_maquina 
                 : (initialData.nro_maquina || "");
 
-            // 2. Extraer los nombres de las especialidades y convertirlos a texto con comas
             const specsVal = initialData.Specializations?.length > 0
                 ? initialData.Specializations.map(s => s.nombre).join(", ")
                 : (initialData.especializacion || "");
@@ -59,112 +64,160 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        setModalState({
+            isOpen: true,
+            status: "loading",
+            message: isCreate ? "Registrando nuevo usuario..." : "Guardando cambios..."
+        });
+
         setIsSubmitting(true);
         try {
             const token = localStorage.getItem('token');
             const headers = { 'Authorization': `Bearer ${token}` };
             const base = "http://localhost:8080/api";
 
-            // --- MAPEAMOS LOS CAMPOS PARA EL BACKEND ---
-            // Enviamos 'email' y 'ci' porque el controlador los espera así
             const userPayload = {
                 nombre: formData.nombre,
                 apellido: formData.apellido,
-                email: formData.correo,     // mapeo correo -> email
-                ci: Number(formData.C_I),   // mapeo C_I -> ci
+                email: formData.correo,
+                ci: Number(formData.C_I),
                 password: formData.password,
                 ficha: Number(formData.ficha),
                 telefono: Number(formData.telefono),
                 rol: formData.rol,
                 extension: Number(formData.extension),
-                especializacion: formData.especializacion, // Se envía como string, el service lo pica
+                especializacion: formData.especializacion,
                 nro_maquina: formData.nro_maquina ? Number(formData.nro_maquina) : null
             };
 
-            // Quitar password si está vacío en edición
             if (!isCreate && !userPayload.password) delete userPayload.password;
 
             if (isCreate) {
                 await axios.post(`${base}/users`, userPayload, { headers });
             } else {
-                // Usamos el CI para la ruta de actualización
                 await axios.put(`${base}/users/${userPayload.ci}`, userPayload, { headers });
             }
 
-            if (onSuccess) onSuccess(); 
-            onClose();
+            setModalState({
+                isOpen: true,
+                status: "success",
+                message: isCreate ? "Usuario registrado exitosamente" : "Usuario actualizado correctamente"
+            });
 
         } catch (error) {
-            console.error("Error completo:", error);
-            alert(error.response?.data?.message || "Error al procesar los datos");
+            setModalState({
+                isOpen: true,
+                status: "error",
+                message: error.response?.data?.message || "Ocurrió un problema en el servidor"
+            });
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // Estilos dinámicos
-    const inputClass = `w-full p-2.5 rounded-lg border outline-none transition-all ${
+    const handleModalClose = () => {
+        const wasSuccess = modalState.status === "success";
+        setModalState(prev => ({ ...prev, isOpen: false }));
+        
+        if (wasSuccess) {
+            if (onSuccess) onSuccess(); 
+            onClose();
+        }
+    };
+
+    // --- ESTILOS UNIFICADOS ---
+    const inputClass = `w-full p-2.5 rounded-xl border outline-none transition-all font-bold ${
         darkMode 
             ? "bg-[#334155] border-slate-600 text-white focus:border-blue-500" 
             : "bg-white border-gray-300 text-black focus:border-blue-600"
-    } ${readOnlyDefault ? "bg-transparent border-transparent cursor-default font-bold text-lg" : "border-solid shadow-sm"}`;
+    } ${readOnlyDefault ? "bg-transparent border-transparent cursor-default font-black text-lg" : "border-solid shadow-sm"}`;
 
-    const labelClass = `block text-[10px] font-bold uppercase tracking-widest mb-1 ${darkMode ? "text-blue-400" : "text-blue-600"}`;
+    const labelClass = `block text-[10px] font-black uppercase tracking-widest mb-1 ${darkMode ? "text-blue-400" : "text-blue-600"}`;
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4 animate-fade-in">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className={labelClass}>Nombre</label><input type="text" name="nombre" value={formData.nombre} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
-                <div><label className={labelClass}>Apellido</label><input type="text" name="apellido" value={formData.apellido} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
-                <div><label className={labelClass}>Cédula (C.I)</label><input type="number" name="C_I" value={formData.C_I} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
-                <div><label className={labelClass}>Correo</label><input type="email" name="correo" value={formData.correo} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
-                
-                <div className="md:col-span-2">
-                    <label className={labelClass}>Especializaciones</label>
-                    <input type="text" name="especializacion" value={formData.especializacion} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} placeholder="redes, sql, soporte" />
-                </div>
-
-                <div><label className={labelClass}>Nro Máquina Asignada</label><input type="number" name="nro_maquina" value={formData.nro_maquina} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} /></div>
-                
-                <div>
-                    <label className={labelClass}>Rol</label>
-                    <select name="rol" value={formData.rol} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required>
-                        <option value="">Seleccione...</option>
-                        <option value="tecnico">Técnico</option>
-                        <option value="administrador">Administrador</option>
-                    </select>
-                </div>
-
-                <div><label className={labelClass}>Ficha</label><input type="number" name="ficha" value={formData.ficha} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
-                
-                <div className="flex gap-2">
-                    <div className="flex-1">
-                        <label className={labelClass}>Teléfono</label>
-                        <input type="number" name="telefono" value={formData.telefono} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required />
-                    </div>
-                    <div className="flex-1">
-                        <label className={labelClass}>Extensión</label>
-                        <input type="number" name="extension" value={formData.extension} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required />
-                    </div>
-                </div>
-
-                {!readOnlyDefault && isCreate && (
+        <>
+            <form onSubmit={handleSubmit} className="space-y-4 animate-fade-in p-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label className={labelClass}>Nombre</label><input type="text" name="nombre" value={formData.nombre} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
+                    <div><label className={labelClass}>Apellido</label><input type="text" name="apellido" value={formData.apellido} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
+                    <div><label className={labelClass}>Cédula (C.I)</label><input type="number" name="C_I" value={formData.C_I} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
+                    <div><label className={labelClass}>Correo</label><input type="email" name="correo" value={formData.correo} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
+                    
                     <div className="md:col-span-2">
-                        <label className={labelClass}>Contraseña</label>
-                        <input type="password" name="password" value={formData.password} onChange={handleChange} className={inputClass} required={isCreate} placeholder="••••••••" />
+                        <label className={labelClass}>Especializaciones</label>
+                        <input type="text" name="especializacion" value={formData.especializacion} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} placeholder="redes, sql, soporte" />
+                    </div>
+
+                    <div><label className={labelClass}>Nro Máquina Asignada</label><input type="number" name="nro_maquina" value={formData.nro_maquina} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} /></div>
+                    
+                    <div>
+                        <label className={labelClass}>Rol</label>
+                        <select name="rol" value={formData.rol} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required>
+                            <option value="">Seleccione...</option>
+                            <option value="tecnico">Técnico</option>
+                            <option value="administrador">Administrador</option>
+                        </select>
+                    </div>
+
+                    <div><label className={labelClass}>Ficha</label><input type="number" name="ficha" value={formData.ficha} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
+                    
+                    <div className="flex gap-2">
+                        <div className="flex-1">
+                            <label className={labelClass}>Teléfono</label>
+                            <input type="number" name="telefono" value={formData.telefono} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required />
+                        </div>
+                        <div className="flex-1">
+                            <label className={labelClass}>Extensión</label>
+                            <input type="number" name="extension" value={formData.extension} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required />
+                        </div>
+                    </div>
+
+                    {!readOnlyDefault && isCreate && (
+                        <div className="md:col-span-2">
+                            <label className={labelClass}>Contraseña</label>
+                            <input type="password" name="password" value={formData.password} onChange={handleChange} className={inputClass} required={isCreate} placeholder="••••••••" />
+                        </div>
+                    )}
+                </div>
+
+                {!readOnlyDefault && (
+                    /* --- SECCIÓN DE BOTONES UNIFICADA --- */
+                    <div className="flex flex-col md:flex-row justify-end gap-3 pt-6 border-t border-gray-700/30">
+                        <button 
+                            type="button" 
+                            onClick={onClose} 
+                            /* ESTILO: Letras Rojo Sólido, Borde Rojo */
+                            className={`flex-1 md:flex-none h-11 px-8 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border-2 ${
+                                darkMode 
+                                ? "bg-transparent border-red-600 text-red-500 hover:bg-red-600 hover:text-white" 
+                                : "bg-white border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                            }`}
+                        >
+                            <FaTrash size={12} /> Cancelar
+                        </button>
+                        
+                        <button 
+                            type="submit" 
+                            disabled={isSubmitting} 
+                            /* ESTILO: Bloque Sólido Industrial */
+                            className={`flex-1 md:flex-none h-11 px-10 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-md active:scale-95 text-white ${
+                                darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-[#1a1a1a] hover:bg-blue-700"
+                            } disabled:opacity-50`}
+                        >
+                            {isCreate ? <FaUserPlus size={14} /> : <FaSave size={14} />}
+                            {isSubmitting ? "Procesando..." : (isCreate ? "Registrar Usuario" : "Guardar Cambios")}
+                        </button>
                     </div>
                 )}
-            </div>
+            </form>
 
-            {!readOnlyDefault && (
-                <div className="flex justify-end gap-3 pt-6 border-t border-gray-700/30">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-gray-500 hover:text-white transition-colors">Cancelar</button>
-                    <button type="submit" disabled={isSubmitting} className="bg-blue-600 text-white px-8 py-2 rounded-md font-bold shadow-lg hover:bg-blue-700 active:scale-95 transition-all">
-                        {isSubmitting ? "Procesando..." : (isCreate ? "Registrar Usuario" : "Guardar Cambios")}
-                    </button>
-                </div>
-            )}
-        </form>
+            <LoadingModal
+                isOpen={modalState.isOpen}
+                status={modalState.status}
+                message={modalState.message}
+                onClose={handleModalClose}
+            />
+        </>
     );
 };
 
