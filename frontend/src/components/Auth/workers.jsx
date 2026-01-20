@@ -11,7 +11,6 @@ const WorkersLogin = () => {
   
   const [darkMode, setDarkMode] = useState(() => {
     const t = localStorage.getItem('theme');
-    // Por defecto Dark Mode activado si no hay preferencia
     if (t === null) return true;
     return t === 'dark';
   });
@@ -64,21 +63,21 @@ const WorkersLogin = () => {
   };
 
   return (
-    /* CONTENEDOR PRINCIPAL: min-h-screen para evitar cortes con el teclado móvil */
+    /* --- CAMBIO: bg-blue-600 -> bg-slate-50 (Gris claro estándar) --- */
     <div className={`min-h-screen w-full flex items-center justify-center p-4 transition-colors duration-500 ${
-      darkMode ? "bg-[#0f172a]" : "bg-blue-600"
+      darkMode ? "bg-[#0f172a]" : "bg-slate-50"
     }`}>
       
-      {/* TARJETA: Max-width pequeño para logins de un solo campo */}
+      {/* --- TARJETA: Ajuste de bordes y fondo para modo claro --- */}
       <div className={`w-full max-w-sm p-6 sm:p-10 rounded-3xl shadow-2xl relative transition-all duration-300 border ${
-        darkMode ? "bg-[#1e293b] border-slate-700 text-white" : "bg-white border-white text-black"
+        darkMode ? "bg-[#1e293b] border-slate-700 text-white" : "bg-white border-gray-200 text-black"
       }`}>
         
         {/* Botón Volver */}
         <Link 
           to="/" 
           className={`absolute top-5 left-5 p-2 rounded-xl transition-colors ${
-            darkMode ? "hover:bg-slate-700 text-slate-400" : "hover:bg-gray-100 text-gray-500"
+            darkMode ? "hover:bg-slate-700 text-slate-400" : "hover:bg-slate-100 text-gray-500"
           }`}
         >
           <FiArrowLeft size={20} />
@@ -87,7 +86,7 @@ const WorkersLogin = () => {
         {/* Botón de Tema */}
         <button 
           onClick={toggleTheme} 
-          className="absolute top-5 right-5 p-2 rounded-xl hover:bg-slate-500/20 transition-colors z-10"
+          className="absolute top-5 right-5 p-2.5 rounded-xl hover:bg-slate-500/20 transition-colors z-10"
         >
           {darkMode ? <FiSun size={20} className="text-yellow-400" /> : <FiMoon size={20} className="text-blue-600" />}
         </button>

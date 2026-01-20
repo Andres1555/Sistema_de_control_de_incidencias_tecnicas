@@ -83,8 +83,10 @@ async function createCompleteUser(data) {
   }
 }
 
-async function updateByCI(ci, data) {
-  const user = await User.findOne({ where: { C_I: ci } });
+async function updateByCI(ciOriginal, data) {
+  // Buscamos al usuario por el CI que viene de la URL
+  const user = await User.findOne({ where: { C_I: ciOriginal } });
+  
   if (!user) return null;
 
   const payload = {};
@@ -97,20 +99,12 @@ async function updateByCI(ci, data) {
   if (data.extension !== undefined) payload.extension = Number(data.extension);
   if (data.password !== undefined) payload.password = data.password;
   
-  // NUEVO CAMPO AGREGADO
-  if (data.nombre_windows !== undefined) payload.nombre_windows = data.nombre_windows;
+  // PERMITIR CAMBIO DE CI: Si en el body viene un ci nuevo, lo actualizamos
+  if (data.ci !== undefined) payload.C_I = Number(data.ci);
 
   await user.update(payload);
-
-  return await User.findOne({
-    where: { C_I: ci },
-    include: [
-      { model: Machine, attributes: ['nro_maquina'] },
-      { model: Specialization, attributes: ['nombre'], through: { attributes: [] } }
-    ]
-  });
+  return user;
 }
-
 async function deleteByIdOrCI(id) {
   if (!id) return 0;
   const t = await sequelize.transaction();

@@ -1,13 +1,16 @@
-FROM node:18-alpine AS build
-WORKDIR /app
+FROM node:20
 
-COPY frontend/package*.json ./
-RUN npm ci
+WORKDIR /usr/src/app
 
-COPY frontend/ ./
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+# Construimos la app para producción
 RUN npm run build
 
-FROM nginx:stable-alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 5173
+
+# Vite Preview expone la app compilada en el puerto 5173
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173"]

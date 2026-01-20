@@ -73,38 +73,23 @@ export const CreateUserController = async (req, res) => {
 
 export const UpdateUserController = async (req, res) => {
   try {
-    const ci = Number(req.params.ci);
-    if (!ci) return res.status(400).json({ message: "Se requiere el CI en la ruta" });
+    const ciOriginal = Number(req.params.ci); // El CI que viene en la URL
+    if (!ciOriginal) return res.status(400).json({ message: "CI requerido en la ruta" });
 
-    // Extraemos todos los posibles campos del body
-    const { 
-      nombre, apellido, email, telefono, extension, 
-      ficha, password, nombre_windows, nro_maquina, especializacion 
-    } = req.body;
+    const data = req.body;
 
-    // Construimos el objeto solo con lo que viene definido
-    const updateData = {};
-    if (nombre !== undefined) updateData.nombre = nombre;
-    if (apellido !== undefined) updateData.apellido = apellido;
-    if (email !== undefined) updateData.email = email;
-    if (telefono !== undefined) updateData.telefono = telefono;
-    if (extension !== undefined) updateData.extension = extension;
-    if (ficha !== undefined) updateData.ficha = ficha;
-    if (nombre_windows !== undefined) updateData.nombre_windows = nombre_windows;
-    if (nro_maquina !== undefined) updateData.nro_maquina = nro_maquina;
-    if (especializacion !== undefined) updateData.especializacion = especializacion;
-
-    if (password) {
-      updateData.password = await bcrypt.hash(String(password), 10);
+    // Hashear contraseña si viene una nueva
+    if (data.password) {
+      data.password = await bcrypt.hash(String(data.password), 10);
     }
 
-    // Llamamos al servicio
-    const updated = await UserService.update(ci, updateData);
+    // Pasamos el identificador original y la data nueva
+    const updated = await UserService.update(ciOriginal, data);
+    
     res.status(200).json({ message: "Usuario actualizado correctamente", user: updated });
-
   } catch (error) {
-    console.error("Error en el controlador:", error.message);
-    res.status(500).json({ message: "Error al actualizar usuario", error: error.message });
+    console.error("Error en UpdateUserController:", error.message);
+    res.status(500).json({ message: error.message });
   }
 };
 export const DeletUserController = async (req, res) => {

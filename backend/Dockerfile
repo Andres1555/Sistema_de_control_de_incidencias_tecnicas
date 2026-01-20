@@ -1,14 +1,16 @@
-FROM node:18-alpine
+FROM node:20
+
 WORKDIR /usr/src/app
 
-# Install dependencies
-COPY backend/package*.json ./
-RUN npm install --production
+COPY package*.json ./
+# Ahora npm install funcionará porque esta imagen tiene Python para sqlite3
+RUN npm install
 
-# Copy app source
-COPY backend/ ./
+COPY . .
 
-ENV NODE_ENV=production
+# Permisos para la base de datos SQLite
+RUN chmod -R 777 .
+
 EXPOSE 8080
 
 CMD ["node", "server.js"]

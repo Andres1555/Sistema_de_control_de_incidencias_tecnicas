@@ -1,5 +1,5 @@
 import React, { useState, forwardRef, useEffect } from "react";
-import { FaTrash, FaPaperPlane, FaSave } from "react-icons/fa"; // Iconos para consistencia
+import { FaTrash, FaPaperPlane, FaSave } from "react-icons/fa";
 import LoadingModal from "@/hooks/Modals/LoadingModal";
 
 const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = false, readOnlyDefault = false, darkMode = false }, ref) => {
@@ -15,7 +15,7 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
 
   const initialFormData = {
     caso: "",
-    id_maquina: "",
+    id_maquina: "", // Aquí guardaremos el NRO de máquina
     area: "",
     estado: "en espera",
     descripcion: "",
@@ -34,14 +34,22 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
     message: "",
   });
 
+  // --- CORRECCIÓN EN EL MAPEADO DE DATOS (useEffect) ---
   useEffect(() => {
     if (initialData) {
       setFormData({
         ...initialData,
         estado: initialData.estado || "en espera",
+        
+        // 1. PRIORIDAD AL NRO DE MÁQUINA:
+        // Buscamos primero en el objeto Machine (que viene del JOIN en el back)
+        // Si no, en nro_maquina, y si no, en id_maquina.
+        id_maquina: initialData.Machine?.nro_maquina ?? initialData.nro_maquina ?? initialData.id_maquina ?? "",
+        
+        // 2. MAPEO DE NOMBRE WINDOWS:
         nombre_windows: initialData.nombre_windows ?? "", 
+        
         clave_win: initialData.clave_win ?? initialData.clave_acceso_windows ?? "",
-        id_maquina: initialData.id_maquina ?? initialData.nro_maquina ?? "",
       });
     }
   }, [initialData]);
@@ -74,6 +82,7 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
       const isUpdating = isEdit && initialData?.id;
       const url = isUpdating ? `${base}/api/report/${initialData.id}` : `${base}/api/report`;
       
+      // Enviamos nro_maquina para que el backend inteligente lo procese
       const payload = {
         ...formData,
         nro_maquina: Number(formData.id_maquina),
@@ -105,7 +114,7 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
     }
   };
 
-  // --- ESTILOS UNIFICADOS ---
+  // --- ESTILOS ---
   const inputClass = `w-full p-2.5 rounded-xl border outline-none transition-all font-bold ${
     darkMode 
       ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" 
@@ -135,8 +144,11 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
 
           <div>
             <label className={labelClass}>Estado</label>
-            <select name="estado" value={formData.estado} disabled={true} className={`${inputClass} opacity-60 cursor-not-allowed`}>
+            <select name="estado" value={formData.estado} disabled={true} className={`${inputClass} opacity-60 cursor-not-allowed uppercase text-xs`}>
               <option value="en espera">En espera</option>
+              <option value="en revision">En revisión</option>
+              <option value="resuelto">Resuelto</option>
+              <option value="escalado">Escalado</option>
             </select>
           </div>
 
@@ -155,14 +167,15 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
             <input type="text" name="nombre_natural" value={formData.nombre_natural} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
           </div>
 
+          {/* ATRIBUTO NOMBRE WINDOWS */}
           <div>
-            <label className={labelClass}>Clave Natural</label>
-            <input type="text" name="clave_natural" value={formData.clave_natural} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
+            <label className={labelClass}>Nombre Usuario Windows</label>
+            <input type="text" name="nombre_windows" value={formData.nombre_windows} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
           </div>
 
           <div>
-            <label className={labelClass}>Nombre Usuario Windows</label>
-            <input type="text" name="nombre_windows" value={formData.nombre_windows} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} placeholder="Ej: Admin / User1" />
+            <label className={labelClass}>Clave Natural</label>
+            <input type="text" name="clave_natural" value={formData.clave_natural} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
           </div>
 
           <div>
@@ -172,32 +185,15 @@ const ReportWorker = forwardRef(({ onSuccess, onClose, initialData, isEdit = fal
         </div>
 
         {!readOnlyDefault && (
-          /* --- SECCIÓN DE BOTONES UNIFICADA --- */
           <div className="flex flex-col md:flex-row justify-end gap-3 pt-6 border-t border-gray-700/30">
-            <button 
-              type="button" 
-              onClick={onClose} 
-              /* ESTILO: Letras Rojo Sólido, Borde Rojo */
-              className={`flex-1 md:flex-none h-11 px-8 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border-2 ${
-                darkMode 
-                ? "bg-transparent border-red-600 text-red-500 hover:bg-red-600 hover:text-white" 
-                : "bg-white border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
-              }`}
-            >
-              <FaTrash size={12} /> Cancelar
-            </button>
-            
-            <button 
-              type="button" 
-              onClick={sendForm} 
-              disabled={isLoading} 
-              /* ESTILO: Bloque Sólido (Negro o Azul) */
-              className={`flex-1 md:flex-none h-11 px-10 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-md active:scale-95 text-white ${
+            <button type="button" onClick={onClose} className={`flex-1 md:flex-none h-11 px-8 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border-2 ${
+                darkMode ? "bg-transparent border-red-600 text-red-500 hover:bg-red-600 hover:text-white" : "bg-white border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+            }`}><FaTrash size={12} /> Cancelar</button>
+            <button type="button" onClick={sendForm} disabled={isLoading} className={`flex-1 md:flex-none h-11 px-10 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-md active:scale-95 text-white ${
                 darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-[#1a1a1a] hover:bg-blue-700"
-              } disabled:opacity-50`}
-            >
+              } disabled:opacity-50`}>
               {isEdit ? <FaSave size={14} /> : <FaPaperPlane size={14} />}
-              {isLoading ? "Enviando..." : (isEdit ? "Guardar Cambios" : "Enviar Reporte")}
+              {isLoading ? "Procesando..." : (isEdit ? "Guardar Cambios" : "Enviar Reporte")}
             </button>
           </div>
         )}

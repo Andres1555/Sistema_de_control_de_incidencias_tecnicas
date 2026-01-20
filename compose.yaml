@@ -1,28 +1,30 @@
-version: "3.8"
-
 services:
-	backend:
-		build:
-			context: .
-			dockerfile: backend/Dockerfile
-		image: incidencias_backend:latest
-		ports:
-			- "8080:8080"
-		volumes:
-			- ./backend:/usr/src/app
-		environment:
-			- PORT=8080
-			- SKIP_DB_SETUP=0
-		restart: unless-stopped
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: incidencias_backend:latest
+    container_name: backend_app
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/usr/src/app
+      # ESTO ES VITAL: Evita que el node_modules de Windows pise al del contenedor
+      - /usr/src/app/node_modules
+    environment:
+      - PORT=8080
+      - JWT_SECRET=dev_secret
+    restart: unless-stopped
 
-	frontend:
-		build:
-			context: .
-			dockerfile: frontend/Dockerfile
-		image: incidencias_frontend:latest
-		ports:
-			- "80:80"
-		restart: unless-stopped
-
-volumes: {}
-
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: incidencias_frontend:latest
+    container_name: frontend_app
+    ports:
+      - "5173:5173"
+    environment:
+      # Si accedes desde tu misma PC, localhost:8080 suele funcionar mejor
+      - VITE_API_URL=http://localhost:8080
+    restart: unless-stopped

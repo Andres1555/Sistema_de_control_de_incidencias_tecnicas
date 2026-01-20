@@ -30,48 +30,61 @@ export const UserService = {
     return await UserRepository.createCompleteUser(data);
   },
 
-   update: async (ci, data) => {
+ update: async (ciOriginal, data) => {
     try {
-      // 1. Buscar al usuario original para obtener su ID real
-      const user = await UserRepository.getById(ci); // Usamos tu buscador por CI
+      // 1. Actualizamos el usuario base (Capa de Repositorio)
+      const user = await UserRepository.updateByCI(ciOriginal, data);
       if (!user) throw new Error("Usuario no encontrado");
 
-      // 2. Si viene nro_maquina, actualizar o crear en la tabla Machine
+      // 2. GESTIÓN DE MÁQUINA: CORREGIR LA LÍNEA EXISTENTE
       if (data.nro_maquina !== undefined) {
-        const nro = Number(data.nro_maquina);
-        if (nro > 0) {
-          await Machine.findOrCreate({
-            where: { nro_maquina: nro },
-            defaults: { nro_maquina: nro, id_user: user.id }
-          });
-          // Actualizamos el id_user de esa máquina por si era de otro
-          await Machine.update({ id_user: user.id }, { where: { nro_maquina: nro } });
+        const nroNuevo = Number(data.nro_maquina);
+
+        if (nroNuevo > 0) {
+          // Buscamos si ESTE usuario ya tiene alguna máquina asignada en la tabla
+          const machineRow = await Machine.findOne({ where: { id_user: user.id } });
+
+          if (machineRow) {
+            // SI YA EXISTE UNA FILA PARA ESTE USUARIO: 
+            // Simplemente cambiamos el número en esa misma línea.
+            await machineRow.update({ nro_maquina: nroNuevo });
+          } else {
+            // SI EL USUARIO NO TENÍA NINGUNA FILA:
+            // Verificamos si ese número de máquina ya existe (quizás estaba asignada a nadie)
+            const globalMachine = await Machine.findOne({ where: { nro_maquina: nroNuevo } });
+            
+            if (globalMachine) {
+              // Si la máquina existe, le asignamos este dueño
+              await globalMachine.update({ id_user: user.id });
+            } else {
+              // Si el número es totalmente nuevo, creamos la fila
+              await Machine.create({ nro_maquina: nroNuevo, id_user: user.id });
+            }
+          }
+        } else {
+          // Si el campo viene vacío (0 o ""), desvinculamos al usuario de su máquina actual
+          await Machine.update({ id_user: null }, { where: { id_user: user.id } });
         }
       }
 
-      // 3. Si vienen especializaciones (string "redes, sql")
+      // 3. Gestión de Especializaciones (Many-to-Many)
       if (data.especializacion !== undefined) {
-        const specs = data.especializacion.split(",").map(s => s.trim()).filter(s => s !== "");
-        for (const nombre of specs) {
-          const [spec] = await Specialization.findOrCreate({
-            where: { nombre: nombre.toLowerCase() }
-          });
-          await SpecializationUsers.findOrCreate({
-            where: { id_user: user.id, id_specia: spec.id }
-          });
-        }
+        const nombresArr = data.especializacion.split(",")
+          .map(s => s.trim().toLowerCase())
+          .filter(s => s !== "");
+
+        const specInstances = await Promise.all(
+          nombresArr.map(async (n) => {
+            const [s] = await Specialization.findOrCreate({ where: { nombre: n } });
+            return s;
+          })
+        );
+        await user.setSpecializations(specInstances);
       }
 
-      // 4. Limpiar campos numéricos para evitar SQLITE_MISMATCH
-      const cleanData = { ...data };
-      if (cleanData.telefono) cleanData.telefono = Number(cleanData.telefono);
-      if (cleanData.extension) cleanData.extension = Number(cleanData.extension);
-      if (cleanData.ficha) cleanData.ficha = Number(cleanData.ficha);
-
-      // 5. Actualizar datos básicos en la tabla Users
-      return await UserRepository.updateByCI(ci, cleanData);
-
+      return user;
     } catch (error) {
+      console.error("Error en UserService.update:", error.message);
       throw error;
     }
   },
