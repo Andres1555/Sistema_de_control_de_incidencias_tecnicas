@@ -17,6 +17,14 @@ export const ReportcaseService = {
       throw new Error('Error al obtener casos de reporte: ' + error.message);
     }
   },
+ getByCase: async (name) => {
+    try {
+      // Llamamos a la nueva función del repositorio
+      return await ReportCaseRepository.findByUserName(name);
+    } catch (error) {
+      throw new Error('Error en el servicio de búsqueda: ' + error.message);
+    }
+  },
 
   getByUserId: async (userId) => {
     return await ReportCaseRepository.getByUserId(userId);

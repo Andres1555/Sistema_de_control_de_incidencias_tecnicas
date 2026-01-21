@@ -10,5 +10,7 @@ router.post('/', verifyToken, CreateReportController);
 router.put('/:id', verifyToken, UpdateReportController);
 router.delete('/:id', verifyToken, DeleteReportController);
 router.get('/search', Getbycasecontroller);
+//router.get('/', Getbyfiltercontroller);
+
 
 export default router;

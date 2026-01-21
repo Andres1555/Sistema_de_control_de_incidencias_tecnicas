@@ -1,14 +1,16 @@
 import React, { useState, forwardRef, useEffect } from "react";
-import { Dialog, DialogTitle, DialogContent } from "@mui/material"; 
+import { Dialog, DialogTitle, DialogContent, Box, IconButton, Typography, Button, DialogActions } from "@mui/material"; 
 import LoadingModal from "@/hooks/Modals/LoadingModal";
 import Techreport from "./techreport";
-import { FaTrash, FaSave, FaPlus } from "react-icons/fa"; // Añadidos iconos para consistencia
+import CloseIcon from "@mui/icons-material/Close";
+import { FaTrash, FaSave, FaPlus, FaWindows, FaDesktop } from "react-icons/fa";
 
 const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false, readOnlyDefault = false, darkMode = false }, ref) => {
-  // ... (Estados y lógica se mantienen igual)
+  // --- ESTADOS ---
   const [isLoading, setIsLoading] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
 
+  // Obtener fecha de hoy en formato YYYY-MM-DD para el input nativo
   const getTodayDate = () => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -40,13 +42,25 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     message: "",
   });
 
+  // --- SINCRONIZACIÓN DE DATOS (MAPEO AGRESIVO) ---
   useEffect(() => {
     if (initialData) {
+      // Log para depuración en consola
+      console.log("Cargando datos en el formulario:", initialData);
+
       setFormData({
         ...initialData,
+        // 1. Mapeo de Máquina (Prioridad al número real del JOIN)
         id_maquina: initialData.Machine?.nro_maquina ?? initialData.nro_maquina ?? initialData.id_maquina ?? "",
-        nombre_windows: initialData.nombre_windows ?? "", 
-        clave_win: initialData.clave_win ?? initialData.clave_acceso_windows ?? "",
+        
+        // 2. Mapeo de NOMBRE WINDOWS (Probamos alias y nombre físico con espacio)
+        nombre_windows: initialData.nombre_windows ?? initialData['nombre windows'] ?? initialData.nombreWindows ?? "", 
+
+        // 3. Mapeo de Claves (Formatos con espacio y alias)
+        clave_win: initialData.clave_win ?? initialData.clave_acceso_windows ?? initialData['clave de acceso windows'] ?? "",
+        clave_natural: initialData.clave_natural ?? initialData['clave natural'] ?? "",
+        
+        // 4. Fecha
         fecha: initialData.fecha || getTodayDate(), 
       });
     } else {
@@ -69,6 +83,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     } catch (e) { return null; }
   };
 
+  // --- ENVÍO DEL FORMULARIO ---
   const sendForm = async () => {
     const required = ["caso", "id_maquina", "area", "estado", "descripcion", "fecha"];
     for (const key of required) {
@@ -79,7 +94,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     }
 
     setIsLoading(true);
-    setModalState({ isOpen: true, status: "loading", message: "Procesando..." });
+    setModalState({ isOpen: true, status: "loading", message: "Procesando solicitud..." });
 
     try {
       const token = localStorage.getItem("token");
@@ -143,6 +158,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     }
   };
 
+  // --- ESTILOS UNIFICADOS ---
   const inputClass = `w-full p-2.5 rounded-xl border outline-none transition-all font-bold ${
     darkMode 
       ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" 
@@ -153,16 +169,15 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
 
   return (
     <>
-      <div className="space-y-6 animate-fade-in p-2">
+      <div className="space-y-6 animate-fade-in p-1">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Campos del formulario... */}
           <div className="md:col-span-2">
             <label className={labelClass}>Título del Caso / Incidencia</label>
             <input type="text" name="caso" value={formData.caso} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} placeholder="Ej: Falla de red..." />
           </div>
 
           <div>
-            <label className={labelClass}>Número de la Máquina</label>
+            <label className={labelClass}><FaDesktop className="inline mb-1 mr-1"/> Número de la Máquina</label>
             <input type="number" name="id_maquina" value={formData.id_maquina} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
           </div>
 
@@ -197,9 +212,18 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
             <input type="text" name="nombre_natural" value={formData.nombre_natural} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
           </div>
 
+          {/* --- CAMPO NOMBRE WINDOWS (CORREGIDO) --- */}
           <div>
-            <label className={labelClass}>Nombre Windows</label>
-            <input type="text" name="nombre_windows" value={formData.nombre_windows} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
+            <label className={labelClass}><FaWindows className="inline mb-1 mr-1"/> Nombre Windows</label>
+            <input 
+              type="text" 
+              name="nombre_windows" 
+              value={formData.nombre_windows} 
+              onChange={handleInputChange} 
+              disabled={readOnlyDefault} 
+              className={inputClass} 
+              placeholder="Usuario de Windows..."
+            />
           </div>
 
           <div>
@@ -214,12 +238,10 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
         </div>
 
         {!readOnlyDefault && (
-          /* --- SECCIÓN DE BOTONES ACTUALIZADA --- */
           <div className="flex flex-col md:flex-row justify-end gap-3 pt-6 border-t border-gray-700/30">
             <button 
               type="button" 
               onClick={onClose} 
-              /* ESTILO: Letras Rojo Sólido, Borde Rojo */
               className={`flex-1 md:flex-none h-11 px-8 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border-2 ${
                 darkMode 
                 ? "bg-transparent border-red-600 text-red-500 hover:bg-red-600 hover:text-white" 
@@ -233,21 +255,30 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
               type="button" 
               onClick={sendForm} 
               disabled={isLoading} 
-              /* ESTILO: Bloque Negro/Azul Sólido */
               className={`flex-1 md:flex-none h-11 px-10 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-md active:scale-95 text-white ${
                 darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-[#1a1a1a] hover:bg-blue-700"
               } disabled:opacity-50`}
             >
               {isEdit ? <FaSave size={14} /> : <FaPlus size={14} />}
-              {isLoading ? "Enviando..." : (isEdit ? "Guardar Cambios" : "Crear Reporte")}
+              {isLoading ? "Procesando..." : (isEdit ? "Guardar Cambios" : "Crear Reporte")}
             </button>
           </div>
         )}
       </div>
 
-      <Dialog open={showTechDialog} onClose={() => setShowTechDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle className="font-black uppercase text-sm">Registrar reporte técnico</DialogTitle>
-        <DialogContent>
+      {/* Modal Reporte Técnico */}
+      <Dialog 
+        open={showTechDialog} 
+        onClose={() => setShowTechDialog(false)} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{ style: { backgroundColor: darkMode ? '#1e293b' : '#ffffff', borderRadius: '24px' } }}
+      >
+        <DialogTitle className="flex justify-between items-center p-6">
+            <span className="font-black uppercase text-xs tracking-widest opacity-60">Registrar resolución técnica</span>
+            <IconButton onClick={() => setShowTechDialog(false)}><CloseIcon/></IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ borderColor: darkMode ? '#334155' : '#f1f5f9' }}>
           <Techreport initialData={techInitialData} onSuccess={() => { setShowTechDialog(false); onSuccess?.(); onClose?.(); }} onClose={() => setShowTechDialog(false)} darkMode={darkMode} />
         </DialogContent>
       </Dialog>

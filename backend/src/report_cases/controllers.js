@@ -1,5 +1,24 @@
 import {ReportcaseService} from "./services.js";
 
+export const GetbyuserReportcaseController = async (req, res) => {
+  try {
+    const { caso } = req.query; // Captura lo que viene de la searchbar
+    
+    if (!caso) {
+      return res.status(400).json({ message: "El campo de búsqueda está vacío" });
+    }
+
+    const result = await ReportcaseService.getByCase(caso);
+    
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error en el controlador de búsqueda:", error.message);
+    res.status(500).json({ 
+      message: "Error al buscar casos de reporte", 
+      error: error.message 
+    });
+  }
+};
 
 export const GetallReportcaseController = async (req, res) => {
   try {
@@ -20,7 +39,7 @@ export const GetallReportcaseController = async (req, res) => {
 };
 export const CreateReportcaseController = async (req, res) => {
   try {
-	// LOG: mostrar headers y body para depuración
+	
 	console.log('CreateReportcaseController - headers:', req.headers);
 	console.log('CreateReportcaseController - body:', req.body);
 

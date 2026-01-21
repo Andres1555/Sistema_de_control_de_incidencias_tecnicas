@@ -13,16 +13,14 @@ const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate, user
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const isAdmin = userRole?.toLowerCase() === "administrador";
 
-  // CLASE DE BOTÓN SÓLIDO (Estilo "Eliminar/Detalles" de tu imagen)
-  // En modo claro: Fondo negro sólido (#1a1a1a) con texto blanco.
-  // En modo oscuro: Fondo slate oscuro con texto blanco.
+
   const navItemClass = `w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 antialiased font-black group mb-2 shadow-md ${
     darkMode 
       ? "bg-slate-800 text-white hover:bg-blue-600" 
       : "bg-[#1a1a1a] text-white hover:bg-blue-700 active:scale-95"
   }`;
 
-  // Clase para los sub-filtros desplegables
+  
   const subItemClass = `w-full text-left px-4 py-2.5 text-[11px] font-black uppercase tracking-tight rounded-lg transition-all mb-1 ${
     darkMode 
       ? "bg-slate-700/50 text-slate-200 hover:bg-blue-600 hover:text-white" 
@@ -32,7 +30,7 @@ const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate, user
   return (
     <div className={`relative min-h-screen w-screen overflow-hidden transition-colors duration-500 ${darkMode ? "bg-[#0f172a]" : "bg-gray-100"}`}>
       
-      {/* Backdrop con desenfoque */}
+      
       <div 
         className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
           isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
@@ -40,7 +38,7 @@ const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate, user
         onClick={() => setIsOpen(false)}
       />
 
-      {/* --- SIDEBAR --- */}
+      
       <aside 
         className={`
           fixed top-0 left-0 z-50 h-screen w-72 shadow-2xl 
@@ -128,7 +126,6 @@ const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate, user
         {/* Footer */}
         <div className={`p-4 border-t ${darkMode ? "border-slate-700" : "border-gray-100"}`}>
            <p className={`text-[10px] text-center font-black uppercase tracking-widest ${darkMode ? "text-slate-600" : "text-gray-400"}`}>
-             v1.0.2 - Planta Industrial
            </p>
         </div>
       </aside>

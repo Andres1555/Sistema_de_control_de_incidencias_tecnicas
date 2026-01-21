@@ -5,6 +5,4 @@ build/
 Thumbs.db
 .DS_Store
 .dockerignore
-.compose.yaml
-.dockerfile
-Backend/Pasantiatest.sqlite
+backend/Pasantiatest.sqlite

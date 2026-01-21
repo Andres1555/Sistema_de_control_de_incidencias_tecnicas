@@ -26,7 +26,7 @@ async function getById(id) {
 }
 
 async function createReport(data) {
-  return await Report.create({
+  const payload = {
     caso: data.caso,
     id_maquina: data.id_maquina,
     id_user: data.id_user || null,
@@ -35,13 +35,14 @@ async function createReport(data) {
     estado: data.estado,
     descripcion: data.descripcion,
     nombre_natural: data.nombre_natural,
-    nombre_windows: data.nombre_windows,
+    nombre_windows: data.nombre_windows, 
     clave_natural: data.clave_natural,
-    clave_acceso_windows: data.clave_win,
+    clave_acceso_windows: data.clave_win, 
     fecha: data.fecha,
-  });
-}
+  };
 
+  return await Report.create(payload);
+}
 async function findMachineByNro(nro) {
   return await Machine.findOne({ where: { nro_maquina: Number(nro) } });
 }
@@ -59,19 +60,22 @@ async function updateById(id, data) {
   if (!report) return null;
 
   const updatePayload = { ...data };
+
+  
   if (updatePayload.clave_win !== undefined) {
     updatePayload.clave_acceso_windows = updatePayload.clave_win;
     delete updatePayload.clave_win;
   }
 
-  // Actualizar en la base de datos
+  
   await report.update(updatePayload);
 
-  // IMPORTANTE: Devolver con el include para que el Front vea el "16" y no el ID
+  
   return await Report.findByPk(id, {
     include: [{ model: Machine, attributes: ['nro_maquina'] }]
   });
 }
+
 async function deleteById(id) {
   if (id === undefined || id === null) return 0;
 

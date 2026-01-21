@@ -92,7 +92,7 @@ export async function setupDatabase() {
           db.close(async (closeErr) => {
             if (closeErr) return reject(closeErr);
             try {
-              // Esto sincronizará los modelos de Sequelize con lo que acabamos de crear
+              
               await initDatabase();
               resolve();
             } catch (e) {

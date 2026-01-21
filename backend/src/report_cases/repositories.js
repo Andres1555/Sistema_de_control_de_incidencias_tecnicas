@@ -1,13 +1,51 @@
-import { ReportCase } from "../schemas/schemas.js";
+import sequelize, { ReportCase, User, Report } from "../schemas/schemas.js"; 
+import { Op } from "sequelize";
 
 async function getAll(limit, offset) {
   return await ReportCase.findAndCountAll({
     limit: limit,
     offset: offset,
-    // order: [['id', 'ASC']] // Opcional: para mantener siempre el mismo orden
+    
   });
 }
 
+ async function findByUserName(nameTerm) {
+  try {
+    const cleanTerm = nameTerm.trim();
+
+    return await ReportCase.findAll({
+      include: [
+        {
+          model: User,
+          required: true,
+          where: {
+            [Op.or]: [
+              // 1. Buscar solo en nombre (ej: "Andres")
+              { nombre: { [Op.like]: `%${cleanTerm}%` } },
+              // 2. Buscar solo en apellido (ej: "Gonzalez")
+              { apellido: { [Op.like]: `%${cleanTerm}%` } },
+              // 3. BUSCAR NOMBRE COMPLETO (ej: "Andres Gonzalez")
+              // Esto pega nombre + espacio + apellido y lo compara con lo que escribiste
+              sequelize.where(
+                sequelize.literal(`"User"."nombre" || ' ' || "User"."apellido"`),
+                { [Op.like]: `%${cleanTerm}%` }
+              )
+            ]
+          },
+          attributes: ['id', 'nombre', 'apellido', 'rol'] 
+        },
+        {
+          model: Report,
+          attributes: ['caso', 'area'] 
+        }
+      ],
+      order: [['id', 'DESC']]
+    });
+  } catch (error) {
+    console.error("Error en findByUserName Repository:", error);
+    throw error;
+  }
+}
 async function getById(id) {
   if (id === undefined || id === null) return null;
   const byPk = await ReportCase.findByPk(id);
@@ -57,4 +95,6 @@ export const ReportCaseRepository = {
   updateById,
   deleteById,
   deleteByReportId,
+  findByUserName
+
 };

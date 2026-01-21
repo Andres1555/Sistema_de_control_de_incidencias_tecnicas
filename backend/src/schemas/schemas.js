@@ -43,7 +43,7 @@ export const User = sequelize.define('Users', {
 
 export const Machine = sequelize.define('Machine', {
   id_user: { type: DataTypes.INTEGER },
-  id_workers: { type: DataTypes.INTEGER }, // Foreign Key agregada anteriormente
+  id_workers: { type: DataTypes.INTEGER }, 
   nro_maquina: { type: DataTypes.INTEGER, field: 'nro de la maquina' }
 }, {
   tableName: 'Machine',
@@ -94,7 +94,6 @@ export const SpecializationUsers = sequelize.define('SpecializationUsers', {
   timestamps: false
 });
 
-// --- ASOCIACIONES ---
 
 Worker.hasMany(Machine, { foreignKey: 'id_workers' });
 Machine.belongsTo(Worker, { foreignKey: 'id_workers' });

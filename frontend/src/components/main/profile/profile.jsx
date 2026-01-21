@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import LoadingModal from "@/hooks/Modals/LoadingModal";
-import { FaUser, FaEnvelope, FaPhone, FaSave, FaPen } from "react-icons/fa";
+import { FaUser, FaEnvelope, FaPhone, FaSave, FaPen, FaIdBadge } from "react-icons/fa";
 
 const UserProfile = ({ darkMode }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -46,19 +46,30 @@ const UserProfile = ({ darkMode }) => {
         const idFromToken = decodeToken(token)?.id;
         const userId = localStorage.getItem('userId') || idFromToken;
         if (!userId) return;
+
         const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-        const res = await fetch(`${base}/api/users/${userId}`);
+        const res = await fetch(`${base}/api/users/${userId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
         if (!res.ok) return;
         const data = await res.json();
+
+        // LOG PARA DEBUG (Puedes borrarlo después de verificar)
+        console.log("Datos recibidos del backend:", data);
+
         setUser({
           nombre: data.nombre || "",
           apellido: data.apellido || "",
           email: data.correo || data.email || "",
-          telefono: data.telefono ? String(data.telefono) : "",
-          extension: data.extension ? String(data.extension) : "",
+          telefono: data.telefono !== undefined && data.telefono !== null ? String(data.telefono) : "",
+          
+          // CORRECCIÓN AQUÍ: Manejo de 0 y posibles nombres de campo
+          extension: (data.extension ?? data.ext ?? "").toString(), 
+          
           ficha: data.ficha ? String(data.ficha) : "",
-          ci: data.C_I ? String(data.C_I) : "",
-          role: data.rol || "",
+          ci: (data.C_I ?? data.ci ?? "").toString(),
+          role: data.rol || data.role || "",
           avatar: data.avatar || "" 
         });
       } catch (err) {
@@ -76,10 +87,14 @@ const UserProfile = ({ darkMode }) => {
       }
       setIsSaving(true);
       const token = localStorage.getItem('token');
-      const ci = decodeToken(token)?.ci;
+      
+      // Intentamos obtener CI del token o del estado del usuario
+      const decoded = decodeToken(token);
+      const ciParam = decoded?.ci || user.ci;
+
       const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       
-      const res = await fetch(`${base}/api/users/${ci}`, {
+      const res = await fetch(`${base}/api/users/${ciParam}`, {
         method: 'PUT',
         headers: { 
             'Content-Type': 'application/json',
@@ -90,7 +105,7 @@ const UserProfile = ({ darkMode }) => {
             apellido: user.apellido,
             email: user.email,
             telefono: Number(user.telefono),
-            extension: Number(user.extension)
+            extension: Number(user.extension) // Enviamos como número al backend
         }),
       });
 
@@ -167,7 +182,9 @@ const UserProfile = ({ darkMode }) => {
             <DetailBox label="Apellidos" icon={FaUser} name="apellido" value={user.apellido} isEditing={isEditing} onChange={handleChange} theme={theme} />
             <DetailBox label="Correo Electrónico" icon={FaEnvelope} name="email" value={user.email} isEditing={isEditing} onChange={handleChange} theme={theme} />
             <DetailBox label="Teléfono de Contacto" icon={FaPhone} name="telefono" value={user.telefono} isEditing={isEditing} onChange={handleChange} theme={theme} />
-            <DetailBox label="Extensión" icon={FaPhone} name="extension" value={user.extension} isEditing={isEditing} onChange={handleChange} theme={theme} />
+            
+            {/* CORRECCIÓN VISUAL: Asegurar que el name sea "extension" */}
+            <DetailBox label="Extensión Telefónica" icon={FaIdBadge} name="extension" value={user.extension} isEditing={isEditing} onChange={handleChange} theme={theme} />
         </div>
       </div>
 
@@ -198,7 +215,7 @@ const DetailBox = ({ label, icon: Icon, name, value, isEditing, onChange, theme 
       value={value}
       onChange={onChange}
       className={`w-full bg-transparent outline-none font-bold transition-all ${isEditing ? 'text-blue-600 text-base' : `text-lg ${theme.textPrimary}`}`}
-      placeholder="---"
+      placeholder="No asignado"
     />
   </div>
 );

@@ -62,7 +62,6 @@ const Login = () => {
   };
 
   return (
-    // CAMBIO: bg-blue-600 -> bg-slate-50 (Gris/Blanco de la Mainpage)
     <div className={`min-h-screen w-full flex items-center justify-center p-4 transition-colors duration-500 ${
       darkMode ? "bg-[#0f172a]" : "bg-slate-50"
     }`}>
@@ -115,12 +114,11 @@ const Login = () => {
         </form>
 
         <div className="mt-8 pt-6 border-t border-slate-700/30">
-          <p className={`text-center text-[11px] sm:text-xs mb-6 font-medium ${darkMode ? "text-slate-400" : "text-gray-500"}`}>
-            ¿No tienes cuenta? <Link to="/signup" className="text-blue-500 font-black hover:underline ml-1">Regístrate aquí</Link>
-          </p>
           <div className="flex items-center justify-center gap-3">
             <span className={`h-[1px] flex-1 ${darkMode ? "bg-slate-700" : "bg-gray-200"}`}></span>
-            <Link to="/workers-login" className={`text-[9px] font-black uppercase tracking-widest hover:text-blue-500 transition-colors ${darkMode ? "text-slate-500" : "text-gray-400"}`}>Acceso Planta</Link>
+            <Link to="/workers-login" className={`text-[9px] font-black uppercase tracking-widest hover:text-blue-500 transition-colors ${darkMode ? "text-slate-500" : "text-gray-400"}`}>
+              Acceso Planta
+            </Link>
             <span className={`h-[1px] flex-1 ${darkMode ? "bg-slate-700" : "bg-gray-200"}`}></span>
           </div>
         </div>
@@ -129,4 +127,5 @@ const Login = () => {
     </div>
   );
 };
+
 export default Login;

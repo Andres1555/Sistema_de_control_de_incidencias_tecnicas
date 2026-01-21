@@ -24,14 +24,14 @@ export const CreateReportController = async (req, res) => {
   try {
     const { 
       nro_maquina, caso, area, estado, descripcion, 
-      nombre_natural, clave_natural, clave_win, fecha 
+      nombre_natural,nombre_windows, clave_natural, clave_win, fecha 
     } = req.body;
 
-    // Obtenemos el ID y Rol del token (inyectados por verifyToken)
+   
     const authId = req.user?.id;
     const userRole = (req.user?.rol || req.user?.role || "").toLowerCase();
 
-    // Determinamos quién es el dueño según el rol del que está logueado
+  
     const isWorker = userRole === 'worker';
     
     const dataForService = {
@@ -41,6 +41,7 @@ export const CreateReportController = async (req, res) => {
       estado,
       descripcion,
       nombre_natural,
+      nombre_windows,
       clave_natural,
       clave_win,
       fecha,
@@ -71,21 +72,25 @@ export const UpdateReportController = async (req, res) => {
   try {
     const { id } = req.params;
     const idnumber = Number(id);
-    if (isNaN(idnumber)) return res.status(400).json({ message: 'id no valida' });
+    
+    if (isNaN(idnumber)) {
+      return res.status(400).json({ message: 'ID de reporte no válido' });
+    }
 
-    // Pasamos el body tal cual, el Servicio se encargará de limpiar los IDs
+    // El servicio procesa la máquina y limpia los IDs para evitar el error de Constraint
     const updated = await ReportService.update(idnumber, req.body);
     
     res.status(200).json({ 
-      message: "reporte actualizado correctamente", 
+      message: "Reporte actualizado con éxito", 
       report: updated 
     });
+
   } catch (error) {
-    console.error("Error en el controlador:", error.message);
+    console.error("Error en UpdateReportController:", error.message);
     res.status(500).json({
-        message: "Error al actualizar el reporte. Verifique IDs de usuario/trabajador.",
-        error: error.message,
-      });
+      message: "Error de integridad: Verifique que la máquina o usuario existan.",
+      error: error.message
+    });
   }
 };
 export const DeleteReportController= async (req, res) => {
