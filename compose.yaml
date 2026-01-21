@@ -9,7 +9,7 @@ services:
       - "8080:8080"
     volumes:
       - ./backend:/usr/src/app
-      # ESTO ES VITAL: Evita que el node_modules de Windows pise al del contenedor
+      
       - /usr/src/app/node_modules
     environment:
       - PORT=8080
@@ -25,6 +25,6 @@ services:
     ports:
       - "5173:5173"
     environment:
-      # Si accedes desde tu misma PC, localhost:8080 suele funcionar mejor
+      
       - VITE_API_URL=http://localhost:8080
     restart: unless-stopped
