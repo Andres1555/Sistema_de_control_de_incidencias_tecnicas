@@ -2,7 +2,7 @@ import path from 'path';
 import sqlite3 from 'sqlite3';
 import { initDatabase } from '../src/schemas/schemas.js';
 
-const DB_PATH = path.resolve(process.cwd(), 'Pasantiatest.sqlite');
+const DB_PATH = path.resolve(process.cwd(), 'Gestion de reportes.sqlite');
 
 const SQL = `
 CREATE TABLE IF NOT EXISTS Users (

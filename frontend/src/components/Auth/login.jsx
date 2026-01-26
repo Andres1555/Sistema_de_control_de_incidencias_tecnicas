@@ -11,7 +11,7 @@ const Login = () => {
   const navigate = useNavigate();
   
   // URL de la API desde el entorno o fallback al 8091
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8091";
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
   const [darkMode, setDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme');

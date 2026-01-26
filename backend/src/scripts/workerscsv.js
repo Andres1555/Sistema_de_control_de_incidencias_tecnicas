@@ -48,7 +48,7 @@ async function cargarCsv() {
       }
 
       try {
-        console.log('Guardando en Pasantiatest.sqlite');
+        console.log('Guardando en Gestion de reportes.sqlite');
         await Worker.bulkCreate(trabajadores);
         console.log('importancion agregada');
       } catch (err) {
