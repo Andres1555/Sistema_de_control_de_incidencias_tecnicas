@@ -24,18 +24,16 @@ export const CreateReportController = async (req, res) => {
   try {
     const { 
       nro_maquina, caso, area, estado, descripcion, 
-      nombre_natural,nombre_windows, clave_natural, clave_win, fecha 
+      nombre_natural, nombre_windows, clave_natural, clave_win, fecha,
+      cargo 
     } = req.body;
 
-   
     const authId = req.user?.id;
     const userRole = (req.user?.rol || req.user?.role || "").toLowerCase();
-
-  
     const isWorker = userRole === 'worker';
     
     const dataForService = {
-      nro_maquina: Number(nro_maquina),
+      nro_maquina: nro_maquina !== undefined && nro_maquina !== null ? String(nro_maquina).trim() : "",
       caso,
       area,
       estado,
@@ -45,12 +43,11 @@ export const CreateReportController = async (req, res) => {
       clave_natural,
       clave_win,
       fecha,
-      // Asignamos el ID a la columna correspondiente
+      cargo, 
       id_user: !isWorker ? authId : null,
       id_workers: isWorker ? authId : null
     };
 
-    // Llamamos al servicio (Capa 2)
     const createdReport = await ReportService.CreateReportWithMachineService(dataForService);
 
     res.status(201).json({ 
@@ -61,10 +58,7 @@ export const CreateReportController = async (req, res) => {
 
   } catch (error) {
     console.error("Error en CreateReportController:", error.message);
-    res.status(500).json({ 
-      status: "error", 
-      message: error.message 
-    });
+    res.status(500).json({ status: "error", message: error.message });
   }
 };
 
@@ -130,6 +124,18 @@ export const Getbycasecontroller = async (req, res) => {
     const data = await ReportService.GetReportsService(caso);
     res.status(200).json(data);
   } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+export const GetByFilterController = async (req, res) => {
+  try {
+    // Query params: ?area=...&fecha=YYYY-MM-DD
+    const { area, fecha } = req.query;
+    const data = await ReportService.GetReportsByFilterService({ area, fecha });
+    res.status(200).json(Array.isArray(data) ? data : { data });
+  } catch (error) {
+    console.error('Error en GetByFilterController:', error.message);
     res.status(500).json({ status: 'error', message: error.message });
   }
 };

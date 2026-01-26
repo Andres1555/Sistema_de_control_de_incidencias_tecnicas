@@ -9,12 +9,15 @@ import Tooltip from '@mui/material/Tooltip';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import UserForm from "../form/usersform";
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa"; // Cambiado a Fa para consistencia visual
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa"; 
 
 const UserList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // --- VARIABLE DE ENTORNO ---
+    const API_URL = import.meta.env.VITE_API_URL 
 
     const [pagination, setPagination] = useState({
         currentPage: 1,
@@ -31,10 +34,11 @@ const UserList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
         setLoading(true);
         setError(null);
         try {
-            let url = `http://localhost:8080/api/users?page=${page}`;
+            // Uso de API_URL
+            let url = `${API_URL}/api/users?page=${page}`;
             
             if (searchTerm) {
-                url = `http://localhost:8080/api/users/search?search=${encodeURIComponent(searchTerm)}`;
+                url = `${API_URL}/api/users/search?search=${encodeURIComponent(searchTerm)}`;
             }
 
             const res = await axios.get(url);
@@ -95,7 +99,8 @@ const UserList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
         if (!confirm) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:8080/api/users/${id}`, {
+            // Uso de API_URL
+            await axios.delete(`${API_URL}/api/users/${id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             fetchUsers(pagination.currentPage);
@@ -106,7 +111,7 @@ const UserList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
 
     return (
         <div className="flex flex-col h-full min-h-screen">
-            {error && <div className="p-4 text-center text-red-600 font-bold">{error}</div>}
+            {error && <div className="p-4 text-center text-red-500 font-bold">{error}</div>}
 
             {loading && users.length === 0 ? (
                 <div className="p-10 text-center animate-pulse text-blue-500 font-bold tracking-widest uppercase">
@@ -130,7 +135,6 @@ const UserList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
                         ))}
                     </section>
 
-                    {/* --- CONTROLES DE PAGINACIÓN UNIFICADOS --- */}
                     {!searchTerm && (
                         <div className="flex flex-col items-center justify-center gap-4 py-10 mt-auto">
                             <div className="flex items-center gap-3">
@@ -177,7 +181,6 @@ const UserList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
                 </>
             )}
 
-            {/* Modal de Detalle / Edición */}
             <Dialog
                 open={dialogOpen}
                 onClose={handleCloseDialog}
@@ -187,7 +190,7 @@ const UserList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
                     style: { 
                         backgroundColor: darkMode ? '#1e293b' : '#ffffff', 
                         color: darkMode ? '#ffffff' : '#000000',
-                        borderRadius: '24px', // Bordes redondeados consistentes
+                        borderRadius: '24px',
                         backgroundImage: 'none'
                     } 
                 }}

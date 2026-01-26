@@ -15,6 +15,9 @@ const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) =>
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
+	// --- VARIABLE DE ENTORNO ---
+	const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
 	const [selectedReport, setSelectedReport] = useState(null);
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [dialogReadOnly, setDialogReadOnly] = useState(true);
@@ -26,14 +29,14 @@ const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) =>
 			const token = localStorage.getItem('token');
 			const userId = localStorage.getItem('userId');
 
-			
-			let url = `http://localhost:8080/api/report/by-worker?id_worker=${userId}`;
+			// Uso de API_URL
+			let url = `${API_URL}/api/report/by-worker?id_worker=${userId}`;
 			
 			if (searchTerm) {
 				url += `&caso=${encodeURIComponent(searchTerm)}`;
 			}
 
-			console.log("Pidiendo mis reportes a:", url);
+			console.log("Peticiendo mis reportes a:", url);
 
 			const res = await axios.get(url, {
 				headers: { 'Authorization': `Bearer ${token}` }
@@ -78,7 +81,8 @@ const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) =>
 		if (!window.confirm("¿Estás seguro de eliminar este reporte?")) return;
 		try {
 			const token = localStorage.getItem('token');
-			await axios.delete(`http://localhost:8080/api/report/${id}`, {
+			// Uso de API_URL
+			await axios.delete(`${API_URL}/api/report/${id}`, {
 				headers: { 'Authorization': `Bearer ${token}` }
 			});
 			fetchReports();
@@ -115,7 +119,6 @@ const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) =>
 				</section>
 			)}
 
-			{}
 			<Dialog
 				open={dialogOpen}
 				onClose={handleCloseDialog}
@@ -148,7 +151,6 @@ const ReportListByID = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) =>
 				</DialogTitle>
 				<DialogContent dividers sx={{ mt: 2, borderColor: darkMode ? '#374151' : '#e5e7eb' }}>
 					{selectedReport && (
-						
 						<ReportWorker 
 							initialData={selectedReport} 
 							isEdit={dialogIsEdit} 

@@ -9,7 +9,7 @@ import {
 } from "react-icons/fa";
 import { FiChevronDown, FiChevronRight, FiX } from "react-icons/fi";
 
-const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate, userRole }) => {
+const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate, userRole, onApplyFilter, activeFilters = {} }) => {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const isAdmin = userRole?.toLowerCase() === "administrador";
 
@@ -112,10 +112,34 @@ const SidebarLayout = ({ children, isOpen, setIsOpen, darkMode, onNavigate, user
 
             {isFiltersOpen && (
               <div className={`ml-4 mt-1 pl-4 border-l-2 space-y-1 ${darkMode ? "border-slate-700" : "border-gray-300"}`}>
-                <button className={subItemClass}>
+                <button
+                  className={`${subItemClass} ${activeFilters.area ? 'bg-blue-600 text-white' : ''}`}
+                  onClick={() => {
+                    // Toggle area filter: if active, remove; otherwise prompt for value
+                    if (activeFilters.area) {
+                      onApplyFilter?.({ area: null });
+                    } else {
+                      const val = window.prompt('Ingrese el nombre del área para filtrar (ej: Reducción):');
+                      if (val !== null && String(val).trim() !== '') onApplyFilter?.({ area: String(val).trim() });
+                    }
+                  }}
+                >
                   Por Área
                 </button>
-                <button className={subItemClass}>
+
+                <button
+                  className={`${subItemClass} ${activeFilters.fecha ? 'bg-blue-600 text-white' : ''}`}
+                  onClick={() => {
+                    // Toggle fecha filter: if active, remove; otherwise prompt for date
+                    if (activeFilters.fecha) {
+                      onApplyFilter?.({ fecha: null });
+                    } else {
+                      const val = window.prompt('Ingrese la fecha en formato YYYY-MM-DD para filtrar:');
+                      if (val !== null && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) onApplyFilter?.({ fecha: val.trim() });
+                      else if (val !== null && val.trim() !== '') alert('Formato de fecha inválido. Use YYYY-MM-DD');
+                    }
+                  }}
+                >
                   Por Fecha
                 </button>
               </div>

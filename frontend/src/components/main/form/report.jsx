@@ -3,14 +3,14 @@ import { Dialog, DialogTitle, DialogContent, Box, IconButton, Typography, Button
 import LoadingModal from "@/hooks/Modals/LoadingModal";
 import Techreport from "./techreport";
 import CloseIcon from "@mui/icons-material/Close";
-import { FaTrash, FaSave, FaPlus, FaWindows, FaDesktop } from "react-icons/fa";
+import { FaTrash, FaSave, FaPlus, FaWindows, FaDesktop, FaBriefcase } from "react-icons/fa";
 
 const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false, readOnlyDefault = false, darkMode = false }, ref) => {
   // --- ESTADOS ---
   const [isLoading, setIsLoading] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
 
-  // Obtener fecha de hoy en formato YYYY-MM-DD para el input nativo
+  // Obtener fecha de hoy en formato YYYY-MM-DD
   const getTodayDate = () => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -24,6 +24,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     id_maquina: "", 
     area: "",
     estado: "",
+    cargo: "", // --- NUEVO ATRIBUTO ---
     descripcion: "",
     nombre_natural: "",
     nombre_windows: "", 
@@ -42,25 +43,16 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     message: "",
   });
 
-  // --- SINCRONIZACIÓN DE DATOS (MAPEO AGRESIVO) ---
+  // --- SINCRONIZACIÓN DE DATOS ---
   useEffect(() => {
     if (initialData) {
-      // Log para depuración en consola
-      console.log("Cargando datos en el formulario:", initialData);
-
       setFormData({
         ...initialData,
-        // 1. Mapeo de Máquina (Prioridad al número real del JOIN)
         id_maquina: initialData.Machine?.nro_maquina ?? initialData.nro_maquina ?? initialData.id_maquina ?? "",
-        
-        // 2. Mapeo de NOMBRE WINDOWS (Probamos alias y nombre físico con espacio)
         nombre_windows: initialData.nombre_windows ?? initialData['nombre windows'] ?? initialData.nombreWindows ?? "", 
-
-        // 3. Mapeo de Claves (Formatos con espacio y alias)
         clave_win: initialData.clave_win ?? initialData.clave_acceso_windows ?? initialData['clave de acceso windows'] ?? "",
         clave_natural: initialData.clave_natural ?? initialData['clave natural'] ?? "",
-        
-        // 4. Fecha
+        cargo: initialData.cargo ?? "", 
         fecha: initialData.fecha || getTodayDate(), 
       });
     } else {
@@ -107,9 +99,10 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
       
       const payload = {
         ...formData,
-        nro_maquina: Number(formData.id_maquina),
+        nro_maquina: String(formData.id_maquina),
         id_maquina: Number(formData.id_maquina),
-        nombre_windows: String(formData.nombre_windows)
+        nombre_windows: String(formData.nombre_windows),
+        cargo: String(formData.cargo) // --- ENVIAR DATO CARGO ---
       };
 
       const res = await fetch(url, {
@@ -158,11 +151,8 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     }
   };
 
-  // --- ESTILOS UNIFICADOS ---
   const inputClass = `w-full p-2.5 rounded-xl border outline-none transition-all font-bold ${
-    darkMode 
-      ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" 
-      : "bg-gray-50 border-gray-300 text-gray-900 focus:border-blue-600"
+    darkMode ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" : "bg-gray-50 border-gray-300 text-gray-900 focus:border-blue-600"
   } ${readOnlyDefault ? "bg-transparent border-transparent cursor-default font-black text-lg" : "border-solid shadow-sm"}`;
 
   const labelClass = `block text-[10px] font-black uppercase tracking-widest mb-1 ${darkMode ? "text-blue-400" : "text-blue-600"}`;
@@ -178,7 +168,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
 
           <div>
             <label className={labelClass}><FaDesktop className="inline mb-1 mr-1"/> Número de la Máquina</label>
-            <input type="number" name="id_maquina" value={formData.id_maquina} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
+            <input type="text" name="id_maquina" value={formData.id_maquina} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
           </div>
 
           <div>
@@ -197,6 +187,12 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
             </select>
           </div>
 
+          {/* --- CAMPO CARGO --- */}
+          <div>
+            <label className={labelClass}><FaBriefcase className="inline mb-1 mr-1"/> Cargo</label>
+            <input type="text" name="cargo" value={formData.cargo} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} placeholder="Ej: Analista de sistemas" />
+          </div>
+
           <div>
             <label className={labelClass}>Fecha</label>
             <input type="date" name="fecha" value={formData.fecha} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
@@ -212,18 +208,9 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
             <input type="text" name="nombre_natural" value={formData.nombre_natural} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
           </div>
 
-          {/* --- CAMPO NOMBRE WINDOWS (CORREGIDO) --- */}
           <div>
             <label className={labelClass}><FaWindows className="inline mb-1 mr-1"/> Nombre Windows</label>
-            <input 
-              type="text" 
-              name="nombre_windows" 
-              value={formData.nombre_windows} 
-              onChange={handleInputChange} 
-              disabled={readOnlyDefault} 
-              className={inputClass} 
-              placeholder="Usuario de Windows..."
-            />
+            <input type="text" name="nombre_windows" value={formData.nombre_windows} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
           </div>
 
           <div>
@@ -239,56 +226,20 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
 
         {!readOnlyDefault && (
           <div className="flex flex-col md:flex-row justify-end gap-3 pt-6 border-t border-gray-700/30">
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className={`flex-1 md:flex-none h-11 px-8 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border-2 ${
-                darkMode 
-                ? "bg-transparent border-red-600 text-red-500 hover:bg-red-600 hover:text-white" 
-                : "bg-white border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
-              }`}
-            >
-              <FaTrash size={12} /> Cancelar
-            </button>
-            
-            <button 
-              type="button" 
-              onClick={sendForm} 
-              disabled={isLoading} 
-              className={`flex-1 md:flex-none h-11 px-10 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-md active:scale-95 text-white ${
-                darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-[#1a1a1a] hover:bg-blue-700"
-              } disabled:opacity-50`}
-            >
-              {isEdit ? <FaSave size={14} /> : <FaPlus size={14} />}
-              {isLoading ? "Procesando..." : (isEdit ? "Guardar Cambios" : "Crear Reporte")}
-            </button>
+            <button type="button" onClick={onClose} className={`flex-1 md:flex-none h-11 px-8 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border-2 ${darkMode ? "bg-transparent border-red-600 text-red-500 hover:bg-red-600 hover:text-white" : "bg-white border-red-600 text-red-600 hover:bg-red-600 hover:text-white"}`}><FaTrash size={12} /> Cancelar</button>
+            <button type="button" onClick={sendForm} disabled={isLoading} className={`flex-1 md:flex-none h-11 px-10 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-md active:scale-95 text-white ${darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-[#1a1a1a] hover:bg-blue-700"} disabled:opacity-50`}>{isEdit ? <FaSave size={14} /> : <FaPlus size={14} />}{isLoading ? "Procesando..." : (isEdit ? "Guardar Cambios" : "Crear Reporte")}</button>
           </div>
         )}
       </div>
 
-      {/* Modal Reporte Técnico */}
-      <Dialog 
-        open={showTechDialog} 
-        onClose={() => setShowTechDialog(false)} 
-        maxWidth="md" 
-        fullWidth
-        PaperProps={{ style: { backgroundColor: darkMode ? '#1e293b' : '#ffffff', borderRadius: '24px' } }}
-      >
-        <DialogTitle className="flex justify-between items-center p-6">
-            <span className="font-black uppercase text-xs tracking-widest opacity-60">Registrar resolución técnica</span>
-            <IconButton onClick={() => setShowTechDialog(false)}><CloseIcon/></IconButton>
-        </DialogTitle>
+      <Dialog open={showTechDialog} onClose={() => setShowTechDialog(false)} maxWidth="md" fullWidth PaperProps={{ style: { backgroundColor: darkMode ? '#1e293b' : '#ffffff', borderRadius: '24px' } }}>
+        <DialogTitle className="flex justify-between items-center p-6"><span className="font-black uppercase text-xs tracking-widest opacity-60">Registrar resolución técnica</span><IconButton onClick={() => setShowTechDialog(false)}><CloseIcon/></IconButton></DialogTitle>
         <DialogContent dividers sx={{ borderColor: darkMode ? '#334155' : '#f1f5f9' }}>
           <Techreport initialData={techInitialData} onSuccess={() => { setShowTechDialog(false); onSuccess?.(); onClose?.(); }} onClose={() => setShowTechDialog(false)} darkMode={darkMode} />
         </DialogContent>
       </Dialog>
 
-      <LoadingModal
-        isOpen={modalState.isOpen}
-        status={modalState.status}
-        message={modalState.message}
-        onClose={handleModalClose}
-      />
+      <LoadingModal isOpen={modalState.isOpen} status={modalState.status} message={modalState.message} onClose={handleModalClose} />
     </>
   );
 });

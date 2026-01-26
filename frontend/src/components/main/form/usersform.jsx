@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FaTrash, FaSave, FaUserPlus } from "react-icons/fa"; 
+import { FaTrash, FaSave, FaUserPlus, FaLock } from "react-icons/fa"; 
 import LoadingModal from "@/hooks/Modals/LoadingModal"; 
 
 const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, onSuccess, onClose }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
-    // Estado para guardar el CI original y no perder la referencia al editar
     const [originalCI, setOriginalCI] = useState(null);
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
     
     const [modalState, setModalState] = useState({
-        isOpen: false,
-        status: "loading",
-        message: "",
+        isOpen: false, status: "loading", message: "",
     });
 
     const [formData, setFormData] = useState({
@@ -33,17 +31,10 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
 
     useEffect(() => {
         if (initialData && Object.keys(initialData).length > 0) {
-            const machineVal = initialData.Machines?.length > 0 
-                ? initialData.Machines[0].nro_maquina 
-                : (initialData.nro_maquina || "");
-
-            const specsVal = initialData.Specializations?.length > 0
-                ? initialData.Specializations.map(s => s.nombre).join(", ")
-                : (initialData.especializacion || "");
-
+            const machineVal = initialData.Machines?.length > 0 ? initialData.Machines[0].nro_maquina : (initialData.nro_maquina || "");
+            const specsVal = initialData.Specializations?.length > 0 ? initialData.Specializations.map(s => s.nombre).join(", ") : (initialData.especializacion || "");
             const ciValue = initialData.C_I || initialData.ci || "";
-            setOriginalCI(ciValue); // Guardamos la referencia original
-
+            setOriginalCI(ciValue);
             setFormData({
                 id: initialData.id || "",
                 nombre: initialData.nombre || "",
@@ -68,54 +59,39 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        setModalState({
-            isOpen: true,
-            status: "loading",
-            message: isCreate ? "Registrando nuevo usuario..." : "Guardando cambios..."
-        });
-
+        setModalState({ isOpen: true, status: "loading", message: isCreate ? "Registrando nuevo usuario..." : "Guardando cambios..." });
         setIsSubmitting(true);
         try {
             const token = localStorage.getItem('token');
             const headers = { 'Authorization': `Bearer ${token}` };
-            const base = "http://localhost:8080/api";
+            const base = `${API_URL}/api`;
 
             const userPayload = {
                 nombre: formData.nombre,
                 apellido: formData.apellido,
                 email: formData.correo,
-                ci: Number(formData.C_I), // Este es el valor nuevo
+                ci: Number(formData.C_I),
                 password: formData.password,
                 ficha: Number(formData.ficha),
-                telefono: Number(formData.telefono),
+                telefono: String(formData.telefono),
                 rol: formData.rol,
                 extension: Number(formData.extension),
                 especializacion: formData.especializacion,
-                nro_maquina: formData.nro_maquina ? Number(formData.nro_maquina) : null
+                nro_maquina: formData.nro_maquina ? String(formData.nro_maquina) : null
             };
 
+            
             if (!isCreate && !userPayload.password) delete userPayload.password;
 
             if (isCreate) {
                 await axios.post(`${base}/users`, userPayload, { headers });
             } else {
-                // USAMOS originalCI para la URL de búsqueda en el backend
                 await axios.put(`${base}/users/${originalCI}`, userPayload, { headers });
             }
 
-            setModalState({
-                isOpen: true,
-                status: "success",
-                message: isCreate ? "Usuario registrado exitosamente" : "Usuario actualizado correctamente"
-            });
-
+            setModalState({ isOpen: true, status: "success", message: isCreate ? "Usuario registrado exitosamente" : "Usuario actualizado correctamente" });
         } catch (error) {
-            setModalState({
-                isOpen: true,
-                status: "error",
-                message: error.response?.data?.message || "Ocurrió un problema en el servidor"
-            });
+            setModalState({ isOpen: true, status: "error", message: error.response?.data?.message || "Ocurrió un problema en el servidor" });
         } finally {
             setIsSubmitting(false);
         }
@@ -124,15 +100,10 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
     const handleModalClose = () => {
         const wasSuccess = modalState.status === "success";
         setModalState(prev => ({ ...prev, isOpen: false }));
-        if (wasSuccess) {
-            if (onSuccess) onSuccess(); 
-            onClose();
-        }
+        if (wasSuccess) { if (onSuccess) onSuccess(); onClose(); }
     };
 
-    const inputClass = `w-full p-2.5 rounded-xl border outline-none transition-all font-bold ${
-        darkMode ? "bg-[#334155] border-slate-600 text-white" : "bg-white border-gray-300 text-black"
-    } ${readOnlyDefault ? "bg-transparent border-transparent cursor-default font-black" : "border-solid"}`;
+    const inputClass = `w-full p-2.5 rounded-xl border outline-none transition-all font-bold ${darkMode ? "bg-[#334155] border-slate-600 text-white focus:border-blue-500" : "bg-white border-gray-300 text-black focus:border-blue-600"} ${readOnlyDefault ? "bg-transparent border-transparent cursor-default font-black text-lg" : "border-solid shadow-sm"}`;
 
     const labelClass = `block text-[10px] font-black uppercase tracking-widest mb-1 ${darkMode ? "text-blue-400" : "text-blue-600"}`;
 
@@ -144,8 +115,14 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
                     <div><label className={labelClass}>Apellido</label><input type="text" name="apellido" value={formData.apellido} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
                     <div><label className={labelClass}>Cédula (C.I)</label><input type="number" name="C_I" value={formData.C_I} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
                     <div><label className={labelClass}>Correo</label><input type="email" name="correo" value={formData.correo} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
-                    <div className="md:col-span-2"><label className={labelClass}>Especializaciones</label><input type="text" name="especializacion" value={formData.especializacion} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} /></div>
-                    <div><label className={labelClass}>Nro Máquina</label><input type="number" name="nro_maquina" value={formData.nro_maquina} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} /></div>
+                    
+                    <div className="md:col-span-2">
+                        <label className={labelClass}>Especializaciones</label>
+                        <input type="text" name="especializacion" value={formData.especializacion} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} placeholder="redes, sql, soporte" />
+                    </div>
+
+                    <div><label className={labelClass}>Nro Máquina</label><input type="text" name="nro_maquina" value={formData.nro_maquina} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} /></div>
+                    
                     <div>
                         <label className={labelClass}>Rol</label>
                         <select name="rol" value={formData.rol} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required>
@@ -154,19 +131,35 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
                             <option value="administrador">Administrador</option>
                         </select>
                     </div>
+
+                    {/* CAMPO DE CONTRASEÑA - Solo visible si no es solo lectura */}
+                    {!readOnlyDefault && (
+                        <div className="md:col-span-2">
+                            <label className={labelClass}><FaLock className="inline mb-1 mr-1"/> {isCreate ? "Contraseña" : "Cambiar Contraseña (opcional)"}</label>
+                            <input 
+                                type="password" 
+                                name="password" 
+                                value={formData.password} 
+                                onChange={handleChange} 
+                                className={inputClass} 
+                                required={isCreate} 
+                                placeholder="••••••••" 
+                            />
+                        </div>
+                    )}
+
                     <div><label className={labelClass}>Ficha</label><input type="number" name="ficha" value={formData.ficha} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
+                    
                     <div className="flex gap-2">
                         <div className="flex-1"><label className={labelClass}>Teléfono</label><input type="number" name="telefono" value={formData.telefono} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
                         <div className="flex-1"><label className={labelClass}>Extensión</label><input type="number" name="extension" value={formData.extension} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} required /></div>
                     </div>
-                    {!readOnlyDefault && isCreate && (
-                        <div className="md:col-span-2"><label className={labelClass}>Contraseña</label><input type="password" name="password" value={formData.password} onChange={handleChange} className={inputClass} required={isCreate} placeholder="••••••••" /></div>
-                    )}
                 </div>
+
                 {!readOnlyDefault && (
                     <div className="flex flex-col md:flex-row justify-end gap-3 pt-6 border-t border-gray-700/30">
-                        <button type="button" onClick={onClose} className="flex-1 md:flex-none h-11 px-8 rounded-xl text-red-500 border-2 border-red-600 uppercase font-black tracking-widest hover:bg-red-600 hover:text-white transition-all"><FaTrash className="inline mr-2"/> Cancelar</button>
-                        <button type="submit" disabled={isSubmitting} className="flex-1 md:flex-none h-11 px-10 rounded-xl bg-blue-600 text-white uppercase font-black tracking-widest hover:bg-blue-700 transition-all shadow-lg">{isCreate ? <FaUserPlus className="inline mr-2"/> : <FaSave className="inline mr-2"/>} {isSubmitting ? "Procesando..." : (isCreate ? "Registrar" : "Guardar")}</button>
+                        <button type="button" onClick={onClose} className={`flex-1 md:flex-none h-11 px-8 rounded-xl text-red-500 border-2 border-red-600 uppercase font-black tracking-widest hover:bg-red-600 hover:text-white transition-all`}><FaTrash size={12} className="inline mr-2" /> Cancelar</button>
+                        <button type="submit" disabled={isSubmitting} className={`flex-1 md:flex-none h-11 px-10 rounded-xl bg-blue-600 text-white uppercase font-black tracking-widest hover:bg-blue-700 transition-all shadow-lg`}>{isCreate ? <FaUserPlus size={14} /> : <FaSave size={14} />} {isSubmitting ? "Procesando..." : (isCreate ? "Registrar" : "Guardar")}</button>
                     </div>
                 )}
             </form>

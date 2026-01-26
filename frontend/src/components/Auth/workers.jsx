@@ -8,16 +8,12 @@ import { FiSun, FiMoon, FiHash, FiArrowLeft } from "react-icons/fi";
 const WorkersLogin = () => {
   const [formData, setFormData] = useState({ ficha: "" });
   const navigate = useNavigate();
-  
-  const [darkMode, setDarkMode] = useState(() => {
-    const t = localStorage.getItem('theme');
-    if (t === null) return true;
-    return t === 'dark';
-  });
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8091";
 
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') !== 'light');
   const toggleTheme = () => setDarkMode((s) => {
     const next = !s;
-    try { localStorage.setItem('theme', next ? 'dark' : 'light'); } catch {}
+    localStorage.setItem('theme', next ? 'dark' : 'light');
     return next;
   });
 
@@ -27,24 +23,15 @@ const WorkersLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.ficha) {
-      setError('La ficha es obligatoria');
-      return;
-    }
     try {
       setIsLoading(true);
-      setModalState({ isOpen: true, status: 'loading', message: 'Verificando ficha...' });
-
-      const res = await axios.post("http://localhost:8080/api/workers/login", { ficha: formData.ficha });
-
+      setModalState({ isOpen: true, status: 'loading', message: 'Verificando...' });
+      const res = await axios.post(`${API_URL}/api/workers/login`, { ficha: formData.ficha });
       if (res.data?.token) localStorage.setItem('token', res.data.token);
       if (res.data?.user?.id) localStorage.setItem('userId', String(res.data.user.id));
       localStorage.setItem('role', 'worker');
-
-      setModalState({ isOpen: true, status: 'success', message: 'Acceso permitido' });
-      setError('');
+      setModalState({ isOpen: true, status: 'success', message: 'Bienvenido' });
     } catch (err) {
-      console.error("Error en workers login:", err);
       const msg = err?.response?.data?.message || 'Ficha inválida';
       setError(msg);
       setModalState({ isOpen: true, status: 'error', message: msg });
@@ -63,93 +50,27 @@ const WorkersLogin = () => {
   };
 
   return (
-    /* --- CAMBIO: bg-blue-600 -> bg-slate-50 (Gris claro estándar) --- */
     <div className={`min-h-screen w-full flex items-center justify-center p-4 transition-colors duration-500 ${
       darkMode ? "bg-[#0f172a]" : "bg-slate-50"
     }`}>
-      
-      {/* --- TARJETA: Ajuste de bordes y fondo para modo claro --- */}
-      <div className={`w-full max-w-sm p-6 sm:p-10 rounded-3xl shadow-2xl relative transition-all duration-300 border ${
+      <div className={`w-full max-w-sm p-8 rounded-3xl shadow-2xl relative transition-all duration-300 border ${
         darkMode ? "bg-[#1e293b] border-slate-700 text-white" : "bg-white border-gray-200 text-black"
       }`}>
-        
-        {/* Botón Volver */}
-        <Link 
-          to="/" 
-          className={`absolute top-5 left-5 p-2 rounded-xl transition-colors ${
-            darkMode ? "hover:bg-slate-700 text-slate-400" : "hover:bg-slate-100 text-gray-500"
-          }`}
-        >
-          <FiArrowLeft size={20} />
-        </Link>
-
-        {/* Botón de Tema */}
-        <button 
-          onClick={toggleTheme} 
-          className="absolute top-5 right-5 p-2.5 rounded-xl hover:bg-slate-500/20 transition-colors z-10"
-        >
-          {darkMode ? <FiSun size={20} className="text-yellow-400" /> : <FiMoon size={20} className="text-blue-600" />}
-        </button>
-
+        <Link to="/" className="absolute top-5 left-5 p-2 rounded-xl text-slate-400 hover:bg-slate-500/10"><FiArrowLeft size={20} /></Link>
+        <button onClick={toggleTheme} className="absolute top-5 right-5 p-2.5 rounded-xl hover:bg-slate-500/20 transition-colors"><FiSun size={20} className="text-yellow-400" /></button>
         <header className="text-center mt-4 mb-8">
-            <h2 className={`text-2xl md:text-3xl font-black mb-2 uppercase tracking-tighter ${darkMode ? "text-blue-400" : "text-blue-700"}`}>
-                Acceso Planta
-            </h2>
-            <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-gray-400'}`}>
-                Ingresa tu número de ficha
-            </p>
+            <h2 className={`text-2xl font-black uppercase tracking-tighter ${darkMode ? "text-blue-400" : "text-blue-700"}`}>Acceso Planta</h2>
         </header>
-
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 text-red-500 rounded-2xl text-[10px] font-black text-center uppercase animate-pulse">
-            {error}
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ml-1 ${darkMode ? "text-blue-400" : "text-blue-600"}`}>
-              <FiHash size={14}/> Número de Ficha
-            </label>
-            <input
-              type="text"
-              name="ficha"
-              placeholder="Ej: 45678"
-              value={formData.ficha}
-              onChange={(e) => setFormData({ ...formData, ficha: e.target.value })}
-              className={`w-full px-5 py-4 text-center text-lg font-bold tracking-widest border rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
-                darkMode ? "bg-[#334155] border-slate-600 text-white placeholder-slate-500" : "bg-gray-50 border-gray-200 text-black"
-              }`}
-              required
-            />
+          <div className="space-y-2 text-left">
+            <label className="text-[10px] font-black uppercase tracking-widest text-blue-500 ml-1">Ficha del Trabajador</label>
+            <input type="text" placeholder="Ej: 45678" value={formData.ficha} onChange={(e) => setFormData({ ficha: e.target.value })} className={`w-full px-5 py-4 text-center text-lg font-bold border rounded-2xl outline-none ${darkMode ? "bg-[#334155] border-slate-600" : "bg-gray-50 border-gray-200"}`} required />
           </div>
-
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-blue-700 transform transition-all active:scale-95 shadow-xl shadow-blue-900/20 disabled:opacity-50"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Verificando...' : 'Entrar'}
-          </button>
+          <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-700 transition-all active:scale-95 shadow-xl disabled:opacity-50">Entrar</button>
         </form>
-
-        <footer className="mt-8 text-center">
-            <Link to="/" className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
-              darkMode ? "text-slate-500 hover:text-blue-400" : "text-gray-400 hover:text-blue-700"
-            }`}>
-              Regresar al Login General
-            </Link>
-        </footer>
-
-        <LoadingModal 
-          isOpen={modalState.isOpen} 
-          status={modalState.status} 
-          message={modalState.message} 
-          onClose={handleModalClose} 
-        />
+        <LoadingModal isOpen={modalState.isOpen} status={modalState.status} message={modalState.message} onClose={handleModalClose} />
       </div>
     </div>
   );
 };
-
 export default WorkersLogin;

@@ -15,6 +15,9 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(Boolean(readOnlyDefault));
 
+  // --- VARIABLE DE ENTORNO ---
+  const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
   const loggedUserName = localStorage.getItem('userName') || "Usuario";
   const loggedUserId = localStorage.getItem('userId');
 
@@ -61,7 +64,6 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
 
     try {
       const token = localStorage.getItem('token');
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       
       const payload = {
         id_user: Number(formData.id_user),
@@ -72,6 +74,7 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
       };
 
       const method = isEdit ? 'PUT' : 'POST';
+      // URL DINÁMICA
       const url = isEdit ? `${base}/api/report_cases/${initialData.id}` : `${base}/api/report_cases`;
 
       const res = await fetch(url, {
@@ -108,7 +111,6 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     setModalState((s) => ({ ...s, isOpen: false }));
   };
 
-  // --- ESTILOS UNIFICADOS ---
   const inputClass = `w-full p-2.5 rounded-xl border outline-none transition-all font-bold ${
     darkMode 
       ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" 
@@ -120,96 +122,34 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
   return (
     <div className="p-2 animate-fade-in">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        {/* ID REPORTE */}
         <div>
           <label className={labelClass}><FaHashtag className="inline mb-1 mr-1"/> ID Reporte Relacionado</label>
           <input type="text" value={formData.id_report} disabled={true} className={`${inputClass} opacity-60`} />
         </div>
-
-        {/* TÉCNICO RESPONSABLE */}
         <div>
           <label className={labelClass}><FaUserTie className="inline mb-1 mr-1"/> Técnico Responsable</label>
           <input type="text" value={`${formData.id_user} - ${loggedUserName}`} disabled={true} className={`${inputClass} opacity-60`} />
         </div>
-
-        {/* CASO TÉCNICO */}
         <div className="md:col-span-2">
           <label className={labelClass}><FaWrench className="inline mb-1 mr-1"/> Diagnóstico / Caso Técnico</label>
-          <input
-            type="text"
-            name="caso_tecnico"
-            value={formData.caso_tecnico}
-            onChange={handleInputChange}
-            disabled={isReadOnly}
-            placeholder="Resumen del fallo técnico..."
-            className={inputClass}
-          />
+          <input type="text" name="caso_tecnico" value={formData.caso_tecnico} onChange={handleInputChange} disabled={isReadOnly} placeholder="Resumen del fallo técnico..." className={inputClass} />
         </div>
-
-        {/* RESOLUCIÓN */}
         <div className="md:col-span-2">
           <label className={labelClass}><FaCheckCircle className="inline mb-1 mr-1"/> Resolución Detallada</label>
-          <textarea
-            name="resolucion"
-            rows="3"
-            value={formData.resolucion}
-            onChange={handleInputChange}
-            disabled={isReadOnly}
-            placeholder="Describa la solución aplicada..."
-            className={inputClass}
-          />
+          <textarea name="resolucion" rows="3" value={formData.resolucion} onChange={handleInputChange} disabled={isReadOnly} placeholder="Describa la solución aplicada..." className={inputClass} />
         </div>
-
-        {/* HORA DE RESOLUCIÓN */}
         <div>
           <label className={labelClass}><FaClock className="inline mb-1 mr-1"/> Hora de la Resolución</label>
-          <input
-            type="time"
-            name="tiempo"
-            value={formData.tiempo}
-            onChange={handleInputChange}
-            disabled={isReadOnly}
-            className={inputClass}
-          />
+          <input type="time" name="tiempo" value={formData.tiempo} onChange={handleInputChange} disabled={isReadOnly} className={inputClass} />
         </div>
-
-        {/* BOTONES UNIFICADOS */}
         {!isReadOnly && (
           <div className="md:col-span-2 flex flex-col md:flex-row justify-end gap-3 pt-4 border-t border-gray-700/30">
-            <button
-              type="button"
-              onClick={onClose}
-              /* ESTILO: Letras Rojo Sólido, Borde Rojo */
-              className={`flex-1 md:flex-none h-11 px-8 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border-2 ${
-                darkMode 
-                ? "bg-transparent border-red-600 text-red-500 hover:bg-red-600 hover:text-white" 
-                : "bg-white border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
-              }`}
-            >
-              <FaTrash size={12} /> Cancelar
-            </button>
-
-            <button
-              onClick={sendForm}
-              disabled={isLoading}
-              /* ESTILO: Bloque Negro/Azul Sólido */
-              className={`flex-1 md:flex-none h-11 px-10 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-md active:scale-95 text-white ${
-                darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-[#1a1a1a] hover:bg-blue-700"
-              } disabled:opacity-50`}
-            >
-              {isLoading ? "Procesando..." : <><FaSave size={14}/> Guardar Informe</>}
-            </button>
+            <button type="button" onClick={onClose} className={`flex-1 md:flex-none h-11 px-8 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border-2 ${darkMode ? "bg-transparent border-red-600 text-red-500 hover:bg-red-600 hover:text-white" : "bg-white border-red-600 text-red-600 hover:bg-red-600 hover:text-white"}`}><FaTrash size={12} /> Cancelar</button>
+            <button onClick={sendForm} disabled={isLoading} className={`flex-1 md:flex-none h-11 px-10 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-md active:scale-95 text-white ${darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-[#1a1a1a] hover:bg-blue-700"} disabled:opacity-50`}>{isLoading ? "Procesando..." : <><FaSave size={14}/> Guardar Informe</>}</button>
           </div>
         )}
       </div>
-
-      <LoadingModal
-        isOpen={modalState.isOpen}
-        status={modalState.status}
-        message={modalState.message}
-        onClose={handleModalClose}
-      />
+      <LoadingModal isOpen={modalState.isOpen} status={modalState.status} message={modalState.message} onClose={handleModalClose} />
     </div>
   );
 });

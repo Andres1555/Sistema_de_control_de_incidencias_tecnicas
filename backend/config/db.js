@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS Users (
   apellido varchar(500),
   correo varchar(500),
   ficha integer,
-  telefono integer,
+  telefono varchar,
   "C.I" integer,
   rol varchar(500),
   extension integer
@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS Report (
   caso varchar(500),
   area varchar(500),
   estado varchar(500),
+  cargo varchar(500),  -- <--- COLUMNA AGREGADA
   descripcion varchar(500),
   "nombre natural" varchar(500),
   "clave natural" integer,

@@ -38,31 +38,30 @@ export const UserService = {
 
       // 2. GESTIÓN DE MÁQUINA: CORREGIR LA LÍNEA EXISTENTE
       if (data.nro_maquina !== undefined) {
-        const nroNuevo = Number(data.nro_maquina);
+        const nroNuevo = data.nro_maquina !== null && data.nro_maquina !== undefined ? String(data.nro_maquina).trim() : "";
 
-        if (nroNuevo > 0) {
+        if (nroNuevo !== "") {
           // Buscamos si ESTE usuario ya tiene alguna máquina asignada en la tabla
           const machineRow = await Machine.findOne({ where: { id_user: user.id } });
 
           if (machineRow) {
-            // SI YA EXISTE UNA FILA PARA ESTE USUARIO: 
-            // Simplemente cambiamos el número en esa misma línea.
+            // Actualizamos la máquina existente con el nuevo identificador (string)
             await machineRow.update({ nro_maquina: nroNuevo });
           } else {
             // SI EL USUARIO NO TENÍA NINGUNA FILA:
-            // Verificamos si ese número de máquina ya existe (quizás estaba asignada a nadie)
+            // Verificamos si ese identificador de máquina ya existe
             const globalMachine = await Machine.findOne({ where: { nro_maquina: nroNuevo } });
-            
+
             if (globalMachine) {
               // Si la máquina existe, le asignamos este dueño
               await globalMachine.update({ id_user: user.id });
             } else {
-              // Si el número es totalmente nuevo, creamos la fila
+              // Si el identificador es totalmente nuevo, creamos la fila
               await Machine.create({ nro_maquina: nroNuevo, id_user: user.id });
             }
           }
         } else {
-          // Si el campo viene vacío (0 o ""), desvinculamos al usuario de su máquina actual
+          // Si el campo viene vacío, desvinculamos al usuario de su máquina actual
           await Machine.update({ id_user: null }, { where: { id_user: user.id } });
         }
       }

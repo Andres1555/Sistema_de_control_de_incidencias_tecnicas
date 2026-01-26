@@ -31,7 +31,8 @@ async function getById(id) {
 async function getByNro(nro_maquina) {
   try {
     return await Machine.findOne({ 
-      where: { nro_maquina: Number(nro_maquina) },
+      // nro_maquina stored/treated as string now
+      where: { nro_maquina: nro_maquina },
       include: [
         { model: User, attributes: ["nombre", "apellido"] },
         { model: Worker, attributes: ["nombres", "apellidos"] }
@@ -46,7 +47,7 @@ async function createMachine(data) {
   const payload = {
     id_user: data.id_user || null,
     id_workers: data.id_workers || null,
-    nro_maquina: data.nro_maquina,
+    nro_maquina: data.nro_maquina !== undefined && data.nro_maquina !== null ? String(data.nro_maquina) : null,
   };
   return await Machine.create(payload);
 }
@@ -56,7 +57,7 @@ async function updateById(id, data) {
   if (!machine) return null;
   const payload = {
     id_user: data.id_user !== undefined ? data.id_user : machine.id_user,
-    nro_maquina: data.nro_maquina !== undefined ? data.nro_maquina : machine.nro_maquina,
+    nro_maquina: data.nro_maquina !== undefined ? String(data.nro_maquina) : machine.nro_maquina,
     id_workers: data.id_workers !== undefined ? data.id_workers : machine.id_workers,
   };
   await machine.update(payload);

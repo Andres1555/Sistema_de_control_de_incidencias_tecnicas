@@ -3,13 +3,16 @@ import axios from "axios";
 import WorkerCard from "./workercard";
 import WorkerForm from "../form/workersreport"; 
 import { FiX, FiEdit3 } from "react-icons/fi";
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa"; // Usamos Fa para consistencia visual
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa"; 
 import { Dialog, DialogTitle, DialogContent, IconButton, Tooltip } from '@mui/material';
 
 const WorkerList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
     const [workers, setWorkers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // --- VARIABLE DE ENTORNO ---
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
     
     const [pagination, setPagination] = useState({
         currentPage: 1,
@@ -25,10 +28,11 @@ const WorkerList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
         setLoading(true);
         setError(null);
         try {
-            let url = `http://localhost:8080/api/workers?page=${page}`;
+            // Cambio de URL manual a variable de entorno
+            let url = `${API_URL}/api/workers?page=${page}`;
             
             if (searchTerm) {
-                url = `http://localhost:8080/api/workers/search?search=${encodeURIComponent(searchTerm)}`;
+                url = `${API_URL}/api/workers/search?search=${encodeURIComponent(searchTerm)}`;
             }
 
             const res = await axios.get(url);
@@ -75,7 +79,8 @@ const WorkerList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
         if (!confirm) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:8080/api/workers/${id}`, {
+            // Cambio de URL manual a variable de entorno
+            await axios.delete(`${API_URL}/api/workers/${id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             fetchWorkers(pagination.currentPage);
@@ -110,7 +115,7 @@ const WorkerList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
                 </div>
             ) : (
                 <>
-                    <section className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 p-4">
+                    <section className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 p-4 w-full">
                         {workers.map((w) => (
                             <WorkerCard 
                                 key={w.id} 
@@ -122,7 +127,6 @@ const WorkerList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
                         ))}
                     </section>
 
-                    {/* --- CONTROLES DE PAGINACIÓN ESTILO USERLIST --- */}
                     <div className="flex flex-col items-center justify-center gap-4 py-10 mt-auto">
                         <div className="flex items-center gap-3">
                             <button
@@ -167,7 +171,6 @@ const WorkerList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
                 </>
             )}
 
-            {/* MODAL DE DETALLE / EDICIÓN */}
             <Dialog
                 open={dialogOpen}
                 onClose={() => setDialogOpen(false)}

@@ -32,7 +32,7 @@ export const User = sequelize.define('Users', {
   correo: { type: DataTypes.STRING(500) },
   password: { type: DataTypes.STRING(500) },
   ficha: { type: DataTypes.INTEGER },
-  telefono: { type: DataTypes.INTEGER },
+  telefono: { type: DataTypes.STRING },
   C_I: { type: DataTypes.INTEGER, field: 'C.I' },
   rol: { type: DataTypes.STRING(500) },
   extension: { type: DataTypes.INTEGER }
@@ -44,7 +44,7 @@ export const User = sequelize.define('Users', {
 export const Machine = sequelize.define('Machine', {
   id_user: { type: DataTypes.INTEGER },
   id_workers: { type: DataTypes.INTEGER }, 
-  nro_maquina: { type: DataTypes.INTEGER, field: 'nro de la maquina' }
+  nro_maquina: { type: DataTypes.STRING, field: 'nro de la maquina' }
 }, {
   tableName: 'Machine',
   timestamps: false
@@ -57,6 +57,7 @@ export const Report = sequelize.define('Report', {
   caso: { type: DataTypes.STRING(500) },
   area: { type: DataTypes.STRING(500) },
   estado: { type: DataTypes.STRING(500) },
+  cargo: { type: DataTypes.STRING(500) }, 
   descripcion: { type: DataTypes.STRING(500) },
   nombre_natural: { type: DataTypes.STRING(500), field: 'nombre natural' },
   nombre_windows: { type: DataTypes.STRING(500), field: 'nombre windows' }, 

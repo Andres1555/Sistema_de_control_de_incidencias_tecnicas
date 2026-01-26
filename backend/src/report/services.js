@@ -27,13 +27,14 @@ export const ReportService = {
 
   CreateReportWithMachineService: async (data) => {
     try {
-      
-      let machine = await ReportRepository.findMachineByNro(data.nro_maquina);
+      // Normalize nro_maquina as string
+      const nro = data.nro_maquina !== undefined && data.nro_maquina !== null ? String(data.nro_maquina).trim() : "";
 
-      
+      let machine = await ReportRepository.findMachineByNro(nro);
+
       if (!machine) {
         machine = await ReportRepository.createMachine({
-          nro_maquina: data.nro_maquina,
+          nro_maquina: nro,
           id_user: data.id_user,
           id_workers: data.id_workers
         });
@@ -66,27 +67,39 @@ export const ReportService = {
       const userId = updatePayload.id_user !== undefined ? cleanId(updatePayload.id_user) : report.id_user;
 
       // 3. GESTIÓN DE MÁQUINA (Corregir línea existente del dueño)
-      if (updatePayload.id_maquina !== undefined && updatePayload.id_maquina !== "") {
-        const nroNuevo = Number(updatePayload.id_maquina);
-        
-        if (nroNuevo > 0) {
+      if (updatePayload.id_maquina !== undefined) {
+        const nroNuevo = updatePayload.id_maquina !== null && updatePayload.id_maquina !== undefined ? String(updatePayload.id_maquina).trim() : "";
+
+        if (nroNuevo !== "") {
           // Buscamos si el DUEÑO (Worker o User) ya tiene una máquina asignada
           const ownerQuery = workerId ? { id_workers: workerId } : { id_user: userId };
           const existingMachine = await Machine.findOne({ where: ownerQuery });
 
           if (existingMachine) {
-            // SI YA TIENE: Actualizamos el NRO en su única fila (ID se mantiene)
+            // SI YA TIENE: Actualizamos el identificador (string)
             await existingMachine.update({ nro_maquina: nroNuevo });
             updatePayload.id_maquina = existingMachine.id;
           } else {
-            // SI NO TIENE: Creamos su registro inicial
-            const newMachine = await Machine.create({
-              nro_maquina: nroNuevo,
-              id_workers: workerId,
-              id_user: userId
-            });
-            updatePayload.id_maquina = newMachine.id;
+            // SI NO TIENE: verificamos si existe una máquina global con ese nro
+            const globalMachine = await Machine.findOne({ where: { nro_maquina: nroNuevo } });
+            if (globalMachine) {
+              // reasignar propietario
+              await globalMachine.update({ id_user: userId, id_workers: workerId });
+              updatePayload.id_maquina = globalMachine.id;
+            } else {
+              // crear nueva máquina
+              const newMachine = await Machine.create({
+                nro_maquina: nroNuevo,
+                id_workers: workerId,
+                id_user: userId
+              });
+              updatePayload.id_maquina = newMachine.id;
+            }
           }
+        } else {
+          // Si viene vacío, desvinculamos máquinas del dueño
+          await Machine.update({ id_user: null, id_workers: null }, { where: { id_user: userId } });
+          // No forzamos updatePayload.id_maquina aquí
         }
       }
 
@@ -131,6 +144,17 @@ export const ReportService = {
       return reports;
     } catch (error) {
       throw new Error('Error en el servicio: ' + error.message);
+    }
+  }
+  ,
+  GetReportsByFilterService: async ({ area = null, fecha = null } = {}) => {
+    try {
+      // Normalizar entrada
+      const a = area !== undefined && area !== null ? String(area).trim() : null;
+      const f = fecha !== undefined && fecha !== null ? String(fecha).trim() : null;
+      return await ReportRepository.getByFilter(a, f);
+    } catch (error) {
+      throw new Error('Error en el servicio de filtros: ' + error.message);
     }
   }
 };

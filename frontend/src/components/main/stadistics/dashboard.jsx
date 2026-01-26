@@ -56,14 +56,20 @@ const Dashboard = ({ darkMode = false }) => {
   const [period, setPeriod] = useState('month'); 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
+  // --- VARIABLE DE ENTORNO ---
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8091";
+
   useEffect(() => {
     let mounted = true;
     const fetchStats = async () => {
       setLoading(true);
       setError(null);
       try {
-        const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-        const res = await axios.get(`${base}/api/stadistic`, { params: { period, date: selectedDate } });
+        // Uso de API_URL dinámico
+        const res = await axios.get(`${API_URL}/api/stadistic`, { 
+          params: { period, date: selectedDate } 
+        });
+        
         if (!mounted) return;
         setTotal(res.data?.total_reportes ?? 0);
         setData(Array.isArray(res.data?.data) ? res.data.data.map(d => ({
@@ -79,7 +85,7 @@ const Dashboard = ({ darkMode = false }) => {
     };
     fetchStats();
     return () => { mounted = false; };
-  }, [period, selectedDate]);
+  }, [period, selectedDate, API_URL]);
 
   const navigateDate = (direction) => {
     const date = new Date(selectedDate + 'T00:00:00');
@@ -102,7 +108,6 @@ const Dashboard = ({ darkMode = false }) => {
           Panel de Estadísticas
         </h2>
         
-        {/* Selector de Periodo - FONDO NEGRO TEXTO BLANCO SOLIDO */}
         <div className="flex p-1.5 rounded-2xl bg-gray-500/10 border border-gray-500/20 shadow-inner">
           {['day', 'week', 'month', 'year'].map((p) => (
             <button
@@ -120,7 +125,6 @@ const Dashboard = ({ darkMode = false }) => {
         </div>
       </div>
 
-      {/* CONTROLES DE FECHA - FLECHAS CON ICONO BLANCO SOLIDO */}
       <div className={`flex flex-wrap items-center gap-4 p-6 rounded-3xl border mb-10 shadow-sm ${
         darkMode ? "bg-gray-800/50 border-gray-700" : "bg-white border-gray-200"
       }`}>
@@ -132,7 +136,6 @@ const Dashboard = ({ darkMode = false }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Botón Flecha Izquierda - Fondo Negro Icono Blanco */}
           <button 
             onClick={() => navigateDate(-1)}
             className="w-11 h-11 flex items-center justify-center rounded-xl bg-[#1a1a1a] text-white transition-all active:scale-90 shadow-lg hover:bg-gray-800"
@@ -149,7 +152,6 @@ const Dashboard = ({ darkMode = false }) => {
             } focus:border-blue-500`}
           />
 
-          {/* Botón Flecha Derecha - Fondo Negro Icono Blanco */}
           <button 
             onClick={() => navigateDate(1)}
             className="w-11 h-11 flex items-center justify-center rounded-xl bg-[#1a1a1a] text-white transition-all active:scale-90 shadow-lg hover:bg-gray-800"
@@ -158,7 +160,6 @@ const Dashboard = ({ darkMode = false }) => {
           </button>
         </div>
 
-        {/* Botón HOY - Fondo Rojo Texto Blanco */}
         <button 
           onClick={resetToday}
           className="ml-auto flex items-center gap-3 h-11 px-8 text-[10px] font-black bg-red-600 text-white hover:bg-red-700 rounded-xl transition-all uppercase active:scale-95 shadow-xl"
@@ -168,8 +169,11 @@ const Dashboard = ({ darkMode = false }) => {
         </button>
       </div>
 
-      {/* ... Resto del Dashboard ... */}
-      {!loading && !error && (
+      {loading ? (
+          <div className="p-20 text-center text-blue-500 animate-pulse font-black uppercase tracking-widest">
+              Obteniendo métricas...
+          </div>
+      ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className={`lg:col-span-2 p-8 rounded-[2rem] border-2 ${darkMode ? 'bg-[#1a222f] border-gray-700' : 'bg-white border-gray-100'} shadow-xl`}> 
             <PieChart data={data} darkMode={darkMode} />

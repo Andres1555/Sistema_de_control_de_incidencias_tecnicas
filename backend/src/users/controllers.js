@@ -56,11 +56,11 @@ export const CreateUserController = async (req, res) => {
       apellido,
       email,
       password: hashed,
-      telefono: Number(telefono),
+      telefono: String(telefono),
       ficha: Number(ficha),
       rol,
       extension: Number(extension),
-      nro_maquina: nro_maquina ? Number(nro_maquina) : null,
+      nro_maquina: nro_maquina ? String(nro_maquina) : null,
       especializaciones: listaSpecs
     });
 

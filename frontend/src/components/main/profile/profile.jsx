@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import LoadingModal from "@/hooks/Modals/LoadingModal";
-import { FaUser, FaEnvelope, FaPhone, FaSave, FaPen, FaIdBadge } from "react-icons/fa";
+import { FaUser, FaEnvelope, FaPhone, FaSave, FaPen, FaIdBadge, FaFingerprint } from "react-icons/fa";
 
 const UserProfile = ({ darkMode }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -47,7 +47,9 @@ const UserProfile = ({ darkMode }) => {
         const userId = localStorage.getItem('userId') || idFromToken;
         if (!userId) return;
 
-        const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+        // --- VARIABLE DE ENTORNO CONFIGURADA ---
+        const base = import.meta.env.VITE_API_URL ;
+        
         const res = await fetch(`${base}/api/users/${userId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -55,19 +57,14 @@ const UserProfile = ({ darkMode }) => {
         if (!res.ok) return;
         const data = await res.json();
 
-        // LOG PARA DEBUG (Puedes borrarlo después de verificar)
-        console.log("Datos recibidos del backend:", data);
-
         setUser({
           nombre: data.nombre || "",
           apellido: data.apellido || "",
           email: data.correo || data.email || "",
-          telefono: data.telefono !== undefined && data.telefono !== null ? String(data.telefono) : "",
-          
-          // CORRECCIÓN AQUÍ: Manejo de 0 y posibles nombres de campo
+          telefono: (data.telefono ?? "").toString(),
+          // Fix para que la extensión siempre se muestre si es 0 o mayor
           extension: (data.extension ?? data.ext ?? "").toString(), 
-          
-          ficha: data.ficha ? String(data.ficha) : "",
+          ficha: (data.ficha ?? "").toString(),
           ci: (data.C_I ?? data.ci ?? "").toString(),
           role: data.rol || data.role || "",
           avatar: data.avatar || "" 
@@ -87,12 +84,10 @@ const UserProfile = ({ darkMode }) => {
       }
       setIsSaving(true);
       const token = localStorage.getItem('token');
-      
-      // Intentamos obtener CI del token o del estado del usuario
-      const decoded = decodeToken(token);
-      const ciParam = decoded?.ci || user.ci;
+      const ciParam = user.ci;
 
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      // --- VARIABLE DE ENTORNO CONFIGURADA ---
+      const base = import.meta.env.VITE_API_URL || 'http://localhost:8091';
       
       const res = await fetch(`${base}/api/users/${ciParam}`, {
         method: 'PUT',
@@ -104,8 +99,8 @@ const UserProfile = ({ darkMode }) => {
             nombre: user.nombre,
             apellido: user.apellido,
             email: user.email,
-            telefono: Number(user.telefono),
-            extension: Number(user.extension) // Enviamos como número al backend
+            telefono: user.telefono === "" ? null : Number(user.telefono),
+            extension: user.extension === "" ? null : Number(user.extension)
         }),
       });
 
@@ -131,8 +126,6 @@ const UserProfile = ({ darkMode }) => {
 
   return (
     <div className={`w-full max-w-5xl mx-auto rounded-3xl shadow-2xl border overflow-hidden transition-all duration-500 ${theme.card}`}>
-      
-      {/* 1. PORTADA */}
       <div className="relative h-60 bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900">
         <div className="absolute inset-0 bg-black/10"></div>
         <button 
@@ -144,7 +137,6 @@ const UserProfile = ({ darkMode }) => {
       </div>
 
       <div className="px-12 pb-14">
-        {/* 2. CABECERA */}
         <div className="relative flex flex-col sm:flex-row items-center sm:items-end -mt-28 mb-12">
           <div className="relative z-10">
             <div className={`w-48 h-48 rounded-[2.5rem] border-[8px] shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-300 ${darkMode ? "border-[#1e293b] bg-slate-800" : "border-white bg-slate-100"}`}>
@@ -157,43 +149,32 @@ const UserProfile = ({ darkMode }) => {
               )}
             </div>
           </div>
-
           <div className="mt-8 sm:mt-0 sm:ml-10 text-center sm:text-left flex-1">
             <h2 className={`text-5xl font-black tracking-tighter mb-2 ${theme.textPrimary}`}>
-              {user.nombre ? `${user.nombre} ${user.apellido}` : "Usuario"}
+              {user.nombre ? `${user.nombre} ${user.apellido}` : "Cargando..."}
             </h2>
             <div className="flex flex-wrap justify-center sm:justify-start gap-3">
                <span className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-500/30">
-                  CÉDULA: {user.ci || "---"}
+                  <FaFingerprint /> CÉDULA: {user.ci || "---"}
                </span>
                <span className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-slate-500 text-white text-xs font-bold uppercase tracking-widest shadow-lg">
-                  FICHA: {user.ficha || "---"}
+                  <FaIdBadge /> FICHA: {user.ficha || "---"}
                </span>
                <span className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-widest border ${theme.fieldBorder} ${theme.textSecondary} bg-white/50 backdrop-blur-sm`}>
-                  {user.role || "MIEMBRO"}
+                  {user.role || "USUARIO"}
                </span>
             </div>
           </div>
         </div>
-
-        {/* 3. GRID DE CAJAS DETALLADAS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <DetailBox label="Nombres" icon={FaUser} name="nombre" value={user.nombre} isEditing={isEditing} onChange={handleChange} theme={theme} />
             <DetailBox label="Apellidos" icon={FaUser} name="apellido" value={user.apellido} isEditing={isEditing} onChange={handleChange} theme={theme} />
             <DetailBox label="Correo Electrónico" icon={FaEnvelope} name="email" value={user.email} isEditing={isEditing} onChange={handleChange} theme={theme} />
             <DetailBox label="Teléfono de Contacto" icon={FaPhone} name="telefono" value={user.telefono} isEditing={isEditing} onChange={handleChange} theme={theme} />
-            
-            {/* CORRECCIÓN VISUAL: Asegurar que el name sea "extension" */}
             <DetailBox label="Extensión Telefónica" icon={FaIdBadge} name="extension" value={user.extension} isEditing={isEditing} onChange={handleChange} theme={theme} />
         </div>
       </div>
-
-      <LoadingModal 
-        isOpen={modalState.isOpen} 
-        status={modalState.status} 
-        message={modalState.message} 
-        onClose={() => setModalState(s => ({...s, isOpen: false}))} 
-      />
+      <LoadingModal isOpen={modalState.isOpen} status={modalState.status} message={modalState.message} onClose={() => setModalState(s => ({...s, isOpen: false}))} />
     </div>
   );
 };
@@ -204,9 +185,7 @@ const DetailBox = ({ label, icon: Icon, name, value, isEditing, onChange, theme 
       <div className={`p-3 rounded-2xl ${isEditing ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/40' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
         <Icon size={18} />
       </div>
-      <label className={`text-[11px] font-black uppercase tracking-[0.2em] ${theme.textSecondary}`}>
-        {label}
-      </label>
+      <label className={`text-[11px] font-black uppercase tracking-[0.2em] ${theme.textSecondary}`}>{label}</label>
     </div>
     <input
       type="text"

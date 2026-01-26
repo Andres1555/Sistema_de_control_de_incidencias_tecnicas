@@ -43,7 +43,7 @@ async function createCompleteUser(data) {
       correo: data.email,
       password: data.password,
       ficha: Number(data.ficha),
-      telefono: Number(data.telefono),
+      telefono: String(data.telefono),
       C_I: Number(data.ci),
       rol: data.rol,
       extension: Number(data.extension),
@@ -55,7 +55,7 @@ async function createCompleteUser(data) {
     if (data.nro_maquina) {
       await Machine.create({
         id_user: userId,
-        nro_maquina: Number(data.nro_maquina)
+        nro_maquina: String(data.nro_maquina)
       }, { transaction: t });
     }
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import LoadingModal from "@/hooks/Modals/LoadingModal";
-import { FaUser, FaBuilding, FaCalendarAlt, FaSave, FaPen } from "react-icons/fa";
+import { FaUser, FaBuilding, FaCalendarAlt, FaSave, FaPen, FaIdBadge } from "react-icons/fa";
 
 const WorkerProfile = ({ darkMode }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -37,7 +37,9 @@ const WorkerProfile = ({ darkMode }) => {
         const userId = localStorage.getItem('userId');
         if (!userId || userId === "undefined") return;
 
-        const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+        // --- VARIABLE DE ENTORNO CONFIGURADA ---
+        const base = import.meta.env.VITE_API_URL;
+
         const res = await fetch(`${base}/api/workers/${userId}`, {
           method: 'GET',
           headers: { 
@@ -51,12 +53,12 @@ const WorkerProfile = ({ darkMode }) => {
 
         setWorker({
           id: data.id || userId,
-          ficha: data.ficha || "",
+          ficha: (data.ficha ?? "").toString(),
           nombres: data.nombres || "",
           apellidos: data.apellidos || "",
-          nac_dia: data.dia_nac || "",
-          nac_mes: data.mes_nac || "",
-          nac_ano: data.anio_nac || "",
+          nac_dia: (data.dia_nac ?? "").toString(),
+          nac_mes: (data.mes_nac ?? "").toString(),
+          nac_ano: (data.anio_nac ?? "").toString(),
           departamento: data.dpto || "",
           gerencia: data.gcia || "",
           avatar: data.avatar || ""
@@ -72,7 +74,9 @@ const WorkerProfile = ({ darkMode }) => {
     try {
       setIsSaving(true);
       const token = localStorage.getItem('token');
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      // --- VARIABLE DE ENTORNO CONFIGURADA ---
+      const base = import.meta.env.VITE_API_URL || 'http://localhost:8091';
 
       const payload = {
         ficha: Number(worker.ficha),
@@ -115,8 +119,6 @@ const WorkerProfile = ({ darkMode }) => {
 
   return (
     <div className={`w-full max-w-5xl mx-auto rounded-3xl shadow-2xl border overflow-hidden transition-all duration-500 ${theme.card}`}>
-      
-      {/* 1. PORTADA */}
       <div className="relative h-60 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700">
         <div className="absolute inset-0 bg-black/10"></div>
         <button 
@@ -128,7 +130,6 @@ const WorkerProfile = ({ darkMode }) => {
       </div>
 
       <div className="px-12 pb-14">
-        {/* 2. CABECERA: AVATAR Y TÍTULOS */}
         <div className="relative flex flex-col sm:flex-row items-center sm:items-end -mt-28 mb-12">
           <div className="relative z-10">
             <div className={`w-48 h-48 rounded-[2.5rem] border-[8px] shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-300 ${darkMode ? "border-[#1e293b] bg-slate-800" : "border-white bg-slate-100"}`}>
@@ -141,14 +142,13 @@ const WorkerProfile = ({ darkMode }) => {
               )}
             </div>
           </div>
-
           <div className="mt-8 sm:mt-0 sm:ml-10 text-center sm:text-left flex-1">
             <h2 className={`text-5xl font-black tracking-tighter mb-2 ${theme.textPrimary}`}>
               {worker.nombres ? `${worker.nombres} ${worker.apellidos}` : "Trabajador"}
             </h2>
             <div className="flex flex-wrap justify-center sm:justify-start gap-3">
                <span className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-emerald-500 text-white text-xs font-bold uppercase tracking-widest shadow-lg shadow-emerald-500/30">
-                  FICHA NO. {worker.ficha || "---"}
+                  <FaIdBadge /> FICHA NO. {worker.ficha || "---"}
                </span>
                <span className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-widest border ${theme.fieldBorder} ${theme.textSecondary} bg-white/50 backdrop-blur-sm`}>
                   {worker.gerencia || "SIN GERENCIA"}
@@ -156,15 +156,11 @@ const WorkerProfile = ({ darkMode }) => {
             </div>
           </div>
         </div>
-
-        {/* 3. GRID DE CAJAS DETALLADAS (FICHA ELIMINADA DE AQUÍ) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <DetailBox label="Nombres" icon={FaUser} name="nombres" value={worker.nombres} isEditing={isEditing} onChange={handleChange} theme={theme} />
             <DetailBox label="Apellidos" icon={FaUser} name="apellidos" value={worker.apellidos} isEditing={isEditing} onChange={handleChange} theme={theme} />
             <DetailBox label="Gerencia" icon={FaBuilding} name="gerencia" value={worker.gerencia} isEditing={isEditing} onChange={handleChange} theme={theme} />
             <DetailBox label="Departamento" icon={FaBuilding} name="departamento" value={worker.departamento} isEditing={isEditing} onChange={handleChange} theme={theme} />
-            
-            {/* Caja de Fecha de Nacimiento */}
             <div className={`p-5 rounded-3xl border transition-all duration-300 ${theme.fieldBg} ${isEditing ? 'border-emerald-500 shadow-lg shadow-emerald-500/10' : theme.fieldBorder} md:col-span-2`}>
               <div className="flex items-center gap-4 mb-3">
                 <div className={`p-3 rounded-2xl ${isEditing ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
@@ -175,29 +171,23 @@ const WorkerProfile = ({ darkMode }) => {
               <div className="flex items-center gap-6 max-w-md">
                 <div className="flex-1">
                    <p className={`text-[10px] uppercase font-bold mb-1 ${theme.textSecondary} text-center`}>Día</p>
-                   <input type="number" name="nac_dia" placeholder="DD" value={worker.nac_dia} onChange={handleChange} disabled={!isEditing} className={`w-full bg-transparent outline-none font-bold text-center ${isEditing ? 'text-emerald-500 border-b-2 border-emerald-500/20' : theme.textPrimary} text-xl`} />
+                   <input type="number" name="nac_dia" value={worker.nac_dia} onChange={handleChange} disabled={!isEditing} className={`w-full bg-transparent outline-none font-bold text-center ${isEditing ? 'text-emerald-500 border-b-2 border-emerald-500/20' : theme.textPrimary} text-xl`} />
                 </div>
                 <span className={`text-2xl mt-4 ${theme.textSecondary}`}>/</span>
                 <div className="flex-1">
                    <p className={`text-[10px] uppercase font-bold mb-1 ${theme.textSecondary} text-center`}>Mes</p>
-                   <input type="number" name="nac_mes" placeholder="MM" value={worker.nac_mes} onChange={handleChange} disabled={!isEditing} className={`w-full bg-transparent outline-none font-bold text-center ${isEditing ? 'text-emerald-500 border-b-2 border-emerald-500/20' : theme.textPrimary} text-xl`} />
+                   <input type="number" name="nac_mes" value={worker.nac_mes} onChange={handleChange} disabled={!isEditing} className={`w-full bg-transparent outline-none font-bold text-center ${isEditing ? 'text-emerald-500 border-b-2 border-emerald-500/20' : theme.textPrimary} text-xl`} />
                 </div>
                 <span className={`text-2xl mt-4 ${theme.textSecondary}`}>/</span>
                 <div className="flex-1">
                    <p className={`text-[10px] uppercase font-bold mb-1 ${theme.textSecondary} text-center`}>Año</p>
-                   <input type="number" name="nac_ano" placeholder="AAAA" value={worker.nac_ano} onChange={handleChange} disabled={!isEditing} className={`w-full bg-transparent outline-none font-bold text-center ${isEditing ? 'text-emerald-500 border-b-2 border-emerald-500/20' : theme.textPrimary} text-xl`} />
+                   <input type="number" name="nac_ano" value={worker.nac_ano} onChange={handleChange} disabled={!isEditing} className={`w-full bg-transparent outline-none font-bold text-center ${isEditing ? 'text-emerald-500 border-b-2 border-emerald-500/20' : theme.textPrimary} text-xl`} />
                 </div>
               </div>
             </div>
         </div>
       </div>
-
-      <LoadingModal 
-        isOpen={modalState.isOpen} 
-        status={modalState.status} 
-        message={modalState.message} 
-        onClose={() => setModalState(s => ({...s, isOpen: false}))} 
-      />
+      <LoadingModal isOpen={modalState.isOpen} status={modalState.status} message={modalState.message} onClose={() => setModalState(s => ({...s, isOpen: false}))} />
     </div>
   );
 };
@@ -208,9 +198,7 @@ const DetailBox = ({ label, icon: Icon, name, value, isEditing, onChange, theme 
       <div className={`p-3 rounded-2xl ${isEditing ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/40' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
         <Icon size={18} />
       </div>
-      <label className={`text-[11px] font-black uppercase tracking-[0.2em] ${theme.textSecondary}`}>
-        {label}
-      </label>
+      <label className={`text-[11px] font-black uppercase tracking-[0.2em] ${theme.textSecondary}`}>{label}</label>
     </div>
     <input
       type="text"

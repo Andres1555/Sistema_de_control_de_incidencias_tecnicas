@@ -14,6 +14,9 @@ const ReportTechList = ({ userId, darkMode = true, searchTerm = "", refreshKey =
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // --- VARIABLE DE ENTORNO ---
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
   // ESTADOS DE PAGINACIÓN
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -31,16 +34,13 @@ const ReportTechList = ({ userId, darkMode = true, searchTerm = "", refreshKey =
       const token = localStorage.getItem('token');
       let url = "";
 
-      // --- LÓGICA DE RUTAS ---
+      // --- LÓGICA DE URL DINÁMICA CON API_URL ---
       if (searchTerm) {
-        // Búsqueda global por nombre/apellido del técnico
-        url = `http://localhost:8080/api/report_cases/search?caso=${encodeURIComponent(searchTerm)}`;
+        url = `${API_URL}/api/report_cases/search?caso=${encodeURIComponent(searchTerm)}`;
       } else if (userId) {
-        // Listado específico del técnico logueado (paginado)
-        url = `http://localhost:8080/api/report_cases/user/${userId}?page=${page}&limit=${limit}`;
+        url = `${API_URL}/api/report_cases/user/${userId}?page=${page}&limit=${limit}`;
       } else {
-        // Listado general (si no hay userId, ej. para Admin)
-        url = `http://localhost:8080/api/report_cases?page=${page}&limit=${limit}`;
+        url = `${API_URL}/api/report_cases?page=${page}&limit=${limit}`;
       }
 
       console.log("Petición enviada a:", url);
@@ -49,13 +49,11 @@ const ReportTechList = ({ userId, darkMode = true, searchTerm = "", refreshKey =
       });
       
       if (searchTerm) {
-        // Cuando buscamos, el backend suele devolver el array directo
         const searchData = Array.isArray(res.data) ? res.data : (res.data.data || []);
         setCases(searchData);
         setTotalPages(1);
         setTotalItems(searchData.length);
       } else {
-        // Cuando paginamos, usamos la estructura de objeto
         const responseData = res.data.data || (Array.isArray(res.data) ? res.data : []);
         setCases(responseData);
         setTotalPages(res.data.totalPages || 1);
@@ -74,7 +72,6 @@ const ReportTechList = ({ userId, darkMode = true, searchTerm = "", refreshKey =
     }
   };
 
-  // Debounce para la búsqueda
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchCases(searchTerm ? 1 : currentPage);
@@ -113,7 +110,6 @@ const ReportTechList = ({ userId, darkMode = true, searchTerm = "", refreshKey =
           No se encontraron resoluciones técnicas para "{searchTerm}"
         </div>
       ) : (
-        /* --- GRILLA FULL WIDTH --- */
         <section className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 p-4 w-full">
           {cases.map((c) => (
             <ReportTechCard 
@@ -121,14 +117,12 @@ const ReportTechList = ({ userId, darkMode = true, searchTerm = "", refreshKey =
               report={c} 
               onView={handleView} 
               darkMode={darkMode} 
-              // Refrescamos la lista si se elimina algo
               onDelete={() => fetchCases(currentPage)} 
             />
           ))}
         </section>
       )}
 
-      {/* --- PAGINACIÓN SÓLIDA (Oculta en búsqueda) --- */}
       {!searchTerm && totalPages > 1 && (
         <div className="flex flex-col items-center justify-center gap-4 py-10 mt-auto">
           <div className="flex items-center gap-3">
@@ -168,7 +162,6 @@ const ReportTechList = ({ userId, darkMode = true, searchTerm = "", refreshKey =
         </div>
       )}
 
-      {/* --- MODAL DE DETALLE --- */}
       <Dialog 
         open={dialogOpen} 
         onClose={handleCloseDialog} 
@@ -184,7 +177,9 @@ const ReportTechList = ({ userId, darkMode = true, searchTerm = "", refreshKey =
         }}
       >
         <DialogTitle className="flex items-center justify-between p-6">
-          <span className="font-black text-xs uppercase tracking-widest opacity-60">Detalle de Caso Técnico</span>
+          <span className="font-black text-xs uppercase tracking-widest opacity-60">
+            Detalle de Caso Técnico
+          </span>
           <IconButton onClick={handleCloseDialog} sx={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
             <CloseIcon />
           </IconButton>

@@ -1,10 +1,28 @@
 import React from "react";
-import { FaClipboardList, FaMapMarkerAlt, FaUser, FaTrash, FaEye, FaCheckCircle } from "react-icons/fa";
+import { FaClipboardList, FaMapMarkerAlt, FaUser, FaTrash, FaEye, FaCheckCircle, FaBriefcase } from "react-icons/fa";
 
 const ReportCard = ({ report = {}, onView, onDelete, darkMode = true }) => {
-    const { id, caso, descripcion, estado, fecha, area, nombre_natural } = report;
+    // Extraemos cargo del objeto report
+    const { id, caso, descripcion, estado, fecha, area, nombre_natural, cargo } = report;
+
+    // Determina el nombre del creador del reporte: User > Worker > nombre_natural
+    const reporterName = (() => {
+        // User model uses `nombre` and `apellido`
+        if (report.User) {
+            const u = report.User;
+            const name = [u.nombre, u.apellido].filter(Boolean).join(' ').trim();
+            if (name) return name;
+        }
+        // Worker model uses `nombres` and `apellidos`
+        if (report.Worker) {
+            const w = report.Worker;
+            const name = [w.nombres, w.apellidos].filter(Boolean).join(' ').trim();
+            if (name) return name;
+        }
+        if (report.userName) return report.userName;
+        return nombre_natural || "Anónimo";
+    })();
     
-    // Extraemos el nombre del usuario actual para el "Solucionado por" de frontend
     const currentUserName = localStorage.getItem('userName') || "Técnico";
     const userRole = localStorage.getItem('role')?.toLowerCase();
     const isWorker = userRole === 'worker';
@@ -25,7 +43,7 @@ const ReportCard = ({ report = {}, onView, onDelete, darkMode = true }) => {
     const secondaryText = darkMode ? "text-gray-400" : "text-gray-600";
 
     return (
-        <article className={`${cardBg} rounded-xl shadow-md p-4 md:p-5 border flex flex-col h-full min-h-[260px] transition-all hover:shadow-lg`}>
+        <article>
             <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start gap-2 mb-3">
                     <div className="flex gap-2 min-w-0 flex-1">
@@ -55,10 +73,15 @@ const ReportCard = ({ report = {}, onView, onDelete, darkMode = true }) => {
                     </p>
                     <p className={`text-[10px] md:text-[11px] flex items-center gap-2 ${secondaryText}`}>
                         <FaUser className="text-blue-400 shrink-0" size={11} /> 
-                        <span className="truncate"><strong className="font-black uppercase">Por:</strong> {nombre_natural || "Anónimo"}</span>
+                        <span><strong className="font-black uppercase">Por:</strong> {reporterName}</span>
+                    </p>
+                    
+                    {/* CAMPO CARGO */}
+                    <p className={`text-[10px] md:text-[11px] flex items-center gap-2 ${secondaryText}`}>
+                        <FaBriefcase className="text-blue-400 shrink-0" size={11} /> 
+                        <span className="truncate"><strong className="font-black uppercase">Cargo:</strong> {cargo || "No especificado"}</span>
                     </p>
 
-                    {/* CAMPO NUEVO: Solo aparece si el estado es Resuelto */}
                     {isResolved && (
                         <p className={`text-[10px] md:text-[11px] flex items-center gap-2 text-green-500 animate-in fade-in duration-500`}>
                             <FaCheckCircle className="shrink-0" size={11} /> 

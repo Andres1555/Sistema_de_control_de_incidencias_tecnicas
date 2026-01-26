@@ -11,15 +11,18 @@ import EditIcon from '@mui/icons-material/Edit';
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa"; 
 import Reportform from "../form/report";
 
-const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
+const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter = {} }) => {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // --- VARIABLE DE ENTORNO ---
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
     // --- ESTADOS DE PAGINACIÓN ---
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [totalItems, setTotalItems] = useState(0); // Añadido para el contador inferior
+    const [totalItems, setTotalItems] = useState(0); 
     const limit = 9; 
 
     const [selectedReport, setSelectedReport] = useState(null);
@@ -30,21 +33,38 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
     const fetchReports = async (page = 1) => {
         setLoading(true);
         try {
-            let url = `http://localhost:8080/api/report?page=${page}&limit=${limit}`;
-            
-            if (searchTerm) {
-                url = `http://localhost:8080/api/report/search?caso=${encodeURIComponent(searchTerm)}&page=${page}&limit=${limit}`;
-            }
-
-            const res = await axios.get(url);
-            
-            if (res.data && res.data.data) {
-                setReports(res.data.data);
-                setTotalPages(res.data.totalPages || 1);
-                setCurrentPage(res.data.currentPage || 1);
-                setTotalItems(res.data.totalItems || 0);
+            // --- USO DE API_URL ---
+            // If filters are active, call the filter endpoint (no pagination supported server-side here)
+            const hasFilter = (filter && (filter.area || filter.fecha));
+            if (hasFilter) {
+                const params = new URLSearchParams();
+                if (filter.area) params.append('area', filter.area);
+                if (filter.fecha) params.append('fecha', filter.fecha);
+                const url = `${API_URL}/api/report/filter?${params.toString()}`;
+                const res = await axios.get(url);
+                const data = res.data?.data ?? (Array.isArray(res.data) ? res.data : res.data);
+                const arr = Array.isArray(data) ? data : (res.data || []);
+                setReports(arr);
+                setTotalPages(1);
+                setCurrentPage(1);
+                setTotalItems(arr.length);
             } else {
-                setReports(Array.isArray(res.data) ? res.data : []);
+                let url = `${API_URL}/api/report?page=${page}&limit=${limit}`;
+
+                if (searchTerm) {
+                    url = `${API_URL}/api/report/search?caso=${encodeURIComponent(searchTerm)}&page=${page}&limit=${limit}`;
+                }
+
+                const res = await axios.get(url);
+                
+                if (res.data && res.data.data) {
+                    setReports(res.data.data);
+                    setTotalPages(res.data.totalPages || 1);
+                    setCurrentPage(res.data.currentPage || 1);
+                    setTotalItems(res.data.totalItems || 0);
+                } else {
+                    setReports(Array.isArray(res.data) ? res.data : []);
+                }
             }
             setError(null);
         } catch (err) {
@@ -95,7 +115,8 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
         if (!window.confirm("¿Eliminar este reporte?")) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:8080/api/report/${id}`, {
+            // --- USO DE API_URL ---
+            await axios.delete(`${API_URL}/api/report/${id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             fetchReports(currentPage);
@@ -131,7 +152,6 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
                         ))}
                     </section>
 
-                    {/* --- CONTROLES DE PAGINACIÓN UNIFICADOS --- */}
                     <div className="flex flex-col items-center justify-center gap-4 py-10 mt-auto">
                         <div className="flex items-center gap-3">
                             <button
@@ -176,7 +196,6 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
                 </>
             )}
 
-            {/* Modal de Detalle/Edición */}
             <Dialog
                 open={dialogOpen}
                 onClose={handleCloseDialog}

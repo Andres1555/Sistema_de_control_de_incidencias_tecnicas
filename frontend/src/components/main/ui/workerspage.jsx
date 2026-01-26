@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+// --- CAMBIO: Importamos la lista específica ---
 import ReportListByID from "../card/reportlistbyid"; 
 import ReportWorker from "../form/reportworker"; 
 import WorkerProfile from "../profile/workersprofile"; 
@@ -9,16 +10,21 @@ import { Dialog, DialogTitle, DialogContent, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
 const WorkersPage = () => {
+  // --- VARIABLE DE ENTORNO ---
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
   // --- Estados ---
-  const [menuOpen, setMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
-    const t = localStorage.getItem('theme');
-    return t === 'dark';
+    const savedTheme = localStorage.getItem('theme');
+    // Si no hay nada guardado, por defecto iniciamos en Dark Mode (Azul Navy)
+    if (savedTheme === null) return true;
+    return savedTheme === 'dark';
   });
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [view, setView] = useState("dashboard");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchMobileOpen, setIsSearchMobileOpen] = useState(false);
   
@@ -29,7 +35,7 @@ const WorkersPage = () => {
   const menuRef = useRef(null);
   const navigate = useNavigate();
 
-  // Cerrar menú al hacer clic fuera
+  // --- Efectos ---
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -40,6 +46,12 @@ const WorkersPage = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Limpiar búsqueda al cambiar de vista
+  useEffect(() => {
+    setSearchTerm("");
+  }, [view]);
+
+  // --- Handlers ---
   const toggleTheme = () => setDarkMode((s) => {
     const next = !s;
     localStorage.setItem('theme', next ? 'dark' : 'light');
@@ -47,7 +59,12 @@ const WorkersPage = () => {
   });
 
   const handleLogout = () => {
-    localStorage.clear();
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userName');
+    // No borramos 'theme' para mantener su preferencia visual
+    setMenuOpen(false);
     navigate('/', { replace: true });
   };
 
@@ -56,12 +73,10 @@ const WorkersPage = () => {
     setIsFormOpen(false);
   };
 
-  // Clases de botones estilo bloque sólido
+  const avatarBg = darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-[#1a1a1a] hover:bg-blue-700";
   const solidBtnClass = darkMode 
     ? "bg-slate-800 text-white hover:bg-blue-600 border border-slate-700" 
     : "bg-[#1a1a1a] text-white hover:bg-blue-700 shadow-lg active:scale-95";
-
-  const avatarBg = darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-[#1a1a1a] hover:bg-blue-700";
 
   return (
     <div className={`min-h-screen w-full flex flex-col transition-colors duration-300 ${
@@ -174,7 +189,6 @@ const WorkersPage = () => {
       <main className={`flex-grow w-full h-[calc(100vh-64px)] overflow-y-auto transition-colors ${
         darkMode ? "bg-[#0f172a]" : "bg-slate-100"
       }`}>
-        {/* Cambiado max-w-7xl por w-full y ajuste de paddings para cubrir todo el ancho */}
         <div className="w-full px-4 md:px-8 py-6 transition-all duration-300">
           {view === "dashboard" ? (
             <div className="pb-24 animate-fade-in">
@@ -216,7 +230,7 @@ const WorkersPage = () => {
         }}
       >
         <DialogTitle sx={{ m: 0, p: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span className="font-black uppercase text-xs tracking-widest opacity-60">Nuevo Reporte</span>
+          <span className="font-bold uppercase text-xs tracking-widest opacity-60">Nuevo Reporte</span>
           <IconButton onClick={() => setIsFormOpen(false)} size="small" sx={{ color: darkMode ? '#94a3b8' : 'inherit' }}>
             <CloseIcon />
           </IconButton>

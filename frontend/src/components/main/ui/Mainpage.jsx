@@ -23,7 +23,13 @@ import UserList from "../card/userlist";
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
   return (
-    <div role="tabpanel" hidden={value !== index} {...other}>
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`simple-tabpanel-${index}`}
+      aria-labelledby={`simple-tab-${index}`}
+      {...other}
+    >
       {value === index && (
         <Box sx={{ p: 0, pt: 2 }}>
           {children}
@@ -38,16 +44,21 @@ const Mainpage = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     const t = localStorage.getItem('theme');
-    return t === 'dark'; // Si no hay nada, por defecto será false (claro), si lo quieres azul por defecto cambia a: t !== 'light'
+    // Iniciamos en dark por defecto si no hay preferencia guardada
+    if (t === null) return true;
+    return t === 'dark';
   });
+  
   const [sidebarOpen, setSidebarOpen] = useState(false); 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [view, setView] = useState("dashboard");
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filters, setFilters] = useState({ area: null, fecha: null });
   const [activeTab, setActiveTab] = useState(0);
+  const [isSearchMobileOpen, setIsSearchMobileOpen] = useState(false);
 
-  // Datos del Usuario (Estilo Gmail)
+  // Datos del Usuario (Estilo Gmail) extraídos del login
   const userName = localStorage.getItem('userName') || "Usuario";
   const userInitial = userName.charAt(0).toUpperCase();
   const userRole = localStorage.getItem('role')?.toLowerCase() || "";
@@ -59,29 +70,40 @@ const Mainpage = () => {
   // Cerrar menú al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) setMenuOpen(false);
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const toggleTheme = () => setDarkMode((s) => {
-    const next = !s;
-    localStorage.setItem('theme', next ? 'dark' : 'light');
-    return next;
-  });
+  const toggleTheme = () => {
+    setDarkMode((prev) => {
+      const nextMode = !prev;
+      localStorage.setItem('theme', nextMode ? 'dark' : 'light');
+      return nextMode;
+    });
+  };
 
+  // --- LOGOUT LIMPIO PARA REDIRIGIR A RAÍZ ---
   const handleLogout = () => {
-    localStorage.clear();
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userName');
+    // No borramos 'theme' para mantener su preferencia visual
+    setMenuOpen(false);
     navigate('/', { replace: true });
   };
 
   const handleOpenForm = () => {
-    if (!isAdmin) setActiveTab(0);
-    else {
-      if (view === "workers") setActiveTab(1);
-      else if (view === "users") setActiveTab(2);
-      else setActiveTab(0);
+    if (!isAdmin) {
+        setActiveTab(0);
+    } else {
+        if (view === "workers") setActiveTab(1);
+        else if (view === "users") setActiveTab(2);
+        else setActiveTab(0);
     }
     setIsFormOpen(true);
   };
@@ -91,14 +113,13 @@ const Mainpage = () => {
     setIsFormOpen(false);
   };
 
-  // --- DINAMISMO DEL HEADER ---
   const getHeaderTitle = () => {
     switch(view) {
-      case 'dashboard': return "Reportes";
-      case 'tech': return "Técnicos";
+      case 'dashboard': return "Gestión de Reportes";
+      case 'tech': return "Reportes Técnicos";
       case 'stadistics': return "Estadísticas";
-      case 'workers': return "Trabajadores";
-      case 'users': return "Usuarios";
+      case 'workers': return "Gestión de Trabajadores";
+      case 'users': return "Gestión de Usuarios";
       case 'profile': return "Perfil";
       default: return "Panel";
     }
@@ -107,30 +128,40 @@ const Mainpage = () => {
   const getSearchPlaceholder = () => {
     switch(view) {
       case 'dashboard': return "Buscar reporte...";
-      case 'tech': return "Buscar por técnico..."; // Búsqueda en ReportCase
+      case 'tech': return "Buscar por técnico...";
       case 'workers': return "Buscar trabajador...";
       case 'users': return "Buscar usuario...";
       default: return "Buscar...";
     }
   };
 
-  // Solo mostrar búsqueda si la vista actual es una lista
   const showSearch = ["dashboard", "tech", "workers", "users"].includes(view);
-
-  // Resetear búsqueda al cambiar de vista
-  useEffect(() => {
-    setSearchTerm("");
-    if (!isAdmin && (view === "workers" || view === "users")) setView("dashboard");
-  }, [view, isAdmin]);
 
   const solidBtnClass = darkMode 
     ? "bg-slate-800 text-white hover:bg-blue-600 border border-slate-700" 
     : "bg-[#1a1a1a] text-white hover:bg-blue-700 shadow-lg";
 
+  // Limpiar búsqueda al cambiar de pestaña y seguridad de roles
+  useEffect(() => {
+    setSearchTerm("");
+    if (!isAdmin && (view === "workers" || view === "users")) {
+      setView("dashboard");
+    }
+  }, [view, isAdmin]);
+
   return (
     <SidebarLayout 
-      isOpen={sidebarOpen} setIsOpen={setSidebarOpen} 
-      darkMode={darkMode} onNavigate={setView} userRole={userRole}
+      isOpen={sidebarOpen} 
+      setIsOpen={setSidebarOpen} 
+      darkMode={darkMode}
+      onNavigate={setView}
+      userRole={userRole}
+      activeFilters={filters}
+      onApplyFilter={(partial) => {
+        setFilters((prev) => ({ ...prev, ...partial }));
+        // when toggling filters, refresh report list
+        setRefreshKey((k) => k + 1);
+      }}
     >
       {/* --- HEADER --- */}
       <header className={`${darkMode ? "bg-[#1e293b] text-slate-100 border-slate-700" : "bg-white text-slate-800 border-slate-200"} shadow-sm w-full border-b sticky top-0 z-40 transition-colors`}>
@@ -147,12 +178,13 @@ const Mainpage = () => {
                   <FaArrowLeft size={14} />
                 </button>
               )}
-              <h1 className="text-lg md:text-xl font-black truncate uppercase tracking-tighter ml-1">{getHeaderTitle()}</h1>
+              <h1 className="text-lg md:text-xl font-black truncate uppercase tracking-tighter ml-1">
+                {getHeaderTitle()}
+              </h1>
             </div>
           </div>
 
           <div className="flex items-center gap-3 md:gap-5">
-            {/* SEARCHBAR DINÁMICA */}
             {showSearch && (
               <div className="relative hidden lg:block">
                 <input
@@ -172,11 +204,10 @@ const Mainpage = () => {
               {darkMode ? <FiSun className="text-yellow-400" size={20} /> : <FiMoon className="text-blue-700" size={20} />}
             </button>
 
-            {/* AVATAR ESTILO GMAIL */}
             <div className="relative" ref={menuRef}>
               <button 
                 onClick={() => setMenuOpen(!menuOpen)} 
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-black shadow-xl transition-all active:scale-90 focus:outline-none ${darkMode ? 'bg-blue-600' : 'bg-[#1a1a1a]'}`}
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-base shadow-xl transition-all active:scale-90 focus:outline-none ${darkMode ? 'bg-blue-600' : 'bg-[#1a1a1a]'}`}
               >
                 {userInitial}
               </button>
@@ -187,8 +218,8 @@ const Mainpage = () => {
                     <p className="text-sm font-black truncate">{userName}</p>
                     <p className="text-[10px] font-bold opacity-60 capitalize">{userRole}</p>
                   </div>
-                  <button onClick={() => {setView("profile"); setMenuOpen(false);}} className="w-full text-left px-4 py-3 hover:bg-blue-600 hover:text-white flex items-center gap-2 transition-colors"><FaUser size={14}/> Mi Perfil</button>
-                  <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-red-500 hover:bg-red-500/10 flex items-center gap-2 transition-colors font-bold"><FiLogOut size={16}/> Salir</button>
+                  <button onClick={() => {setView("profile"); setMenuOpen(false);}} className="w-full text-left px-4 py-3 hover:bg-blue-600 hover:text-white flex items-center gap-2 transition-colors font-bold uppercase text-xs tracking-tighter"><FaUser size={14}/> Mi Perfil</button>
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-red-500 hover:bg-red-500/10 flex items-center gap-2 transition-colors font-black uppercase text-xs tracking-tighter"><FiLogOut size={16}/> Salir</button>
                 </div>
               )}
             </div>
@@ -196,31 +227,21 @@ const Mainpage = () => {
         </div>
       </header>
 
-      {/* --- MAIN CONTENT (FULL WIDTH AZUL NAVY) --- */}
+      {/* --- MAIN CONTENT (FULL WIDTH) --- */}
       <main className={`flex-grow w-full h-[calc(100vh-64px)] overflow-y-auto transition-colors duration-300 ${
         darkMode ? "bg-[#0f172a]" : "bg-slate-100"
       }`}>
         <div className="w-full px-4 md:px-8 py-6">
-          {view === "dashboard" && <ReportList key={refreshKey} darkMode={darkMode} searchTerm={searchTerm} />}
+          {view === "dashboard" && <ReportList key={refreshKey} darkMode={darkMode} searchTerm={searchTerm} filter={filters} />}
           {view === "stadistics" && <Dashboard darkMode={darkMode} />}
-          
-          {/* SEARCHBAR PARA TECH: Pasa el searchTerm al ReportTechList */}
-          {view === "tech" && (
-            <ReportTechList 
-                key={refreshKey} 
-                userId={Number(localStorage.getItem('userId')) || undefined} 
-                darkMode={darkMode} 
-                searchTerm={searchTerm} 
-            />
-          )}
-
+          {view === "tech" && <ReportTechList key={refreshKey} userId={Number(localStorage.getItem('userId')) || undefined} darkMode={darkMode} searchTerm={searchTerm} />}
           {isAdmin && view === "workers" && <WorkerList key={refreshKey} darkMode={darkMode} searchTerm={searchTerm} />}
           {isAdmin && view === "users" && <UserList key={refreshKey} darkMode={darkMode} searchTerm={searchTerm} />}
           {view === "profile" && <UserProfile darkMode={darkMode} />}
         </div>
       </main>
 
-      {/* BOTÓN FLOTANTE (+) */}
+      {/* --- BOTÓN FLOTANTE (+) --- */}
       {!isFormOpen && (
         <button
           onClick={handleOpenForm}
@@ -232,7 +253,7 @@ const Mainpage = () => {
         </button>
       )}
 
-      {/* MODAL CON TABS */}
+      {/* --- MODAL CON TABS --- */}
       <Dialog
         open={isFormOpen}
         onClose={() => setIsFormOpen(false)}
@@ -242,7 +263,7 @@ const Mainpage = () => {
           style: {
             backgroundColor: darkMode ? "#1e293b" : "#ffffff", 
             color: darkMode ? "#f1f5f9" : "#000000",
-            borderRadius: '20px',
+            borderRadius: '24px',
             backgroundImage: 'none'
           },
         }}
@@ -253,10 +274,18 @@ const Mainpage = () => {
         </DialogTitle>
 
         <Box sx={{ borderBottom: 1, borderColor: darkMode ? 'rgba(255,255,255,0.1)' : 'divider' }}>
-          <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)} variant="fullWidth">
-            <Tab label="Reporte" sx={{ fontWeight: '900', fontSize: '0.7rem' }} />
-            {isAdmin && <Tab label="Trabajador" sx={{ fontWeight: '900', fontSize: '0.7rem' }} />}
-            {isAdmin && <Tab label="Usuario" sx={{ fontWeight: '900', fontSize: '0.7rem' }} />}
+          <Tabs 
+            value={activeTab} 
+            onChange={(e, v) => setActiveTab(v)} 
+            variant="fullWidth"
+            sx={{
+                '& .MuiTab-root': { fontWeight: '900', fontSize: '0.7rem' },
+                '& .MuiTabs-indicator': { backgroundColor: '#3b82f6', height: 3 }
+            }}
+          >
+            <Tab label="Reporte" />
+            {isAdmin && <Tab label="Trabajador" />}
+            {isAdmin && <Tab label="Usuario" />}
           </Tabs>
         </Box>
         

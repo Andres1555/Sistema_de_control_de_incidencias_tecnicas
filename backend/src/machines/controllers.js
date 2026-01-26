@@ -23,13 +23,12 @@ export const CreateMachineController = async (req, res) => {
       });
     }
 
-    // 2. Validar tipos de datos (Solo id_user y nro_maquina)
-    // Asumo que nro_maquina es número, si es texto cambia "number" por "string"
-    if (typeof id_user !== "number" || typeof nro_maquina !== "number") {
-      return res.status(400).json({
-        message: "Los campos deben ser un tipo de dato válido (números)",
-      });
-    }
+		// 2. Validar tipos de datos (id_user debe ser number, nro_maquina ahora es string)
+		if (typeof id_user !== "number" || typeof nro_maquina !== "string") {
+			return res.status(400).json({
+				message: "Los campos deben ser del tipo esperado (id_user: number, nro_maquina: string)",
+			});
+		}
 
 	// 3. Llamar al servicio que internamente usará el repositorio
 	await MachineService.create({ id_user, nro_maquina });
@@ -59,10 +58,9 @@ export const UpdateMachineController= async (req, res) => {
 
 		const idnumber = Number(id);
 
-		if (isNaN(idnumber) || typeof nro_maquina !== "number") {
+		if (isNaN(idnumber) || typeof nro_maquina !== "string") {
 			return res.status(400).json({
-				message:
-					"los campos tienen que ser un tipo de dato valido",
+				message: "Los campos tienen que ser un tipo de dato válido (id: number, nro_maquina: string)",
 			});
 		}
 

@@ -6,25 +6,26 @@ services:
     image: incidencias_backend:latest
     container_name: backend_app
     ports:
-      - "8080:8080"
+      - "8091:8080" # <--- EXTERNO: 8091 | INTERNO: 8080
     volumes:
-      - ./backend:/usr/src/app
-      
-      - /usr/src/app/node_modules
+      - ./backend:/usr/src/app:Z
+      - /usr/src/app/node_modules # Protege las librerías internas
     environment:
-      - PORT=8080
+      - PORT=8080 # Forzamos a que server.js use el 8080 internamente
       - JWT_SECRET=dev_secret
+      - SKIP_DB_SETUP=0
     restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://190.202.49.114:8091
     image: incidencias_frontend:latest
     container_name: frontend_app
     ports:
-      - "5173:5173"
+      - "8090:5173" 
     environment:
-      
-      - VITE_API_URL=http://localhost:8080
+      - VITE_API_URL=localhost:8091
     restart: unless-stopped
