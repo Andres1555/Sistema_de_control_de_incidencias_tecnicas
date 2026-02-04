@@ -1,7 +1,6 @@
 import sequelize, { Report, ReportCase, Machine, User, Worker } from "../schemas/schemas.js";
 import { Op } from "sequelize";
 
-
 const includeMachine = {
   model: Machine,
   attributes: ['nro_maquina']
@@ -10,21 +9,30 @@ const includeMachine = {
 const includeUser = { model: User, attributes: ['nombre', 'apellido'] };
 const includeWorker = { model: Worker, attributes: ['nombres', 'apellidos'] };
 
+// --- CAMBIO NUEVO: Definir la relación de quién solucionó (Report -> ReportCase -> User) ---
+const includeResolution = {
+  model: ReportCase,
+  include: [
+    {
+      model: User,
+      attributes: ['nombre', 'apellido'] // Traemos el nombre del técnico que resolvió
+    }
+  ]
+};
+
 async function getAll(limit, offset) {
-  // findAndCountAll devuelve { count: total, rows: [data] }
   return await Report.findAndCountAll({
     limit: limit,
     offset: offset,
-    include: [includeMachine, includeUser, includeWorker],
-    order: [['fecha', 'DESC']] // Opcional: ordenar por los más recientes
+    include: [includeMachine, includeUser, includeWorker, includeResolution], // <-- Agregado includeResolution
+    order: [['fecha', 'DESC']]
   });
 }
 
 async function getById(id) {
   if (id === undefined || id === null) return null;
-  // CAMBIO CLAVE: Añadimos el include aquí para el modal de detalles
   return await Report.findByPk(id, {
-    include: [includeMachine, includeUser, includeWorker]
+    include: [includeMachine, includeUser, includeWorker, includeResolution] // <-- Agregado includeResolution
   });
 }
 
@@ -47,11 +55,11 @@ async function createReport(data) {
 
   const created = await Report.create(payload);
   return await Report.findByPk(created.id, {
-    include: [includeMachine, includeUser, includeWorker]
+    include: [includeMachine, includeUser, includeWorker, includeResolution] // <-- Agregado includeResolution
   });
 }
+
 async function findMachineByNro(nro) {
-  // nro is stored as string; compare directly
   return await Machine.findOne({ where: { nro_maquina: nro } });
 }
 
@@ -64,21 +72,27 @@ async function createMachine(data) {
 }
 
 async function updateById(id, data) {
-  const report = await Report.findByPk(id);
-  if (!report) return null;
+  try {
+    const report = await Report.findByPk(id);
+    if (!report) return null;
 
-  const updatePayload = { ...data }; 
+    const updatePayload = { ...data };
 
-  if (updatePayload.clave_win !== undefined) {
-    updatePayload.clave_acceso_windows = updatePayload.clave_win;
-    delete updatePayload.clave_win;
+    if (updatePayload.clave_win !== undefined) {
+      updatePayload.clave_acceso_windows = updatePayload.clave_win;
+      delete updatePayload.clave_win;
+    }
+
+    await report.update(updatePayload);
+
+    return await Report.findByPk(id, {
+      include: [includeMachine, includeUser, includeWorker, includeResolution] // <-- Agregado includeResolution
+    });
+
+  } catch (error) {
+    console.error("Error en ReportRepository.updateById:", error.message);
+    throw error;
   }
-
-  await report.update(updatePayload);
-
-  return await Report.findByPk(id, {
-    include: [includeMachine, includeUser, includeWorker]
-  });
 }
 
 async function deleteById(id) {
@@ -97,14 +111,11 @@ async function deleteById(id) {
 } 
 
 async function getAllFiltered(caso) {
-  
   return await Report.findAll({
     where: {
-      caso: {
-        [Op.like]: `%${caso}%`
-      }
+      caso: { [Op.like]: `%${caso}%` }
     },
-    include: [includeMachine, includeUser, includeWorker]
+    include: [includeMachine, includeUser, includeWorker, includeResolution] // <-- Agregado includeResolution
   });
 }
 
@@ -112,12 +123,28 @@ async function getByWorkerId(workerId) {
   try {
     return await Report.findAll({
       where: { id_workers: workerId },
-      include: [includeMachine, includeUser, includeWorker], 
+      include: [includeMachine, includeUser, includeWorker, includeResolution], // <-- Agregado includeResolution
       order: [['id', 'DESC']]
     });
   } catch (error) {
     throw error;
   }
+}
+
+async function getByFilter(area, fecha) {
+  const where = {};
+  if (area && area !== "") {
+    where.area = { [Op.like]: `%${area}%` };
+  }
+  if (fecha && fecha !== "") {
+    where.fecha = fecha;
+  }
+
+  return await Report.findAll({
+    where,
+    include: [includeMachine, includeUser, includeWorker, includeResolution], // <-- Agregado includeResolution
+    order: [['fecha', 'DESC']]
+  });
 }
 
 export const ReportRepository = {
@@ -132,20 +159,3 @@ export const ReportRepository = {
   createMachine,
   findMachineByNro,
 };
-
-async function getByFilter(area, fecha) {
-  const where = {};
-  if (area && area !== "") {
-    where.area = { [Op.like]: `%${area}%` };
-  }
-  if (fecha && fecha !== "") {
-    // fecha stored as DATEONLY, match exact
-    where.fecha = fecha;
-  }
-
-  return await Report.findAll({
-    where,
-    include: [includeMachine, includeUser, includeWorker],
-    order: [['fecha', 'DESC']]
-  });
-}

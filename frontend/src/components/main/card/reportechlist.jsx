@@ -27,6 +27,7 @@ const ReportTechList = ({ userId, darkMode = true, searchTerm = "", refreshKey =
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogReadOnly, setDialogReadOnly] = useState(true);
 
+  // --- FUNCIÓN PARA CARGAR CASOS ---
   const fetchCases = async (page = 1) => {
     setLoading(true);
     setError(null);
@@ -34,7 +35,6 @@ const ReportTechList = ({ userId, darkMode = true, searchTerm = "", refreshKey =
       const token = localStorage.getItem('token');
       let url = "";
 
-      // --- LÓGICA DE URL DINÁMICA CON API_URL ---
       if (searchTerm) {
         url = `${API_URL}/api/report_cases/search?caso=${encodeURIComponent(searchTerm)}`;
       } else if (userId) {
@@ -43,7 +43,6 @@ const ReportTechList = ({ userId, darkMode = true, searchTerm = "", refreshKey =
         url = `${API_URL}/api/report_cases?page=${page}&limit=${limit}`;
       }
 
-      console.log("Petición enviada a:", url);
       const res = await axios.get(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -69,6 +68,34 @@ const ReportTechList = ({ userId, darkMode = true, searchTerm = "", refreshKey =
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // --- NUEVA FUNCIÓN: ELIMINAR REGISTRO ---
+  const handleDelete = async (id) => {
+    // 1. Confirmación de seguridad
+    const confirmDelete = window.confirm("¿Estás seguro de que deseas eliminar este registro técnico? Esta acción no se puede deshacer.");
+    if (!confirmDelete) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      // 2. Petición DELETE a la API
+      await axios.delete(`${API_URL}/api/report_cases/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      // 3. Notificar éxito y refrescar la lista
+      alert("Registro técnico eliminado correctamente.");
+      
+      // Si el registro borrado era el último de la página, retroceder una página
+      const nextPaging = (cases.length === 1 && currentPage > 1) ? currentPage - 1 : currentPage;
+      fetchCases(nextPaging);
+
+    } catch (err) {
+      console.error("Error al eliminar:", err);
+      const errorMsg = err.response?.data?.message || "No se pudo eliminar el registro técnico.";
+      alert(errorMsg);
     }
   };
 
@@ -117,7 +144,8 @@ const ReportTechList = ({ userId, darkMode = true, searchTerm = "", refreshKey =
               report={c} 
               onView={handleView} 
               darkMode={darkMode} 
-              onDelete={() => fetchCases(currentPage)} 
+              // PASAMOS LA FUNCIÓN DE ELIMINAR REAL
+              onDelete={handleDelete} 
             />
           ))}
         </section>
@@ -162,6 +190,7 @@ const ReportTechList = ({ userId, darkMode = true, searchTerm = "", refreshKey =
         </div>
       )}
 
+      {/* DIÁLOGO DE DETALLES */}
       <Dialog 
         open={dialogOpen} 
         onClose={handleCloseDialog} 

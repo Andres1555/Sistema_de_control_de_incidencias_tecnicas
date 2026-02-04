@@ -16,10 +16,8 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // --- VARIABLE DE ENTORNO ---
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
-    // --- ESTADOS DE PAGINACIÓN ---
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0); 
@@ -33,8 +31,6 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
     const fetchReports = async (page = 1) => {
         setLoading(true);
         try {
-            // --- USO DE API_URL ---
-            // If filters are active, call the filter endpoint (no pagination supported server-side here)
             const hasFilter = (filter && (filter.area || filter.fecha));
             if (hasFilter) {
                 const params = new URLSearchParams();
@@ -42,19 +38,16 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
                 if (filter.fecha) params.append('fecha', filter.fecha);
                 const url = `${API_URL}/api/report/filter?${params.toString()}`;
                 const res = await axios.get(url);
-                const data = res.data?.data ?? (Array.isArray(res.data) ? res.data : res.data);
-                const arr = Array.isArray(data) ? data : (res.data || []);
-                setReports(arr);
+                const data = res.data?.data ?? (Array.isArray(res.data) ? res.data : []);
+                setReports(data);
                 setTotalPages(1);
                 setCurrentPage(1);
-                setTotalItems(arr.length);
+                setTotalItems(data.length);
             } else {
                 let url = `${API_URL}/api/report?page=${page}&limit=${limit}`;
-
                 if (searchTerm) {
                     url = `${API_URL}/api/report/search?caso=${encodeURIComponent(searchTerm)}&page=${page}&limit=${limit}`;
                 }
-
                 const res = await axios.get(url);
                 
                 if (res.data && res.data.data) {
@@ -77,15 +70,14 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm]);
+    }, [searchTerm, filter]);
 
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
             fetchReports(currentPage);
         }, 300);
-
         return () => clearTimeout(delayDebounceFn);
-    }, [searchTerm, refreshKey, currentPage]); 
+    }, [searchTerm, refreshKey, currentPage, filter]); 
 
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= totalPages) {
@@ -94,8 +86,16 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
         }
     };
 
+    // --- CAMBIO CLAVE AQUÍ PARA ARREGLAR LA FECHA ---
     const handleView = (report) => {
-        setSelectedReport(report);
+        // Si la fecha viene como ISO (ej: 2026-01-30T00:00:00Z) o string con tiempo,
+        // cortamos solo la parte de la fecha (YYYY-MM-DD) para evitar el desfase horario.
+        let fixedDate = report.fecha;
+        if (report.fecha && report.fecha.includes('T')) {
+            fixedDate = report.fecha.split('T')[0];
+        }
+
+        setSelectedReport({ ...report, fecha: fixedDate });
         setDialogReadOnly(true);
         setDialogIsEdit(false);
         setDialogOpen(true);
@@ -115,7 +115,6 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
         if (!window.confirm("¿Eliminar este reporte?")) return;
         try {
             const token = localStorage.getItem('token');
-            // --- USO DE API_URL ---
             await axios.delete(`${API_URL}/api/report/${id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -136,7 +135,7 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
                 </div>
             ) : reports.length === 0 ? (
                 <div className="p-20 text-center text-gray-500 italic border-2 border-dashed border-gray-700 rounded-xl m-4">
-                    No se encontraron reportes que coincidan con "{searchTerm}"
+                    No se encontraron reportes.
                 </div>
             ) : (
                 <>
@@ -158,9 +157,7 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
                                 disabled={currentPage === 1 || loading}
                                 onClick={() => handlePageChange(currentPage - 1)}
                                 className={`p-2.5 rounded-xl border transition-all ${
-                                    darkMode 
-                                    ? "bg-slate-800 border-slate-700 text-white disabled:opacity-20 hover:bg-slate-700" 
-                                    : "bg-white border-slate-200 text-slate-700 disabled:opacity-30 hover:bg-slate-50 shadow-sm"
+                                    darkMode ? "bg-slate-800 border-slate-700 text-white disabled:opacity-20 hover:bg-slate-700" : "bg-white border-slate-200 text-slate-700 disabled:opacity-30 hover:bg-slate-50 shadow-sm"
                                 }`}
                             >
                                 <FaChevronLeft size={14} />
@@ -168,11 +165,7 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
 
                             <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl ${darkMode ? "bg-slate-800/50" : "bg-gray-100"}`}>
                                 <span className={`text-sm font-black ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
-                                    Página 
-                                    <span className={`mx-2 px-3 py-1 rounded-lg ${darkMode ? "bg-blue-600 text-white" : "bg-blue-100 text-blue-700"}`}>
-                                        {currentPage}
-                                    </span> 
-                                    de {totalPages}
+                                    Página <span className={`mx-2 px-3 py-1 rounded-lg ${darkMode ? "bg-blue-600 text-white" : "bg-blue-100 text-blue-700"}`}>{currentPage}</span> de {totalPages}
                                 </span>
                             </div>
 
@@ -180,15 +173,12 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
                                 disabled={currentPage === totalPages || loading}
                                 onClick={() => handlePageChange(currentPage + 1)}
                                 className={`p-2.5 rounded-xl border transition-all ${
-                                    darkMode 
-                                    ? "bg-slate-800 border-slate-700 text-white disabled:opacity-20 hover:bg-slate-700" 
-                                    : "bg-white border-slate-200 text-slate-700 disabled:opacity-30 hover:bg-slate-50 shadow-sm"
+                                    darkMode ? "bg-slate-800 border-slate-700 text-white disabled:opacity-20 hover:bg-slate-700" : "bg-white border-slate-200 text-slate-700 disabled:opacity-30 hover:bg-slate-50 shadow-sm"
                                 }`}
                             >
                                 <FaChevronRight size={14} />
                             </button>
                         </div>
-                        
                         <p className={`text-[10px] font-black uppercase tracking-[0.2em] opacity-50 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                             Registros totales: {totalItems}
                         </p>
@@ -230,11 +220,15 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
                 <DialogContent sx={{ p: 0 }}>
                     {selectedReport && (
                         <Reportform 
+                            key={`${selectedReport.id}-${dialogIsEdit}`} 
                             initialData={selectedReport} 
                             isEdit={dialogIsEdit} 
                             readOnlyDefault={dialogReadOnly} 
                             darkMode={darkMode} 
-                            onSuccess={() => { fetchReports(currentPage); handleCloseDialog(); }} 
+                            onSuccess={() => { 
+                                fetchReports(currentPage); 
+                                handleCloseDialog(); 
+                            }} 
                             onClose={handleCloseDialog} 
                         />
                     )}

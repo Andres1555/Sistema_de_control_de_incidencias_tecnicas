@@ -1,5 +1,5 @@
 import { ReportRepository } from "./repositories.js";
-import { Machine,User,Worker } from "../schemas/schemas.js"; 
+import { Machine,User,Worker,Report } from "../schemas/schemas.js"; 
 export const ReportService = {
   
  getAll: async (caso = null, page = 1, limit = 12) => {
@@ -56,66 +56,52 @@ export const ReportService = {
     try {
       const updatePayload = { ...data };
 
-      // 1. Obtener el reporte actual para conocer los IDs actuales
-      const report = await ReportRepository.getById(id);
+      // 1. Buscamos el reporte actual
+      const report = await Report.findByPk(id);
       if (!report) throw new Error("Reporte no encontrado");
 
-      // 2. Escudo contra IDs inválidos (0 o vacío -> null)
+      // Limpieza de IDs de dueño (User o Worker)
       const cleanId = (val) => (val && val !== 0 && val !== "0" && val !== "") ? Number(val) : null;
-      
-      const workerId = updatePayload.id_workers !== undefined ? cleanId(updatePayload.id_workers) : report.id_workers;
       const userId = updatePayload.id_user !== undefined ? cleanId(updatePayload.id_user) : report.id_user;
+      const workerId = updatePayload.id_workers !== undefined ? cleanId(updatePayload.id_workers) : report.id_workers;
 
-      // 3. GESTIÓN DE MÁQUINA (Corregir línea existente del dueño)
-      if (updatePayload.id_maquina !== undefined) {
-        const nroNuevo = updatePayload.id_maquina !== null && updatePayload.id_maquina !== undefined ? String(updatePayload.id_maquina).trim() : "";
+      // 2. LÓGICA DE TRADUCCIÓN: nro_maquina (String) -> id_maquina (Integer)
+      if (updatePayload.nro_maquina !== undefined) {
+        const textoNro = updatePayload.nro_maquina ? String(updatePayload.nro_maquina).trim() : "";
 
-        if (nroNuevo !== "") {
-          // Buscamos si el DUEÑO (Worker o User) ya tiene una máquina asignada
-          const ownerQuery = workerId ? { id_workers: workerId } : { id_user: userId };
-          const existingMachine = await Machine.findOne({ where: ownerQuery });
-
-          if (existingMachine) {
-            // SI YA TIENE: Actualizamos el identificador (string)
-            await existingMachine.update({ nro_maquina: nroNuevo });
-            updatePayload.id_maquina = existingMachine.id;
-          } else {
-            // SI NO TIENE: verificamos si existe una máquina global con ese nro
-            const globalMachine = await Machine.findOne({ where: { nro_maquina: nroNuevo } });
-            if (globalMachine) {
-              // reasignar propietario
-              await globalMachine.update({ id_user: userId, id_workers: workerId });
-              updatePayload.id_maquina = globalMachine.id;
-            } else {
-              // crear nueva máquina
-              const newMachine = await Machine.create({
-                nro_maquina: nroNuevo,
-                id_workers: workerId,
-                id_user: userId
-              });
-              updatePayload.id_maquina = newMachine.id;
+        if (textoNro !== "") {
+          // Buscamos si la máquina ya existe por su número de serie (atributo nro_maquina)
+          // Si no existe, la CREA (Relación 1 a muchos: permitimos que existan muchas máquinas)
+          const [machine] = await Machine.findOrCreate({
+            where: { nro_maquina: textoNro },
+            defaults: {
+              id_user: userId,
+              id_workers: workerId
             }
-          }
+          });
+
+          // IMPORTANTE: Asignamos el ID de la tabla Machine al campo id_maquina del Reporte
+          updatePayload.id_maquina = machine.id;
         } else {
-          // Si viene vacío, desvinculamos máquinas del dueño
-          await Machine.update({ id_user: null, id_workers: null }, { where: { id_user: userId } });
-          // No forzamos updatePayload.id_maquina aquí
+          updatePayload.id_maquina = null;
         }
+
+        // Eliminamos 'nro_maquina' del payload porque la tabla Report NO tiene esa columna
+        delete updatePayload.nro_maquina;
       }
 
-      // 4. Validación final de llaves foráneas para el update del reporte
-      if (updatePayload.id_user !== undefined) updatePayload.id_user = cleanId(updatePayload.id_user);
-      if (updatePayload.id_workers !== undefined) updatePayload.id_workers = cleanId(updatePayload.id_workers);
+      // 3. Limpiar otros IDs para evitar conflictos de tipos en SQLite
+      if (updatePayload.id_user !== undefined) updatePayload.id_user = userId;
+      if (updatePayload.id_workers !== undefined) updatePayload.id_workers = workerId;
 
-      // 5. Llamar al repositorio
+      // 4. Llamar al repositorio para el update final
       return await ReportRepository.updateById(id, updatePayload);
 
     } catch (error) {
-      console.error("Error en ReportService.update:", error.message);
+      console.error("Error en ReportService:", error.message);
       throw error;
     }
   },
-  
   delete: async (id) => {
     try {
       const result = await ReportRepository.deleteById(id);

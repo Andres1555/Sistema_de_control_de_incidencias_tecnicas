@@ -65,14 +65,9 @@ export const CreateReportController = async (req, res) => {
 export const UpdateReportController = async (req, res) => {
   try {
     const { id } = req.params;
-    const idnumber = Number(id);
     
-    if (isNaN(idnumber)) {
-      return res.status(400).json({ message: 'ID de reporte no válido' });
-    }
-
-    // El servicio procesa la máquina y limpia los IDs para evitar el error de Constraint
-    const updated = await ReportService.update(idnumber, req.body);
+    // Llamamos al servicio pasando el body que contiene 'nro_maquina'
+    const updated = await ReportService.update(Number(id), req.body);
     
     res.status(200).json({ 
       message: "Reporte actualizado con éxito", 
@@ -82,8 +77,7 @@ export const UpdateReportController = async (req, res) => {
   } catch (error) {
     console.error("Error en UpdateReportController:", error.message);
     res.status(500).json({
-      message: "Error de integridad: Verifique que la máquina o usuario existan.",
-      error: error.message
+      message: "Error interno: " + error.message
     });
   }
 };
