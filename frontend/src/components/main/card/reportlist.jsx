@@ -28,6 +28,10 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
     const [dialogReadOnly, setDialogReadOnly] = useState(true);
     const [dialogIsEdit, setDialogIsEdit] = useState(false);
 
+    const [escalateDialogOpen, setEscalateDialogOpen] = useState(false);
+    const [targetArea, setTargetArea] = useState("");
+    const [isEscalating, setIsEscalating] = useState(false);
+
     const fetchReports = async (page = 1) => {
         setLoading(true);
         try {
@@ -37,7 +41,10 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
                 if (filter.area) params.append('area', filter.area);
                 if (filter.fecha) params.append('fecha', filter.fecha);
                 const url = `${API_URL}/api/report/filter?${params.toString()}`;
-                const res = await axios.get(url);
+                const token = localStorage.getItem('token');
+                const res = await axios.get(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 const data = res.data?.data ?? (Array.isArray(res.data) ? res.data : []);
                 setReports(data);
                 setTotalPages(1);
@@ -48,7 +55,10 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
                 if (searchTerm) {
                     url = `${API_URL}/api/report/search?caso=${encodeURIComponent(searchTerm)}&page=${page}&limit=${limit}`;
                 }
-                const res = await axios.get(url);
+                const token = localStorage.getItem('token');
+                const res = await axios.get(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 
                 if (res.data && res.data.data) {
                     setReports(res.data.data);
@@ -125,6 +135,31 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
         }
     };
 
+    const handleEscalateClick = (report) => {
+        setSelectedReport(report);
+        setTargetArea(report.area || "");
+        setEscalateDialogOpen(true);
+    };
+
+    const confirmEscalation = async () => {
+        if (!targetArea) return alert("Seleccione un área");
+        setIsEscalating(true);
+        try {
+            const token = localStorage.getItem('token');
+            await axios.patch(`${API_URL}/api/report/${selectedReport.id}/escalate`, 
+                { area: targetArea },
+                { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+            setEscalateDialogOpen(false);
+            fetchReports(currentPage);
+        } catch (err) {
+            console.error('Error escalating report', err);
+            alert('Error al escalar el reporte');
+        } finally {
+            setIsEscalating(false);
+        }
+    };
+
     return (
         <div className="flex flex-col h-full min-h-screen">
             {error && <div className="p-4 text-center text-red-500 font-bold">{error}</div>}
@@ -146,6 +181,7 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
                                 report={r} 
                                 onView={handleView} 
                                 onDelete={handleDelete} 
+                                onEscalate={handleEscalateClick}
                                 darkMode={darkMode} 
                             />
                         ))}
@@ -232,6 +268,65 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
                             onClose={handleCloseDialog} 
                         />
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* DIALOGO DE ESCALACIÓN */}
+            <Dialog 
+                open={escalateDialogOpen} 
+                onClose={() => !isEscalating && setEscalateDialogOpen(false)}
+                PaperProps={{ 
+                    style: { 
+                        backgroundColor: darkMode ? '#1e293b' : '#ffffff', 
+                        color: darkMode ? '#ffffff' : '#000000',
+                        borderRadius: '20px',
+                        padding: '10px'
+                    } 
+                }}
+            >
+                <DialogTitle className="font-black uppercase tracking-widest text-center text-blue-500">
+                    Escalar Reporte
+                </DialogTitle>
+                <DialogContent>
+                    <div className="py-4 space-y-4">
+                        <p className={`text-xs font-bold uppercase opacity-70 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            Seleccione el área a la que desea escalar este caso:
+                        </p>
+                        <select 
+                            value={targetArea}
+                            onChange={(e) => setTargetArea(e.target.value)}
+                            className={`w-full p-3 rounded-xl border-2 font-bold outline-none transition-all ${
+                                darkMode 
+                                ? "bg-slate-800 border-slate-700 text-white focus:border-blue-500" 
+                                : "bg-gray-50 border-gray-200 text-gray-800 focus:border-blue-500"
+                            }`}
+                        >
+                            <option value="">-- Seleccionar Área --</option>
+                            <option value="Redes">Redes</option>
+                            <option value="Soporte Tecnico">Soporte Técnico</option>
+                            <option value="Caue">Caue</option>
+                            <option value="Desarrollo">Desarrollo</option>
+                        </select>
+                        
+                        <div className="flex gap-3 mt-6">
+                            <button 
+                                onClick={() => setEscalateDialogOpen(false)}
+                                disabled={isEscalating}
+                                className={`flex-1 py-3 rounded-xl font-black uppercase text-xs transition-all ${
+                                    darkMode ? "bg-slate-700 text-white hover:bg-slate-600" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                }`}
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={confirmEscalation}
+                                disabled={isEscalating || !targetArea}
+                                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black uppercase text-xs transition-all shadow-lg shadow-blue-500/30 disabled:opacity-50"
+                            >
+                                {isEscalating ? "Escalando..." : "Confirmar"}
+                            </button>
+                        </div>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

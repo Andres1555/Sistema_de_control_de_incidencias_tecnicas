@@ -17,7 +17,7 @@ const UserList = ({ darkMode = true, searchTerm = "", refreshKey = 0 }) => {
     const [error, setError] = useState(null);
 
     // --- VARIABLE DE ENTORNO ---
-    const API_URL = import.meta.env.VITE_API_URL 
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
     const [pagination, setPagination] = useState({
         currentPage: 1,

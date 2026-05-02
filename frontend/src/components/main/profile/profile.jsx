@@ -16,6 +16,7 @@ const UserProfile = ({ darkMode }) => {
     ficha: "",
     ci: "",
     role: "",
+    area: "",
     avatar: "" 
   });
 
@@ -48,7 +49,7 @@ const UserProfile = ({ darkMode }) => {
         if (!userId) return;
 
         // --- VARIABLE DE ENTORNO CONFIGURADA ---
-        const base = import.meta.env.VITE_API_URL ;
+        const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
         
         const res = await fetch(`${base}/api/users/${userId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -67,6 +68,7 @@ const UserProfile = ({ darkMode }) => {
           ficha: (data.ficha ?? "").toString(),
           ci: (data.C_I ?? data.ci ?? "").toString(),
           role: data.rol || data.role || "",
+          area: data.area || "",
           avatar: data.avatar || "" 
         });
       } catch (err) {
@@ -87,7 +89,7 @@ const UserProfile = ({ darkMode }) => {
       const ciParam = user.ci;
 
       // --- VARIABLE DE ENTORNO CONFIGURADA ---
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:8091';
+      const base = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       
       const res = await fetch(`${base}/api/users/${ciParam}`, {
         method: 'PUT',
@@ -100,7 +102,8 @@ const UserProfile = ({ darkMode }) => {
             apellido: user.apellido,
             email: user.email,
             telefono: user.telefono === "" ? null : Number(user.telefono),
-            extension: user.extension === "" ? null : Number(user.extension)
+            extension: user.extension === "" ? null : Number(user.extension),
+            area: user.area
         }),
       });
 
@@ -172,6 +175,7 @@ const UserProfile = ({ darkMode }) => {
             <DetailBox label="Correo Electrónico" icon={FaEnvelope} name="email" value={user.email} isEditing={isEditing} onChange={handleChange} theme={theme} />
             <DetailBox label="Teléfono de Contacto" icon={FaPhone} name="telefono" value={user.telefono} isEditing={isEditing} onChange={handleChange} theme={theme} />
             <DetailBox label="Extensión Telefónica" icon={FaIdBadge} name="extension" value={user.extension} isEditing={isEditing} onChange={handleChange} theme={theme} />
+            <DetailBox label="Área / Departamento" icon={FaIdBadge} name="area" value={user.area} isEditing={isEditing} onChange={handleChange} theme={theme} />
         </div>
       </div>
       <LoadingModal isOpen={modalState.isOpen} status={modalState.status} message={modalState.message} onClose={() => setModalState(s => ({...s, isOpen: false}))} />

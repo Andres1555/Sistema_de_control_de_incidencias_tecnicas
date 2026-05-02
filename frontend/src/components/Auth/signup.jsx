@@ -8,7 +8,7 @@ import { FiSun, FiMoon } from "react-icons/fi";
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
-    nombre: "", apellido: "", correo: "", ficha: "", telefono: "", C_I: "", rol: "tecnico", especializacion: "", numero_maquina: "", extension: "", password: "",
+    nombre: "", apellido: "", correo: "", ficha: "", telefono: "", C_I: "", rol: "tecnico", especializacion: "", numero_maquina: "", extension: "", area: "", password: "",
   });
 
   const [error, setError] = useState(''); 
@@ -29,7 +29,7 @@ const SignUp = () => {
     e.preventDefault();
     setError('');
 
-    const required = ["nombre","apellido","correo","ficha","telefono","C_I","rol","especializacion","extension","password"];
+    const required = ["nombre","apellido","correo","ficha","telefono","C_I","rol","especializacion","extension","area","password"];
     for (const k of required) {
       if (!formData[k]) {
         setModalState({ isOpen: true, status: 'error', message: 'Complete todos los campos obligatorios.' });
@@ -45,7 +45,8 @@ const SignUp = () => {
       const userRes = await axios.post(`${base}/users`, {
         ci: Number(formData.C_I), nombre: formData.nombre, apellido: formData.apellido,
         email: formData.correo, password: formData.password, telefono: String(formData.telefono),
-        ficha: Number(formData.ficha), rol: formData.rol, extension: Number(formData.extension)
+        ficha: Number(formData.ficha), rol: formData.rol, extension: Number(formData.extension),
+        area: formData.area
       });
 
       const userId = userRes.data?.data?.id || userRes.data?.id || userRes.data?.user?.id;
@@ -130,6 +131,13 @@ const SignUp = () => {
             <input style={textStyle} type="text" name="numero_maquina" placeholder="Máquina (opcional)" onChange={(e) => handleInputChange(e, setFormData)} className={inputBaseClass} />
             <input style={textStyle} type="number" name="telefono" placeholder="Teléfono" onChange={(e) => handleInputChange(e, setFormData)} className={inputBaseClass} required />
             <input style={textStyle} type="number" name="extension" placeholder="Extensión" onChange={(e) => handleInputChange(e, setFormData)} className={inputBaseClass} required />
+            <select style={textStyle} name="area" onChange={(e) => handleInputChange(e, setFormData)} className={inputBaseClass} required>
+              <option value="" className={darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}>-- Seleccionar Área --</option>
+              <option value="Redes" className={darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}>Redes</option>
+              <option value="Soporte Tecnico" className={darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}>Soporte Técnico</option>
+              <option value="Caue" className={darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}>Caue</option>
+              <option value="Desarrollo" className={darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}>Desarrollo</option>
+            </select>
             
             <div className="md:col-span-2">
               <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-blue-700 transition-all active:scale-95 shadow-lg mt-4 disabled:opacity-50">

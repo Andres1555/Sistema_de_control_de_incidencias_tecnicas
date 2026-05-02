@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS Users (
   telefono varchar,
   "C.I" integer,
   rol varchar(500),
-  extension integer
+  extension integer,
+  area varchar(500)
 );
 
 -- NUEVA TABLA: Worker 
@@ -52,6 +53,8 @@ CREATE TABLE IF NOT EXISTS Report (
   "nombre windows" varchar(500),
   "clave de acceso windows" integer,
   fecha date,
+  departamento varchar(500),
+  tipo varchar(500),
   FOREIGN KEY (id_workers) REFERENCES Worker (id),
   FOREIGN KEY (id_user) REFERENCES Users (id)
 );
@@ -88,6 +91,24 @@ export async function setupDatabase() {
           if (execErr) {
             db.close(() => reject(execErr));
             return;
+          }
+
+          // --- ASEGURAR COLUMNAS EN TABLAS EXISTENTES ---
+          const alterCommands = [
+            `ALTER TABLE Users ADD COLUMN area varchar(500);`,
+            `ALTER TABLE Report ADD COLUMN departamento varchar(500);`,
+            `ALTER TABLE Report ADD COLUMN tipo varchar(500);`
+          ];
+
+          for (const cmd of alterCommands) {
+            try {
+              db.run(cmd, (err) => {
+                // Ignoramos errores si la columna ya existe
+                if (err && !err.message.includes("duplicate column name")) {
+                    // console.log("Nota: Columna ya existe o error menor:", err.message);
+                }
+              });
+            } catch (e) {}
           }
 
           db.close(async (closeErr) => {

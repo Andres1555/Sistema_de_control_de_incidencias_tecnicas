@@ -2,16 +2,22 @@ import { ReportRepository } from "./repositories.js";
 import { Machine,User,Worker,Report } from "../schemas/schemas.js"; 
 export const ReportService = {
   
- getAll: async (caso = null, page = 1, limit = 12) => {
+ getAll: async (caso = null, page = 1, limit = 12, userRole = "", userArea = "") => {
     try {
       
       const offset = (page - 1) * limit;
 
       if (caso) {
-        return await ReportRepository.getAllFiltered(caso, limit, offset);
+        const { count, rows } = await ReportRepository.getAllFiltered(caso, limit, offset, userRole, userArea);
+        return {
+          totalItems: count,
+          totalPages: Math.ceil(count / limit),
+          currentPage: page,
+          data: rows
+        };
       }
       
-      const { count, rows } = await ReportRepository.getAll(limit, offset);
+      const { count, rows } = await ReportRepository.getAll(limit, offset, userRole, userArea);
 
       return {
         totalItems: count,
@@ -133,12 +139,12 @@ export const ReportService = {
     }
   }
   ,
-  GetReportsByFilterService: async ({ area = null, fecha = null } = {}) => {
+  GetReportsByFilterService: async ({ area = null, fecha = null, userRole = "", userArea = "" } = {}) => {
     try {
       // Normalizar entrada
       const a = area !== undefined && area !== null ? String(area).trim() : null;
       const f = fecha !== undefined && fecha !== null ? String(fecha).trim() : null;
-      return await ReportRepository.getByFilter(a, f);
+      return await ReportRepository.getByFilter(a, f, userRole, userArea);
     } catch (error) {
       throw new Error('Error en el servicio de filtros: ' + error.message);
     }

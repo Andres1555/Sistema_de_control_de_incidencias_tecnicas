@@ -35,7 +35,8 @@ export const User = sequelize.define('Users', {
   telefono: { type: DataTypes.STRING },
   C_I: { type: DataTypes.INTEGER, field: 'C.I' },
   rol: { type: DataTypes.STRING(500) },
-  extension: { type: DataTypes.INTEGER }
+  extension: { type: DataTypes.INTEGER },
+  area: { type: DataTypes.STRING(500) }
 }, {
   tableName: 'Users',
   timestamps: false
@@ -63,7 +64,9 @@ export const Report = sequelize.define('Report', {
   nombre_windows: { type: DataTypes.STRING(500), field: 'nombre windows' }, 
   clave_natural: { type: DataTypes.INTEGER, field: 'clave natural' },
   clave_acceso_windows: { type: DataTypes.INTEGER, field: 'clave de acceso windows' },
-  fecha: { type: DataTypes.DATEONLY }
+  fecha: { type: DataTypes.DATEONLY },
+  departamento: { type: DataTypes.STRING(500) },
+  tipo: { type: DataTypes.STRING(500) }
 }, {
   tableName: 'Report',
   timestamps: false

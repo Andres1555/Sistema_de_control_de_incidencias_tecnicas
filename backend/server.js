@@ -18,7 +18,7 @@ const app = express();
 // RECOMENDACIÓN: Configura CORS de forma un poco más explícita para evitar bloqueos
 app.use(cors({
     origin: "*", // En producción podrías poner la IP del front, pero "*" es más seguro para probar ahora
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
 

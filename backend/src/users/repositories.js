@@ -47,6 +47,7 @@ async function createCompleteUser(data) {
       C_I: Number(data.ci),
       rol: data.rol,
       extension: Number(data.extension),
+      area: data.area,
     }, { transaction: t });
 
     const userId = newUser.id;
@@ -98,6 +99,7 @@ async function updateByCI(ciOriginal, data) {
   if (data.rol !== undefined) payload.rol = data.rol;
   if (data.extension !== undefined) payload.extension = Number(data.extension);
   if (data.password !== undefined) payload.password = data.password;
+  if (data.area !== undefined) payload.area = data.area;
   
   // PERMITIR CAMBIO DE CI: Si en el body viene un ci nuevo, lo actualizamos
   if (data.ci !== undefined) payload.C_I = Number(data.ci);

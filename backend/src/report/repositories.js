@@ -20,11 +20,19 @@ const includeResolution = {
   ]
 };
 
-async function getAll(limit, offset) {
+async function getAll(limit, offset, userRole, userArea) {
+  const where = {};
+  if (userRole !== 'administrador' && userArea) {
+    where[Op.or] = [
+      { area: userArea },
+      { departamento: userArea }
+    ];
+  }
   return await Report.findAndCountAll({
+    where,
     limit: limit,
     offset: offset,
-    include: [includeMachine, includeUser, includeWorker, includeResolution], // <-- Agregado includeResolution
+    include: [includeMachine, includeUser, includeWorker, includeResolution],
     order: [['fecha', 'DESC']]
   });
 }
@@ -51,6 +59,8 @@ async function createReport(data) {
     clave_acceso_windows: data.clave_win, 
     fecha: data.fecha,
     cargo: data.cargo,
+    departamento: data.departamento || null,
+    tipo: data.tipo || null,
   };
 
   const created = await Report.create(payload);
@@ -110,13 +120,26 @@ async function deleteById(id) {
   }
 } 
 
-async function getAllFiltered(caso) {
-  return await Report.findAll({
-    where: {
-      caso: { [Op.like]: `%${caso}%` }
-    },
-    include: [includeMachine, includeUser, includeWorker, includeResolution] // <-- Agregado includeResolution
+async function getAllFiltered(caso, limit, offset, userRole, userArea) {
+  const where = {
+    caso: { [Op.like]: `%${caso}%` }
+  };
+  if (userRole !== 'administrador' && userArea) {
+    where[Op.or] = [
+      { area: userArea },
+      { departamento: userArea }
+    ];
+  }
+  
+  const { count, rows } = await Report.findAndCountAll({
+    where,
+    limit: limit,
+    offset: offset,
+    include: [includeMachine, includeUser, includeWorker, includeResolution],
+    order: [['fecha', 'DESC']]
   });
+
+  return { count, rows };
 }
 
 async function getByWorkerId(workerId) {
@@ -131,11 +154,17 @@ async function getByWorkerId(workerId) {
   }
 }
 
-async function getByFilter(area, fecha) {
+async function getByFilter(area, fecha, userRole, userArea) {
   const where = {};
-  if (area && area !== "") {
+  if (userRole !== 'administrador' && userArea) {
+    where[Op.or] = [
+      { area: userArea },
+      { departamento: userArea }
+    ];
+  } else if (area && area !== "") {
     where.area = { [Op.like]: `%${area}%` };
   }
+  
   if (fecha && fecha !== "") {
     where.fecha = fecha;
   }

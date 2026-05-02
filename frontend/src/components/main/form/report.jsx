@@ -16,7 +16,7 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
+    return `${dd}/${mm}/${yyyy}`;
   };
 
   const initialFormData = {
@@ -53,7 +53,10 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
         clave_win: initialData.clave_win ?? initialData.clave_acceso_windows ?? initialData['clave de acceso windows'] ?? "",
         clave_natural: initialData.clave_natural ?? initialData['clave natural'] ?? "",
         cargo: initialData.cargo ?? "", 
-        fecha: initialData.fecha || getTodayDate(), 
+        fecha: initialData.fecha ? (() => {
+            const [y, m, d] = initialData.fecha.split('-');
+            return `${d}/${m}/${y}`;
+        })() : getTodayDate(), 
       });
     } else {
       setFormData(initialFormData);
@@ -99,6 +102,13 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
       
       const payload = {
         ...formData,
+        fecha: (() => {
+            if (formData.fecha && formData.fecha.includes('/')) {
+                const [d, m, y] = formData.fecha.split('/');
+                return `${y}-${m}-${d}`;
+            }
+            return formData.fecha;
+        })(),
         nro_maquina: String(formData.id_maquina),
         id_maquina: Number(formData.id_maquina),
         nombre_windows: String(formData.nombre_windows),
@@ -187,6 +197,20 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
             </select>
           </div>
 
+          <div>
+            <label className={labelClass}>Tipo de Incidencia</label>
+            {readOnlyDefault ? (
+              <input type="text" value={formData.tipo || "No especificado"} readOnly className={inputClass} />
+            ) : (
+              <select name="tipo" value={formData.tipo} onChange={handleInputChange} className={inputClass}>
+                <option value="">Seleccione...</option>
+                <option value="Redes">Redes</option>
+                <option value="Periféricos">Periféricos</option>
+                <option value="Solicitud">Solicitud</option>
+              </select>
+            )}
+          </div>
+
           {/* --- CAMPO CARGO --- */}
           <div>
             <label className={labelClass}><FaBriefcase className="inline mb-1 mr-1"/> Cargo</label>
@@ -194,8 +218,14 @@ const Reportform = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
           </div>
 
           <div>
-            <label className={labelClass}>Fecha</label>
-            <input type="date" name="fecha" value={formData.fecha} onChange={handleInputChange} disabled={readOnlyDefault} className={inputClass} />
+            <label className={labelClass}>Fecha (Automática)</label>
+            <input 
+              type="text" 
+              name="fecha" 
+              value={formData.fecha} 
+              readOnly 
+              className={`${inputClass} bg-gray-200/20 cursor-not-allowed`} 
+            />
           </div>
 
           <div className="md:col-span-2">

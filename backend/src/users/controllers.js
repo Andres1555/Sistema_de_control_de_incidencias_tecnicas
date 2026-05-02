@@ -37,7 +37,7 @@ export const GetUserbyidController = async (req, res) => {
 
 export const CreateUserController = async (req, res) => {
   try {
-    const { ci, nombre, apellido, email, telefono, ficha, rol, extension, password, nro_maquina, especializacion } = req.body;
+    const { ci, nombre, apellido, email, telefono, ficha, rol, extension, password, nro_maquina, especializacion, area } = req.body;
 
     if (!ci || !nombre || !email || !password) {
       return res.status(400).json({ message: "CI, Nombre, Email y Password son obligatorios" });
@@ -60,6 +60,7 @@ export const CreateUserController = async (req, res) => {
       ficha: Number(ficha),
       rol,
       extension: Number(extension),
+      area,
       nro_maquina: nro_maquina ? String(nro_maquina) : null,
       especializaciones: listaSpecs
     });

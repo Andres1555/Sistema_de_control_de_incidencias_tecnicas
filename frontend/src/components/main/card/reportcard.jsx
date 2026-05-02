@@ -1,9 +1,9 @@
 import React from "react";
-import { FaClipboardList, FaMapMarkerAlt, FaUser, FaTrash, FaEye, FaCheckCircle, FaBriefcase } from "react-icons/fa";
+import { FaClipboardList, FaMapMarkerAlt, FaUser, FaTrash, FaEye, FaCheckCircle, FaBriefcase, FaArrowUp } from "react-icons/fa";
 
-const ReportCard = ({ report = {}, onView, onDelete, darkMode = true }) => {
+const ReportCard = ({ report = {}, onView, onDelete, onEscalate, darkMode = true }) => {
     // Extraemos los datos básicos del reporte
-    const { id, caso, descripcion, estado, fecha, area, nombre_natural, cargo } = report;
+    const { id, caso, descripcion, estado, fecha, area, nombre_natural, cargo, departamento } = report;
 
     // 1. DETERMINA EL NOMBRE DEL CREADOR (Reporte -> User o Worker)
     const reporterName = (() => {
@@ -60,13 +60,25 @@ const ReportCard = ({ report = {}, onView, onDelete, darkMode = true }) => {
                             {caso || `Reporte #${id}`}
                         </h3>
                     </div>
-                    <div className="flex flex-col items-end shrink-0">
-                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase mb-1 ${statusColor()}`}>
+                    <div className="flex flex-col items-end shrink-0 gap-1.5">
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase ${statusColor()}`}>
                             {estado || "S/E"}
                         </span>
                         <p className="text-[9px] opacity-60 font-bold uppercase tracking-tighter">
-                            {fecha ? new Date(fecha).toLocaleDateString() : "--/--/--"}
+                            {fecha ? (() => {
+                                const [y, m, d] = fecha.split('-');
+                                return `${d}/${m}/${y}`;
+                            })() : "--/--/--"}
                         </p>
+                        {!isWorker && (
+                            <button
+                                onClick={() => onEscalate && onEscalate(report)}
+                                title="Escalar Reporte"
+                                className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500 hover:text-white transition-all shadow-sm active:scale-90"
+                            >
+                                <FaArrowUp size={10} />
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -79,6 +91,7 @@ const ReportCard = ({ report = {}, onView, onDelete, darkMode = true }) => {
                         <FaMapMarkerAlt className="text-blue-400 shrink-0" size={11} /> 
                         <span className="truncate"><strong className="font-black uppercase">Área:</strong> {area || "N/A"}</span>
                     </div>
+                    
                     <div className={`text-[10px] md:text-[11px] flex items-center gap-2 ${secondaryText}`}>
                         <FaUser className="text-blue-400 shrink-0" size={11} /> 
                         <span className="truncate"><strong className="font-black uppercase">Por:</strong> {reporterName}</span>

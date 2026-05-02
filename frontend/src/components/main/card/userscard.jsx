@@ -2,7 +2,7 @@ import React from "react";
 import { FaUser, FaEnvelope, FaIdCard, FaTrash, FaEye } from "react-icons/fa";
 
 const UserCard = ({ user = {}, onView, onDelete, darkMode = true }) => {
-    const { id, nombre, apellido, correo, ficha, C_I, rol } = user;
+    const { id, nombre, apellido, correo, ficha, C_I, rol, area } = user;
 
     const roleBadgeColor = () => {
         switch ((rol || "").toLowerCase()) {
@@ -28,6 +28,12 @@ const UserCard = ({ user = {}, onView, onDelete, darkMode = true }) => {
                             <FaEnvelope className="shrink-0 text-[10px]" />
                             <span className="truncate">{correo}</span>
                         </p>
+                        {area && (rol || "").toLowerCase().includes("tecnico") && (
+                            <p className={`mt-0.5 text-[10px] md:text-xs flex items-center gap-2 truncate opacity-70 text-blue-400 font-bold uppercase`}>
+                                <FaIdCard className="shrink-0 text-[10px]" />
+                                <span className="truncate">{area}</span>
+                            </p>
+                        )}
                     </div>
                     {/* Badge de rol ahora sólido para hacer juego con el resto */}
                     <span className={`shrink-0 px-2 py-0.5 rounded-md text-[8px] font-black border uppercase tracking-wider shadow-sm ${roleBadgeColor()}`}>

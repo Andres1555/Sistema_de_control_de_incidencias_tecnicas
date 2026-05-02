@@ -7,7 +7,10 @@ export const GetallReportController = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 12;
 
-    const result = await ReportService.getAll(null, page, limit);
+    const userRole = (req.user?.rol || req.user?.role || "").toLowerCase();
+    const userArea = req.user?.area;
+
+    const result = await ReportService.getAll(null, page, limit, userRole, userArea);
     
     
     res.status(200).json(result);
@@ -25,7 +28,7 @@ export const CreateReportController = async (req, res) => {
     const { 
       nro_maquina, caso, area, estado, descripcion, 
       nombre_natural, nombre_windows, clave_natural, clave_win, fecha,
-      cargo 
+      cargo, tipo
     } = req.body;
 
     const authId = req.user?.id;
@@ -44,6 +47,7 @@ export const CreateReportController = async (req, res) => {
       clave_win,
       fecha,
       cargo, 
+      tipo,
       id_user: !isWorker ? authId : null,
       id_workers: isWorker ? authId : null
     };
@@ -81,6 +85,25 @@ export const UpdateReportController = async (req, res) => {
     });
   }
 };
+export const EscalateReportController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { area } = req.body;
+
+    if (!area) return res.status(400).json({ message: "El área es obligatoria para escalar" });
+
+    const updated = await ReportService.update(Number(id), { departamento: area, estado: 'Escalado' });
+    
+    res.status(200).json({ 
+      message: "Reporte escalado correctamente", 
+      report: updated 
+    });
+  } catch (error) {
+    console.error("Error en EscalateReportController:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const DeleteReportController= async (req, res) => {
   try {
 	const { id } = req.params;
@@ -114,9 +137,12 @@ export const DeleteReportController= async (req, res) => {
 
 export const Getbycasecontroller = async (req, res) => {
   try {
-    const { caso } = req.query; // Captura ?caso=...
-    const data = await ReportService.GetReportsService(caso);
-    res.status(200).json(data);
+    const { caso, page = 1, limit = 12 } = req.query;
+    const userRole = (req.user?.rol || req.user?.role || "").toLowerCase();
+    const userArea = req.user?.area;
+    
+    const result = await ReportService.getAll(caso, page, limit, userRole, userArea);
+    res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
   }
@@ -126,7 +152,10 @@ export const GetByFilterController = async (req, res) => {
   try {
     // Query params: ?area=...&fecha=YYYY-MM-DD
     const { area, fecha } = req.query;
-    const data = await ReportService.GetReportsByFilterService({ area, fecha });
+    const userRole = (req.user?.rol || req.user?.role || "").toLowerCase();
+    const userArea = req.user?.area;
+
+    const data = await ReportService.GetReportsByFilterService({ area, fecha, userRole, userArea });
     res.status(200).json(Array.isArray(data) ? data : { data });
   } catch (error) {
     console.error('Error en GetByFilterController:', error.message);

@@ -15,7 +15,7 @@ export const LoginController = async (req, res) => {
     const match = await bcrypt.compare(password, user.password || '');
     if (!match) return res.status(401).json({ message: 'Credenciales inválidas' });
 
-    const payload = { id: user.id, ci: user.C_I, rol: user.rol };
+    const payload = { id: user.id, ci: user.C_I, rol: user.rol, area: user.area };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
 
     return res.status(200).json({ token, user: { id: user.id, nombre: user.nombre, apellido: user.apellido, correo: user.correo, rol: user.rol } });

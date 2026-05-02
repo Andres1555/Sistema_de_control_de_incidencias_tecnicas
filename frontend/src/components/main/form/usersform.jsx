@@ -24,7 +24,8 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
         rol: "",
         extension: "",
         especializacion: "",
-        nro_maquina: ""
+        nro_maquina: "",
+        area: ""
     });
 
     const isCreate = !initialData.id;
@@ -47,7 +48,8 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
                 rol: initialData.rol || "",
                 extension: initialData.extension || "",
                 especializacion: specsVal,
-                nro_maquina: machineVal
+                nro_maquina: machineVal,
+                area: initialData.area || ""
             });
         }
     }, [initialData]);
@@ -77,7 +79,8 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
                 rol: formData.rol,
                 extension: Number(formData.extension),
                 especializacion: formData.especializacion,
-                nro_maquina: formData.nro_maquina ? String(formData.nro_maquina) : null
+                nro_maquina: formData.nro_maquina ? String(formData.nro_maquina) : null,
+                area: formData.area
             };
 
             
@@ -131,6 +134,8 @@ const UserForm = ({ initialData = {}, readOnlyDefault = false, darkMode = true, 
                             <option value="administrador">Administrador</option>
                         </select>
                     </div>
+
+                    <div><label className={labelClass}>Área</label><input type="text" name="area" value={formData.area} onChange={handleChange} disabled={readOnlyDefault} className={inputClass} /></div>
 
                     {/* CAMPO DE CONTRASEÑA - Solo visible si no es solo lectura */}
                     {!readOnlyDefault && (
