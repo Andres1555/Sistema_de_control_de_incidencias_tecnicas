@@ -180,3 +180,25 @@ export const Getbyidworkereportcontroller = async (req, res) => {
     res.status(500).json({ status: 'error', message: error.message });
   }
 };
+
+export const ClaimReportController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const authId = req.user?.id;
+    const userRole = (req.user?.rol || req.user?.role || "").toLowerCase();
+
+    if (userRole === 'worker') {
+      return res.status(403).json({ message: "Los trabajadores no pueden resolver reportes" });
+    }
+
+    const updated = await ReportService.claim(Number(id), authId);
+    
+    res.status(200).json({ 
+      message: "Reporte tomado para resolución con éxito", 
+      report: updated 
+    });
+  } catch (error) {
+    console.error("Error en ClaimReportController:", error.message);
+    res.status(error.status || 500).json({ message: error.message });
+  }
+};

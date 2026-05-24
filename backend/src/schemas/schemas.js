@@ -66,7 +66,9 @@ export const Report = sequelize.define('Report', {
   clave_acceso_windows: { type: DataTypes.INTEGER, field: 'clave de acceso windows' },
   fecha: { type: DataTypes.DATEONLY },
   departamento: { type: DataTypes.STRING(500) },
-  tipo: { type: DataTypes.STRING(500) }
+  tipo: { type: DataTypes.STRING(500) },
+  resuelto_por: { type: DataTypes.INTEGER, allowNull: true, defaultValue: null },
+  resuelto_por_nombre: { type: DataTypes.STRING(500), allowNull: true, defaultValue: null }
 }, {
   tableName: 'Report',
   timestamps: false

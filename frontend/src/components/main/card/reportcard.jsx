@@ -40,7 +40,7 @@ const ReportCard = ({ report = {}, onView, onDelete, onEscalate, darkMode = true
         const s = (estado || "").toLowerCase();
         switch (s) {
             case "resuelto": case "resolved": return "bg-green-500 text-white border-green-600";
-            case "en revision": case "en revisión": case "en proceso": return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50";
+            case "en revision": case "en revisión": case "en proceso": case "en resolución": case "en resolucion": return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50";
             case "en espera": case "abierto": case "urgente": case "pendiente": return "bg-red-500/20 text-red-400 border-red-500/50";
             default: return "bg-gray-500/20 text-gray-400 border-gray-500/50";
         }
@@ -107,6 +107,15 @@ const ReportCard = ({ report = {}, onView, onDelete, onEscalate, darkMode = true
                             <FaCheckCircle className="shrink-0" size={11} /> 
                             <span className="truncate">
                                 <strong className="font-black uppercase">Solucionado por:</strong> {solverName}
+                            </span>
+                        </div>
+                    )}
+
+                    {!isResolved && report.resuelto_por && (
+                        <div className={`text-[10px] md:text-[11px] flex items-center gap-2 text-amber-500 animate-in fade-in duration-500`}>
+                            <FaCheckCircle className="shrink-0" size={11} /> 
+                            <span className="truncate">
+                                <strong className="font-black uppercase">En resolución por:</strong> {report.resuelto_por_nombre || "Técnico"}
                             </span>
                         </div>
                     )}

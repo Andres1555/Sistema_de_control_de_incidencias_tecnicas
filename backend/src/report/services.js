@@ -148,6 +148,46 @@ export const ReportService = {
     } catch (error) {
       throw new Error('Error en el servicio de filtros: ' + error.message);
     }
+  },
+  claim: async (id, userId) => {
+    try {
+      // 1. Buscamos el reporte actual
+      const report = await Report.findByPk(id);
+      if (!report) {
+        const err = new Error("Reporte no encontrado");
+        err.status = 404;
+        throw err;
+      }
+
+      // 2. Verificar si ya fue reclamado por otra persona
+      if (report.resuelto_por !== null && report.resuelto_por !== userId) {
+        const err = new Error(`Este reporte ya está siendo resuelto por otra persona (${report.resuelto_por_nombre || 'otro técnico'})`);
+        err.status = 400;
+        throw err;
+      }
+
+      // 3. Obtener el nombre del usuario (técnico) que reclama
+      const user = await User.findByPk(userId);
+      if (!user) {
+        const err = new Error("Usuario no encontrado");
+        err.status = 404;
+        throw err;
+      }
+
+      const fullName = `${user.nombre} ${user.apellido}`;
+
+      // 4. Actualizar el reporte
+      const updatePayload = {
+        resuelto_por: userId,
+        resuelto_por_nombre: fullName,
+        estado: 'En resolución' // Cambiar estado para que sepa que está en proceso
+      };
+
+      return await ReportRepository.updateById(id, updatePayload);
+    } catch (error) {
+      console.error("Error en ReportService.claim:", error.message);
+      throw error;
+    }
   }
 };
 

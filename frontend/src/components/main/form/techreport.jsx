@@ -1,6 +1,6 @@
 import React, { useState, forwardRef, useEffect } from "react";
 import LoadingModal from "@/hooks/Modals/LoadingModal";
-import { FaWrench, FaCheckCircle, FaClock, FaSave, FaHashtag, FaUserTie, FaTrash } from "react-icons/fa";
+import { FaWrench, FaCheckCircle, FaClock, FaSave, FaHashtag, FaUserTie, FaTrash, FaClipboardList, FaFileAlt } from "react-icons/fa";
 
 const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false, readOnlyDefault = false, darkMode = false }, ref) => {
   
@@ -120,37 +120,132 @@ const Techreport = forwardRef(({ onSuccess, onClose, initialData, isEdit = false
   const labelClass = `block text-[10px] font-black uppercase tracking-widest mb-1 ${darkMode ? "text-blue-400" : "text-blue-600"}`;
 
   return (
-    <div className="p-2 animate-fade-in">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className={labelClass}><FaHashtag className="inline mb-1 mr-1"/> ID Reporte Relacionado</label>
-          <input type="text" value={formData.id_report} disabled={true} className={`${inputClass} opacity-60`} />
-        </div>
-        <div>
-          <label className={labelClass}><FaUserTie className="inline mb-1 mr-1"/> Técnico Responsable</label>
-          <input type="text" value={`${formData.id_user} - ${loggedUserName}`} disabled={true} className={`${inputClass} opacity-60`} />
-        </div>
-        <div className="md:col-span-2">
-          <label className={labelClass}><FaWrench className="inline mb-1 mr-1"/> Diagnóstico / Caso Técnico</label>
-          <input type="text" name="caso_tecnico" value={formData.caso_tecnico} onChange={handleInputChange} disabled={isReadOnly} placeholder="Resumen del fallo técnico..." className={inputClass} />
-        </div>
-        <div className="md:col-span-2">
-          <label className={labelClass}><FaCheckCircle className="inline mb-1 mr-1"/> Resolución Detallada</label>
-          <textarea name="resolucion" rows="3" value={formData.resolucion} onChange={handleInputChange} disabled={isReadOnly} placeholder="Describa la solución aplicada..." className={inputClass} />
-        </div>
-        <div>
-          <label className={labelClass}><FaClock className="inline mb-1 mr-1"/> Hora de la Resolución</label>
-          <input type="time" name="tiempo" value={formData.tiempo} onChange={handleInputChange} disabled={isReadOnly} className={inputClass} />
-        </div>
-        {!isReadOnly && (
-          <div className="md:col-span-2 flex flex-col md:flex-row justify-end gap-3 pt-4 border-t border-gray-700/30">
-            <button type="button" onClick={onClose} className={`flex-1 md:flex-none h-11 px-8 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border-2 ${darkMode ? "bg-transparent border-red-600 text-red-500 hover:bg-red-600 hover:text-white" : "bg-white border-red-600 text-red-600 hover:bg-red-600 hover:text-white"}`}><FaTrash size={12} /> Cancelar</button>
-            <button onClick={sendForm} disabled={isLoading} className={`flex-1 md:flex-none h-11 px-10 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-md active:scale-95 text-white ${darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-[#1a1a1a] hover:bg-blue-700"} disabled:opacity-50`}>{isLoading ? "Procesando..." : <><FaSave size={14}/> Guardar Informe</>}</button>
+    <>
+      {isReadOnly ? (
+        <div className="space-y-6 animate-fade-in p-6 md:p-8">
+          <div className={`p-6 rounded-2xl border transition-all ${
+            darkMode ? "bg-slate-800/40 border-slate-700/50" : "bg-gray-50 border-gray-200"
+          }`}>
+            <div className="flex items-center gap-2 mb-2">
+              <FaClipboardList className={darkMode ? "text-orange-400" : "text-orange-600"} size={16} />
+              <span className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? "text-orange-400" : "text-orange-600"}`}>
+                Informe T&eacute;cnico
+              </span>
+            </div>
+            <h2 className="text-xl md:text-2xl font-black leading-tight">
+              {formData.caso_tecnico || "Caso Técnico"}
+            </h2>
+            <div className="flex flex-wrap gap-2 mt-4">
+              <span className={`px-3.5 py-1 rounded-xl text-xs font-black uppercase tracking-wider ${
+                darkMode ? 'bg-slate-700/50 text-slate-300 border border-slate-600/30' : 'bg-white text-gray-700 border border-gray-200 shadow-sm'
+              }`}>
+                Reporte #{formData.id_report}
+              </span>
+              <span className={`px-3.5 py-1 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${
+                darkMode ? 'bg-slate-700/50 text-slate-300 border border-slate-600/30' : 'bg-white text-gray-700 border border-gray-200 shadow-sm'
+              }`}>
+                <FaClock size={10} /> {formData.tiempo}
+              </span>
+            </div>
           </div>
-        )}
-      </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className={`p-6 rounded-2xl border ${
+              darkMode ? "bg-slate-800/20 border-slate-700/30" : "bg-white border-gray-200/60 shadow-sm"
+            } space-y-4`}>
+              <h3 className={`text-xs font-black uppercase tracking-wider mb-4 flex items-center gap-2 pb-2 border-b ${
+                darkMode ? "text-slate-400 border-slate-700/40" : "text-slate-500 border-gray-100"
+              }`}>
+                <FaFileAlt size={14} className={darkMode ? "text-orange-400" : "text-orange-600"} /> Datos del Reporte
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">ID Reporte</span>
+                  <span className={`text-sm font-black mt-1 block ${darkMode ? "text-white" : "text-slate-900"}`}>
+                    #{formData.id_report || "N/A"}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">T&eacute;cnico</span>
+                  <span className={`text-sm font-black mt-1 block ${darkMode ? "text-white" : "text-slate-900"}`}>
+                    {loggedUserName}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className={`p-6 rounded-2xl border ${
+              darkMode ? "bg-slate-800/20 border-slate-700/30" : "bg-white border-gray-200/60 shadow-sm"
+            } space-y-4`}>
+              <h3 className={`text-xs font-black uppercase tracking-wider mb-4 flex items-center gap-2 pb-2 border-b ${
+                darkMode ? "text-slate-400 border-slate-700/40" : "text-slate-500 border-gray-100"
+              }`}>
+                <FaClock size={14} className={darkMode ? "text-orange-400" : "text-orange-600"} /> Resoluci&oacute;n
+              </h3>
+              <div>
+                <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Hora</span>
+                <span className={`text-sm font-black mt-1 block ${darkMode ? "text-white" : "text-slate-900"}`}>
+                  {formData.tiempo || "N/A"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className={`p-6 rounded-2xl border ${
+            darkMode ? "bg-slate-800/20 border-slate-700/30" : "bg-white border-gray-200/60 shadow-sm"
+          } space-y-4`}>
+            <h3 className={`text-xs font-black uppercase tracking-wider mb-4 flex items-center gap-2 pb-2 border-b ${
+              darkMode ? "text-slate-400 border-slate-700/40" : "text-slate-500 border-gray-100"
+            }`}>
+              <FaWrench size={14} className={darkMode ? "text-orange-400" : "text-orange-600"} /> Diagn&oacute;stico
+            </h3>
+            <div>
+              <span className={`text-sm font-black mt-1 block ${darkMode ? "text-white" : "text-slate-900"}`}>
+                {formData.caso_tecnico || "N/A"}
+              </span>
+            </div>
+            <div className="pt-4">
+              <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Resoluci&oacute;n aplicada</span>
+              <span className={`text-sm font-black mt-1 block ${darkMode ? "text-white" : "text-slate-900"}`}>
+                {formData.resolucion || "N/A"}
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="p-2 animate-fade-in">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className={labelClass}><FaHashtag className="inline mb-1 mr-1"/> ID Reporte Relacionado</label>
+              <input type="text" value={formData.id_report} disabled={true} className={`${inputClass} opacity-60`} />
+            </div>
+            <div>
+              <label className={labelClass}><FaUserTie className="inline mb-1 mr-1"/> Técnico Responsable</label>
+              <input type="text" value={`${formData.id_user} - ${loggedUserName}`} disabled={true} className={`${inputClass} opacity-60`} />
+            </div>
+            <div className="md:col-span-2">
+              <label className={labelClass}><FaWrench className="inline mb-1 mr-1"/> Diagnóstico / Caso Técnico</label>
+              <input type="text" name="caso_tecnico" value={formData.caso_tecnico} onChange={handleInputChange} disabled={isReadOnly} placeholder="Resumen del fallo técnico..." className={inputClass} />
+            </div>
+            <div className="md:col-span-2">
+              <label className={labelClass}><FaCheckCircle className="inline mb-1 mr-1"/> Resolución Detallada</label>
+              <textarea name="resolucion" rows="3" value={formData.resolucion} onChange={handleInputChange} disabled={isReadOnly} placeholder="Describa la solución aplicada..." className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}><FaClock className="inline mb-1 mr-1"/> Hora de la Resolución</label>
+              <input type="time" name="tiempo" value={formData.tiempo} onChange={handleInputChange} disabled={isReadOnly} className={inputClass} />
+            </div>
+            {!isReadOnly && (
+              <div className="md:col-span-2 flex flex-col md:flex-row justify-end gap-3 pt-4 border-t border-gray-700/30">
+                <button type="button" onClick={onClose} className={`flex-1 md:flex-none h-11 px-8 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-sm active:scale-95 border-2 ${darkMode ? "bg-transparent border-red-600 text-red-500 hover:bg-red-600 hover:text-white" : "bg-white border-red-600 text-red-600 hover:bg-red-600 hover:text-white"}`}><FaTrash size={12} /> Cancelar</button>
+                <button onClick={sendForm} disabled={isLoading} className={`flex-1 md:flex-none h-11 px-10 flex items-center justify-center gap-2 rounded-xl text-[11px] font-black transition-all uppercase shadow-md active:scale-95 text-white ${darkMode ? "bg-blue-600 hover:bg-blue-500" : "bg-[#1a1a1a] hover:bg-blue-700"} disabled:opacity-50`}>{isLoading ? "Procesando..." : <><FaSave size={14}/> Guardar Informe</>}</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <LoadingModal isOpen={modalState.isOpen} status={modalState.status} message={modalState.message} onClose={handleModalClose} />
-    </div>
+    </>
   );
 });
 

@@ -135,8 +135,8 @@ const SignUp = () => {
               <option value="" className={darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}>-- Seleccionar Área --</option>
               <option value="Redes" className={darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}>Redes</option>
               <option value="Soporte Tecnico" className={darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}>Soporte Técnico</option>
-              <option value="Caue" className={darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}>Caue</option>
-              <option value="Desarrollo" className={darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}>Desarrollo</option>
+              <option value="Cau" className={darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}>Cau</option>
+              <option value="Automatizacion" className={darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}>Automatización</option>
             </select>
             
             <div className="md:col-span-2">

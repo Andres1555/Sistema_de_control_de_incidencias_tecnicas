@@ -304,8 +304,8 @@ const ReportList = ({ darkMode = true, searchTerm = "", refreshKey = 0, filter =
                             <option value="">-- Seleccionar Área --</option>
                             <option value="Redes">Redes</option>
                             <option value="Soporte Tecnico">Soporte Técnico</option>
-                            <option value="Caue">Caue</option>
-                            <option value="Desarrollo">Desarrollo</option>
+                            <option value="Cau">Cau</option>
+                            <option value="Automatizacion">Automatización</option>
                         </select>
                         
                         <div className="flex gap-3 mt-6">

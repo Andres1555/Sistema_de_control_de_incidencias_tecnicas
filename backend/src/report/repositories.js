@@ -20,13 +20,31 @@ const includeResolution = {
   ]
 };
 
+const TIPO_AREA_MAP = {
+  'Redes': ['redes'],
+  'Avería': ['soporte tecnico', 'cau'],
+  'Solicitud': ['soporte tecnico', 'automatizacion'],
+  'Periféricos': ['cau']
+};
+
+function getAllowedTipos(userRole, userArea) {
+  if (userRole === 'administrador') return null;
+  const area = (userArea || '').toLowerCase().trim();
+  if (!area) return [];
+  const allowed = [];
+  for (const [tipo, areas] of Object.entries(TIPO_AREA_MAP)) {
+    if (areas.some(a => area.includes(a) || a.includes(area))) {
+      allowed.push(tipo);
+    }
+  }
+  return allowed;
+}
+
 async function getAll(limit, offset, userRole, userArea) {
   const where = {};
-  if (userRole !== 'administrador' && userArea) {
-    where[Op.or] = [
-      { area: userArea },
-      { departamento: userArea }
-    ];
+  const allowedTipos = getAllowedTipos(userRole, userArea);
+  if (allowedTipos) {
+    where.tipo = { [Op.in]: allowedTipos };
   }
   return await Report.findAndCountAll({
     where,
@@ -51,7 +69,8 @@ async function createReport(data) {
     id_user: data.id_user || null,
     id_workers: data.id_workers || null,
     area: data.area,
-    estado: data.estado,
+    estado: data.estado || 'en espera',
+    descripcion: data.descripcion,
     descripcion: data.descripcion,
     nombre_natural: data.nombre_natural,
     nombre_windows: data.nombre_windows, 
@@ -124,11 +143,9 @@ async function getAllFiltered(caso, limit, offset, userRole, userArea) {
   const where = {
     caso: { [Op.like]: `%${caso}%` }
   };
-  if (userRole !== 'administrador' && userArea) {
-    where[Op.or] = [
-      { area: userArea },
-      { departamento: userArea }
-    ];
+  const allowedTipos = getAllowedTipos(userRole, userArea);
+  if (allowedTipos) {
+    where.tipo = { [Op.in]: allowedTipos };
   }
   
   const { count, rows } = await Report.findAndCountAll({
@@ -156,11 +173,9 @@ async function getByWorkerId(workerId) {
 
 async function getByFilter(area, fecha, userRole, userArea) {
   const where = {};
-  if (userRole !== 'administrador' && userArea) {
-    where[Op.or] = [
-      { area: userArea },
-      { departamento: userArea }
-    ];
+  const allowedTipos = getAllowedTipos(userRole, userArea);
+  if (allowedTipos) {
+    where.tipo = { [Op.in]: allowedTipos };
   } else if (area && area !== "") {
     where.area = { [Op.like]: `%${area}%` };
   }
@@ -171,7 +186,7 @@ async function getByFilter(area, fecha, userRole, userArea) {
 
   return await Report.findAll({
     where,
-    include: [includeMachine, includeUser, includeWorker, includeResolution], // <-- Agregado includeResolution
+    include: [includeMachine, includeUser, includeWorker, includeResolution],
     order: [['fecha', 'DESC']]
   });
 }

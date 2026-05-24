@@ -37,8 +37,6 @@ const ReportTechList = ({ userId, darkMode = true, searchTerm = "", refreshKey =
 
       if (searchTerm) {
         url = `${API_URL}/api/report_cases/search?caso=${encodeURIComponent(searchTerm)}`;
-      } else if (userId) {
-        url = `${API_URL}/api/report_cases/user/${userId}?page=${page}&limit=${limit}`;
       } else {
         url = `${API_URL}/api/report_cases?page=${page}&limit=${limit}`;
       }

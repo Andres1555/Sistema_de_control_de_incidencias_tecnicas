@@ -58,7 +58,12 @@ async function getByUserId(userId) {
   return await ReportCase.findAll({ where: { id_user: userId } });
 }
 
-async function createReportCase(data) {
+async function getByReportId(reportId) {
+  if (reportId === undefined || reportId === null) return null;
+  return await ReportCase.findOne({ where: { id_report: reportId } });
+}
+
+async function createReportCase(data, options = {}) {
   const payload = {
     id_user: data.id_user,
     id_report: data.id_report,
@@ -66,7 +71,7 @@ async function createReportCase(data) {
     resolucion: data.resolucion,
     tiempo: data.tiempo,
   };
-  return await ReportCase.create(payload);
+  return await ReportCase.create(payload, options);
 }
 
 async function updateById(id, data) {
@@ -91,6 +96,7 @@ export const ReportCaseRepository = {
   getAll,
   getById,
   getByUserId,
+  getByReportId,
   createReportCase,
   updateById,
   deleteById,
